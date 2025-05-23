@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
-import AccommodationListingPage from './pages/HostelListingPage';
+import AccommodationListingPage from './pages/FixedHostelListingPage';
 import AccommodationDetailPage from './pages/HostelDetailPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
@@ -21,6 +21,7 @@ import AdminInstitutesPage from './pages/AdminInstitutesPage';
 import InstituteDashboardPage from './pages/InstituteDashboardPage';
 import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
 import { AuthProvider } from './context/AuthContext';
+import LoopBreaker from './pages/LoopBreaker';
 import './App.css';
 
 function App() {
@@ -76,6 +77,8 @@ function App() {
               <Route path="/resources" element={<ResourcesPage />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/accommodation" element={<AccommodationListingPage />} />
+              {/* Demo page to show how to fix React infinite loops */}
+              <Route path="/loop-breaker" element={<LoopBreaker />} />
               <Route path="/accommodation/:id" element={<AccommodationDetailPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
