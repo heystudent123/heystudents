@@ -29,32 +29,27 @@ const Hero: React.FC = () => {
             </div>
             
             <h1 className="font-display font-bold tracking-tight text-white mb-6">
-              <span className="block mb-2">Your Complete</span>
+              <span className="block mb-2">College Begins with</span>
               <span className="text-gradient bg-gradient-to-r from-accent-300 to-secondary-300 bg-clip-text text-transparent">
-                DU Companion
+                the Right Place to Live
               </span>
             </h1>
             
             <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-              The ultimate resource for Delhi University students. Find accommodation, connect with alumni, 
-              access study resources, discover events, and more — all in one beautifully designed platform.
+              Find Your Perfect PG – Fast & Easy. Just got into college? Let us help you find verified PGs near your campus 
+              based on budget, location, food preference, and more. Your college life begins here – make it a smooth start.
             </p>
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 mb-12">
-              <Link to="/resources" className="btn-accent btn-lg group">
+              <Link to="/pg-search" className="btn-accent btn-lg group">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                  <path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" />
                 </svg>
-                Explore Resources
+                Find Your PG
               </Link>
               
-              <Link to="/accommodation" className="btn-outline text-white border-white hover:bg-white hover:text-primary-600 btn-lg group">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                </svg>
-                Find Accommodation
-              </Link>
+              {/* List Your Property button removed */}
             </div>
             
             {/* Social proof */}
@@ -86,37 +81,36 @@ const Hero: React.FC = () => {
               {/* Main image container */}
               <div className="relative overflow-hidden rounded-3xl shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1562774053-701939374585?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1350&q=80"
-                  alt="Delhi University Campus"
+                  src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1350&q=80"
+                  alt="Student Accommodation"
                   className="w-full h-full object-cover"
                 />
                 
                 {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-primary-900/80 via-transparent to-transparent"></div>
                 
                 {/* Stats overlay */}
                 <div className="absolute bottom-6 left-6 right-6">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-white">1000+</div>
-                      <div className="text-xs text-white/80">Accommodations</div>
+                      <div className="text-xs text-white/80">Verified PGs</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-white">500+</div>
-                      <div className="text-xs text-white/80">Alumni</div>
+                      <div className="text-2xl font-bold text-white">5000+</div>
+                      <div className="text-xs text-white/80">Happy Students</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-white">50+</div>
-                      <div className="text-xs text-white/80">Colleges</div>
+                      <div className="text-2xl font-bold text-white">20+</div>
+                      <div className="text-xs text-white/80">Localities</div>
                     </div>
                   </div>
                 </div>
               </div>
               
               {/* Floating feature cards */}
-              <div className="absolute -top-6 -right-6 card-glass p-4 max-w-xs animate-float" style={{ animationDelay: '0.5s' }}>
+              <div className="absolute -top-6 -right-6 p-4 max-w-xs animate-float group hover:scale-105 transition-all duration-300 cursor-pointer z-10 bg-white shadow-lg rounded-xl">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-success-500 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-success-500 rounded-xl flex items-center justify-center group-hover:bg-success-600 transition-colors duration-300">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
@@ -126,18 +120,28 @@ const Hero: React.FC = () => {
                     <div className="text-sm text-neutral-600">100% Safe & Secure</div>
                   </div>
                 </div>
+                <div className="max-h-0 overflow-hidden group-hover:max-h-32 transition-all duration-500 ease-in-out">
+                  <div className="mt-3 bg-neutral-100 p-3 rounded-lg text-sm text-neutral-700">
+                    All our PGs are personally verified by our team to ensure safety, cleanliness, and accurate information for students.
+                  </div>
+                </div>
               </div>
               
-              <div className="absolute -bottom-6 -left-6 card-glass p-4 max-w-xs animate-float" style={{ animationDelay: '1s' }}>
+              <div className="absolute -bottom-6 -left-6 p-4 max-w-xs animate-float group hover:scale-105 transition-all duration-300 cursor-pointer z-10 bg-white shadow-lg rounded-xl" style={{ animationDelay: '1s' }}>
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center group-hover:bg-primary-600 transition-colors duration-300">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                      <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
                     </svg>
                   </div>
                   <div>
-                    <div className="font-semibold text-neutral-900">Alumni Network</div>
-                    <div className="text-sm text-neutral-600">Connect & Learn</div>
+                    <div className="font-semibold text-neutral-900">Smart Matching</div>
+                    <div className="text-sm text-neutral-600">Perfect PG in Minutes</div>
+                  </div>
+                </div>
+                <div className="max-h-0 overflow-hidden group-hover:max-h-32 transition-all duration-500 ease-in-out">
+                  <div className="mt-3 bg-neutral-100 p-3 rounded-lg text-sm text-neutral-700">
+                    Our AI-powered matching system finds you the perfect PG based on your budget, location preferences, and lifestyle needs.
                   </div>
                 </div>
               </div>

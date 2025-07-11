@@ -16,9 +16,19 @@
   --neutral-900: #171717;
 }
 
+/* Fix for extra space on right side */
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 @layer base {
   * {
     @apply border-neutral-200;
+    box-sizing: border-box;
   }
   
   html {
@@ -167,8 +177,16 @@
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
   
-  .section-padding {
-    @apply py-16 md:py-24;
+  .section {
+    @apply py-12 md:py-24;
+  }
+  
+  .section-sm {
+    @apply py-8 md:py-16;
+  }
+  
+  .section-lg {
+    @apply py-16 md:py-32;
   }
   
   /* Text Utilities */

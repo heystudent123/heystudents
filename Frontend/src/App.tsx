@@ -3,10 +3,13 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
-import AccommodationListingPage from './pages/FixedHostelListingPage';
+import AccommodationListingPage from './pages/AccommodationPage';
 import AccommodationDetailPage from './pages/HostelDetailPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
+import HelpCenterPage from './pages/HelpCenterPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
 import AlumniPage from './pages/AlumniPage';
 import ResourcesPage from './pages/ResourcesPage';
 import EventsPage from './pages/EventsPage';
@@ -70,7 +73,7 @@ function App() {
               <WelcomeForm onSubmit={handleWelcomeFormSubmit} />
             </div>
           )}
-          <Navbar />
+          {/* Navbar removed from here and added to individual page components */}
           <main className="flex-grow">
             <Routes>
               <Route path="/" element={<HomePage />} />
@@ -82,6 +85,9 @@ function App() {
               <Route path="/accommodation/:id" element={<AccommodationDetailPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/help-center" element={<HelpCenterPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms-of-service" element={<TermsOfServicePage />} />
               <Route path="/alumni" element={<AlumniPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />

@@ -7,24 +7,14 @@ const Footer: React.FC = () => {
   const footerLinks = {
     platform: [
       { name: 'Home', href: '/' },
-      { name: 'Find Accommodation', href: '/accommodation' },
-      { name: 'Study Resources', href: '/resources' },
-      { name: 'Campus Events', href: '/events' },
-      { name: 'Alumni Network', href: '/alumni' }
+      { name: 'Find Accommodation', href: '/accommodation' }
     ],
     support: [
-      { name: 'Help Center', href: '#' },
+      { name: 'Help Center', href: '/help-center' },
       { name: 'Contact Us', href: '/contact' },
       { name: 'About Us', href: '/about' },
-      { name: 'Privacy Policy', href: '#' },
-      { name: 'Terms of Service', href: '#' }
-    ],
-    community: [
-      { name: 'Student Stories', href: '#' },
-      { name: 'Success Stories', href: '#' },
-      { name: 'Campus Ambassadors', href: '#' },
-      { name: 'Partner Colleges', href: '#' },
-      { name: 'Blog', href: '#' }
+      { name: 'Privacy Policy', href: '/privacy-policy' },
+      { name: 'Terms of Service', href: '/terms-of-service' }
     ]
   };
 
@@ -78,7 +68,7 @@ const Footer: React.FC = () => {
       
       <div className="container-custom section-padding">
         {/* Main footer content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
           {/* Brand section */}
           <div className="lg:col-span-2 space-y-6">
             <Link to="/" className="flex items-center space-x-3 group">
@@ -111,13 +101,13 @@ const Footer: React.FC = () => {
             {/* Newsletter signup */}
             <div className="space-y-3">
               <h4 className="font-semibold text-white">Stay Updated</h4>
-              <div className="flex space-x-2">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="email"
                   placeholder="Enter your email"
-                  className="flex-1 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
-                <button className="btn-primary px-6">
+                <button className="btn-primary px-6 py-2 whitespace-nowrap rounded-xl">
                   Subscribe
                 </button>
               </div>
@@ -164,25 +154,8 @@ const Footer: React.FC = () => {
             </ul>
           </div>
           
-          {/* Community links */}
-          <div>
-            <h3 className="font-semibold text-white mb-6 text-lg">Community</h3>
-            <ul className="space-y-4">
-              {footerLinks.community.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    to={link.href}
-                    className="text-neutral-300 hover:text-white transition-colors duration-200 flex items-center group"
-                  >
-                    <svg className="w-4 h-4 mr-2 opacity-0 group-hover:opacity-100 transform -translate-x-2 group-hover:translate-x-0 transition-all duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Empty space for layout balance */}
+          <div></div>
         </div>
         
         {/* Contact info */}

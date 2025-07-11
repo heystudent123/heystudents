@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import './Navbar.css';
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -33,18 +34,12 @@ const Navbar: React.FC = () => {
 
   const navItems = [
     { name: 'Home', path: '/' },
-    { name: 'Resources', path: '/resources' },
-    { name: 'Events', path: '/events' },
     { name: 'Accommodation', path: '/accommodation' },
-    { name: 'Alumni', path: '/alumni' }
+    { name: 'About Us', path: '/about' }
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      isScrolled 
-        ? 'bg-white/95 backdrop-blur-md shadow-soft border-b border-neutral-200/50' 
-        : 'bg-transparent'
-    }`}>
+    <nav className="navbar-fixed transition-all duration-300 bg-white shadow-md">
       <div className="container-custom">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
