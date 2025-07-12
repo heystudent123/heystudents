@@ -1,223 +1,420 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { authApi } from '../services/api';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SharedNavbar from '../components/SharedNavbar';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { auth } from '../firebase/config';
+
+declare global {
+  interface Window {
+    confirmationResult: any;
+    recaptchaVerifier: any;
+  }
+}
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    phone: '',
+    otp: '',
   });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [recaptchaLoading, setRecaptchaLoading] = useState(true);
+  const [recaptchaError, setRecaptchaError] = useState('');
+  const [resendCountdown, setResendCountdown] = useState(60);
+  const [resendDisabled, setResendDisabled] = useState(true);
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
+  
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { loginWithPhone } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  useEffect(() => {
+    // Clear any previous instances
+    if (window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier.clear();
+      } catch (e) {
+        console.error('Error clearing existing reCAPTCHA:', e);
+      }
+      window.recaptchaVerifier = null;
+    }
+    
+    if (!recaptchaContainerRef.current) {
+      setRecaptchaError('reCAPTCHA container not found');
+      return;
+    }
+    
+    // Delay reCAPTCHA initialization slightly to ensure DOM is ready
+    const initRecaptcha = setTimeout(() => {
+      try {
+        console.log('Initializing reCAPTCHA...');
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current!, {
+          'size': 'invisible',
+          'callback': (response: string) => {
+            console.log('reCAPTCHA verified successfully', response);
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+            setRecaptchaError('reCAPTCHA expired. Please refresh the page.');
+          },
+          'error-callback': (error: Error) => {
+            console.error('reCAPTCHA error:', error);
+            setRecaptchaError('reCAPTCHA error occurred. Please refresh the page.');
+          }
+        });
+        console.log('reCAPTCHA initialized successfully');
+        setRecaptchaLoading(false);
+      } catch (error) {
+        setRecaptchaError('Failed to initialize reCAPTCHA');
+        console.error('RecaptchaVerifier error:', error);
+      }
+    }, 1000);
+    
+    // Cleanup on unmount
+    return () => {
+      clearTimeout(initRecaptcha);
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {
+          console.error('Error clearing reCAPTCHA on unmount:', e);
+        }
+        window.recaptchaVerifier = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCountdown > 0) {
+      timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000);
+    } else {
+      setResendDisabled(false);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCountdown]);
+
+  const handleSendOTP = async () => {
+    if (recaptchaLoading) {
+      setError('reCAPTCHA is still initializing');
+      return;
+    }
+    
+    if (recaptchaError) {
+      setError(recaptchaError);
+      return;
+    }
+    
+    if (!formData.phone) {
+      setError('Please enter your phone number');
+      return;
+    }
+
+    let phoneNumber = formData.phone;
+    if (!phoneNumber.startsWith('+')) {
+      phoneNumber = `+91${phoneNumber}`;
+    }
+
     setLoading(true);
+    setError('');
 
     try {
-      const { email, password } = formData;
-      const userData = await login(email, password);
+      console.log('Sending OTP to:', phoneNumber);
       
-      // Redirect based on user role
-      if (userData.role === 'admin') {
-        navigate('/admin');
-      } else if (userData.role === 'institute') {
-        navigate('/institute/dashboard');
-      } else {
-        navigate('/');
+      // Always recreate the reCAPTCHA verifier to ensure a fresh instance
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {
+          console.error('Error clearing existing reCAPTCHA:', e);
+        }
       }
+      
+      console.log('Creating new reCAPTCHA verifier');
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current!, {
+        'size': 'invisible',
+        'callback': (response: string) => {
+          console.log('reCAPTCHA verified successfully with response:', response);
+        },
+        'expired-callback': () => {
+          console.log('reCAPTCHA expired');
+          setError('reCAPTCHA expired. Please try again.');
+        },
+        'error-callback': (error: Error) => {
+          console.error('reCAPTCHA error:', error);
+          setError('reCAPTCHA error occurred. Please try again.');
+        }
+      });
+      
+      const appVerifier = window.recaptchaVerifier;
+      
+      // Ensure the reCAPTCHA is rendered before proceeding
+      try {
+        await appVerifier.render();
+        console.log('reCAPTCHA rendered successfully');
+      } catch (renderErr) {
+        console.log('reCAPTCHA may already be rendered:', renderErr);
+      }
+      
+      // Add a small delay to ensure reCAPTCHA is fully initialized
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Proceeding with phone authentication...');
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      console.log('OTP sent successfully');
+      window.confirmationResult = confirmationResult;
+      setOtpSent(true);
+      setResendDisabled(true);
+      setResendCountdown(60);
     } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.response?.data?.message || 'Invalid email or password');
+      console.error('Error sending OTP:', err);
+      
+      // Reset reCAPTCHA on error
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          window.recaptchaVerifier = null;
+        } catch (clearErr) {
+          console.error('Error clearing reCAPTCHA:', clearErr);
+        }
+      }
+      
+      // Provide more specific error messages
+      if (err.code === 'auth/invalid-app-credential') {
+        setError('Invalid reCAPTCHA verification. Please refresh the page and try again.');
+      } else if (err.code === 'auth/captcha-check-failed') {
+        setError('reCAPTCHA verification failed. Please refresh the page and try again.');
+      } else if (err.code === 'auth/quota-exceeded') {
+        setError('SMS quota exceeded. Please try again later.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many requests. Please try again after some time or use a different phone number.');
+      } else if (err.code === 'auth/invalid-phone-number') {
+        setError('Invalid phone number format. Please enter a valid phone number.');
+      } else {
+        setError(err.message || 'Failed to send OTP. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleVerifyOTP = async () => {
+    if (!formData.otp) {
+      setError('Please enter the OTP');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const confirmationResult = window.confirmationResult;
+      const result = await confirmationResult.confirm(formData.otp);
+      if (result) {
+        setOtpVerified(true);
+        // Store the user's phone number in Firebase auth
+        const user = result.user;
+        console.log('OTP verified successfully', user);
+        
+        // Get formatted phone number
+        let phoneNumber = formData.phone;
+        if (!phoneNumber.startsWith('+')) {
+          phoneNumber = `+91${phoneNumber}`;
+        }
+        
+        try {
+          // Try to login with phone number
+          await loginWithPhone(phoneNumber);
+          // Automatically redirect to complete profile page after successful verification
+          navigate('/complete-profile');
+        } catch (loginErr) {
+          console.error('Error logging in with phone:', loginErr);
+          // Even if login fails, still redirect to complete profile
+          navigate('/complete-profile');
+        }
+      } else {
+        setError('Incorrect OTP. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('Error verifying OTP:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setResendDisabled(true);
+    setResendCountdown(60);
+    setError('');
+    
+    try {
+      await handleSendOTP();
+    } catch (err) {
+      console.error('Error resending OTP:', err);
+      setError('Failed to resend OTP. Please try again.');
+    }
+  };
+
+  const handleOTPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, otp: e.target.value });
+    // Clear error when user starts typing new OTP
+    setError('');
+  };
+
   return (
-    <div className="min-h-screen bg-white font-sans">
-      {/* Add SharedNavbar */}
+    <div className="min-h-screen bg-gray-50">
       <SharedNavbar />
-      
-      {/* Hero Section with Gradient Background - using blue-to-orange gradient */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 h-72 shadow-lg relative overflow-hidden mt-16">
-        {/* Background decorative elements */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"></div>
-      </div>
-      
-      <div className="relative -mt-40 flex flex-col items-center justify-center px-6 pb-24 mx-auto">
-        <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl shadow-xl border border-neutral-100/50 backdrop-blur-sm">
-          {/* Logo and Title */}
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 mb-6 shadow-lg transform transition-transform hover:scale-105">
-              <span className="text-white text-3xl font-bold">HS</span>
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 bg-clip-text text-transparent mb-2">Welcome Back</h1>
-            <p className="mt-2 text-neutral-500">Sign in to continue to Hey Students</p>
+      <div className="flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
           </div>
 
-          {/* Error Alert */}
           {error && (
             <div className="p-4 rounded-xl bg-red-50 border border-red-100 shadow-sm">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-red-100 rounded-full p-2 mr-3">
-                  <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium text-red-800">{error}</p>
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-red-100 rounded-full p-2 mr-3">
+                <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
               </div>
+              <p className="text-sm font-medium text-red-800">{error}</p>
             </div>
+          </div>
           )}
           
-          {/* Login Form */}
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-neutral-dark mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-neutral-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                    </svg>
-                  </div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    className="block w-full pl-10 pr-3 py-3 border border-neutral-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 shadow-sm bg-neutral-50/50 hover:bg-white focus:bg-white transition-all text-neutral-700 placeholder-neutral-400"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    placeholder="your.email@example.com"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-neutral-dark mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-neutral-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    className="block w-full pl-10 pr-3 py-3 border border-neutral-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 shadow-sm bg-neutral-50/50 hover:bg-white focus:bg-white transition-all text-neutral-700 placeholder-neutral-400"
-                    value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-primary focus:ring-primary border-neutral-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-neutral-500">
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a href="#" className="font-medium text-primary hover:text-primary-dark transition-colors">
-                  Forgot your password?
-                </a>
-              </div>
-            </div>
-
+          <div className="space-y-6">
             <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-neutral-dark mb-1">
+                Phone Number
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  required
+                  placeholder="9876543210"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  disabled={otpSent}
+                  className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                />
+              </div>
+            </div>
+
+            {!otpSent ? (
               <button
-                type="submit"
-                disabled={loading}
+                type="button"
                 className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 hover:from-blue-700 hover:via-blue-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+                onClick={handleSendOTP}
+                disabled={loading}
               >
                 {loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  'Send OTP'
+                )}
+              </button>
+            ) : !otpVerified ? (
+              <>
+                <div>
+                  <label htmlFor="otp" className="block text-sm font-medium text-neutral-dark mb-1">
+                    Enter OTP
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <input
+                      id="otp"
+                      name="otp"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      required
+                      placeholder="Enter 6-digit OTP"
+                      value={formData.otp}
+                      onChange={handleOTPChange}
+                      className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 hover:from-blue-700 hover:via-blue-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+                  onClick={handleVerifyOTP}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign in'
-                )}
-              </button>
-            </div>
-          </form>
-
-          <div className="mt-8 text-center">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-neutral-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 py-1 bg-white text-neutral-500 rounded-full shadow-sm border border-neutral-100">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <a
-                href="#"
-                className="w-full inline-flex justify-center py-3 px-4 border border-neutral-200 rounded-xl shadow-sm bg-white text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-all duration-200 transform hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <svg className="w-5 h-5 text-[#4285F4]" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12.545 10.239v3.821h5.445c-0.712 2.315-2.647 3.972-5.445 3.972-3.332 0-6.033-2.701-6.033-6.032s2.701-6.032 6.033-6.032c1.498 0 2.866 0.549 3.921 1.453l2.814-2.814c-1.787-1.676-4.139-2.701-6.735-2.701-5.522 0-10.003 4.481-10.003 10.003s4.481 10.003 10.003 10.003c8.025 0 9.826-7.415 9.826-9.826 0-0.772-0.098-1.52-0.226-2.148l-9.6 0.001z"></path>
-                </svg>
-              </a>
-              <a
-                href="#"
-                className="w-full inline-flex justify-center py-3 px-4 border border-neutral-200 rounded-xl shadow-sm bg-white text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-all duration-200 transform hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <svg className="w-5 h-5 text-[#1877F2]" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"></path>
-                </svg>
-              </a>
-            </div>
+                  ) : (
+                    'Verify OTP'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 hover:from-blue-700 hover:via-blue-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+                  onClick={handleResendOTP}
+                  disabled={resendDisabled}
+                >
+                  {resendDisabled ? (
+                    <span>Resend OTP in {resendCountdown} seconds</span>
+                  ) : (
+                    'Resend OTP'
+                  )}
+                </button>
+              </>
+            ) : null}
           </div>
 
-          <div className="text-center text-sm text-neutral-500 mt-8">
-            Don't have an account?{' '}
-            <Link to="/signup" className="font-medium bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 bg-clip-text text-transparent hover:from-blue-700 hover:via-blue-600 hover:to-orange-600 transition-all">
-              Sign up now
+          <div className="mt-6 text-center">
+            <p className="text-sm text-neutral-600">
+              Don't have an account?{' '}
+              <Link to="/register" className="font-medium text-blue-500 hover:text-blue-600 transition-colors">
+                Sign up
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-orange-600 py-6 text-white/80 text-center mt-auto w-full">
+        <div className="container mx-auto px-4">
+          <p className="text-sm">&copy; {new Date().getFullYear()} Hey Students. All rights reserved.</p>
+          <div className="text-sm mt-2">
+            <Link to="/terms" className="font-medium text-blue-600 hover:text-blue-500">
+              Terms
+            </Link>
+            <span className="mx-2">|</span>
+            <Link to="/privacy" className="font-medium text-blue-600 hover:text-blue-500">
+              Privacy Policy
+            </Link>
+            <span className="mx-2">|</span>
+            <Link to="/support" className="font-medium text-blue-600 hover:text-blue-500">
+              Support
             </Link>
           </div>
         </div>
       </div>
-      
-      {/* Footer with gradient */}
-      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-orange-600 py-6 text-white/80 text-center mt-auto w-full">
-        <div className="container mx-auto px-4">
-          <p className="text-sm">&copy; {new Date().getFullYear()} Hey Students. All rights reserved.</p>
-        </div>
-      </div>
+      <div id="recaptcha-container" ref={recaptchaContainerRef} className="invisible"></div>
     </div>
   );
 };

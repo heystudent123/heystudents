@@ -1,29 +1,11 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 
 const UserSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Please provide a name'],
+    required: [true, 'Please add a name'],
     trim: true,
     maxlength: [50, 'Name cannot be more than 50 characters']
-  },
-  email: {
-    type: String,
-    required: [true, 'Please provide an email'],
-    unique: true,
-    match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-      'Please provide a valid email'
-    ]
-  },
-  password: {
-    type: String,
-    required: [true, 'Please provide a password'],
-    minlength: [6, 'Password must be at least 6 characters'],
-    select: false
   },
   mobile: {
     type: String,
@@ -47,13 +29,12 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'institute'],
-    default: 'user'
+    enum: ['student', 'alumni', 'admin'],
+    default: 'student'
   },
   referralCode: {
     type: String,
-    unique: true,
-    sparse: true
+    unique: true
   },
   referredBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -66,7 +47,6 @@ const UserSchema = new mongoose.Schema({
       ref: 'User'
     },
     name: String,
-    email: String,
     mobile: String,
     college: String,
     course: String,
@@ -79,49 +59,33 @@ const UserSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationToken: String,
+  verificationExpire: Date
 });
 
-// Generate a referral code before saving (only for institute accounts)
+// Generate and hash referral code
 UserSchema.pre('save', async function(next) {
-  // Hash password before saving
-  if (this.isModified('password')) {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+  if (!this.referralCode) {
+    this.referralCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    // Ensure referral code is unique
+    const existingUser = await this.constructor.findOne({ referralCode: this.referralCode });
+    if (existingUser) {
+      this.referralCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    }
   }
-
-  // Only generate referral code for institute accounts if not already set
-  // Regular users will not have referral codes
-  if (this.role === 'institute' && !this.referralCode) {
-    // Use first 4 characters of institute's name + random 4 characters
-    const namePrefix = this.name.substring(0, 4).toUpperCase();
-    const randomChars = crypto.randomBytes(2).toString('hex').toUpperCase();
-    this.referralCode = `${namePrefix}${randomChars}`;
-  }
-
   next();
 });
-
-// Sign JWT and return
-UserSchema.methods.getSignedJwtToken = function() {
-  return jwt.sign(
-    { id: this._id, role: this.role },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE }
-  );
-};
-
-// Match user entered password to hashed password in database
-UserSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
 
 // Add a user to referrals list with more details
 UserSchema.methods.addReferral = async function(referredUser) {
   this.referrals.push({
     user: referredUser._id,
     name: referredUser.name,
-    email: referredUser.email,
     mobile: referredUser.mobile,
     college: referredUser.college,
     course: referredUser.course,

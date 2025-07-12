@@ -10,6 +10,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const alumniRoutes = require('./routes/alumniRoutes');
 const accommodationRoutes = require('./routes/accommodationRoutes');
 const referralRoutes = require('./routes/referralRoutes');
+const validationRoutes = require('./routes/validationRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -44,6 +45,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/alumni', alumniRoutes);
 app.use('/api/accommodations', accommodationRoutes);
 app.use('/api/referrals', referralRoutes);
+app.use('/api', validationRoutes);
 
 // Root route
 app.get('/', (req, res) => {

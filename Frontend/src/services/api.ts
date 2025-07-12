@@ -85,7 +85,42 @@ export const alumniApi = {
 };
 
 // User authentication API
-export const authApi = {
+export interface AuthApi {
+  login: (email: string, password: string) => Promise<any>;
+  register: (userData: {
+    name: string;
+    email: string;
+    password: string;
+    mobile: string;
+    college?: string;
+    course?: string;
+    year?: string;
+    referralCode?: string;
+  }) => Promise<any>;
+  verifyReferralCode: (referralCode: string) => Promise<any>;
+  loginWithPhone: (phoneNumber: string) => Promise<any>;
+  updateProfile: (userId: string, profileData: any) => Promise<any>;
+  completeProfile: (profileData: {
+    uid: string;
+    fullName: string;
+    phone: string;
+    referralCode?: string;
+    college?: string;
+    collegeYear?: string;
+  }) => Promise<any>;
+  validateReferral: (referralCode: string) => Promise<any>;
+  createInstitute: (instituteData: {
+    name: string;
+    email: string;
+    password: string;
+    mobile: string;
+    customReferralCode?: string;
+  }) => Promise<any>;
+  getReferrals: () => Promise<any>;
+  getUsers: (role?: string) => Promise<any>;
+}
+
+export const authApi: AuthApi = {
   login: async (email: string, password: string) => {
     try {
       const response = await api.post('/users/login', { email, password });
@@ -121,6 +156,53 @@ export const authApi = {
       return response.data;
     } catch (error) {
       console.error('Referral code verification error:', error);
+      throw error;
+    }
+  },
+
+  loginWithPhone: async (phoneNumber: string) => {
+    try {
+      const response = await api.post('/users/login-phone', { phoneNumber });
+      return response.data;
+    } catch (error) {
+      console.error('Phone login error:', error);
+      throw error;
+    }
+  },
+
+  updateProfile: async (userId: string, profileData: any) => {
+    try {
+      const response = await api.put(`/users/${userId}/profile`, profileData);
+      return response.data;
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  },
+
+  completeProfile: async (profileData: {
+    uid: string;
+    fullName: string;
+    phone: string;
+    referralCode?: string;
+    college?: string;
+    collegeYear?: string;
+  }) => {
+    try {
+      const response = await api.post('/users/complete-profile', profileData);
+      return response.data;
+    } catch (error) {
+      console.error('Complete profile error:', error);
+      throw error;
+    }
+  },
+
+  validateReferral: async (referralCode: string) => {
+    try {
+      const response = await api.post('/validate-referral', { referralCode });
+      return response.data;
+    } catch (error) {
+      console.error('Referral validation error:', error);
       throw error;
     }
   },

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import AccommodationListingPage from './pages/AccommodationPage';
@@ -15,6 +14,7 @@ import ResourcesPage from './pages/ResourcesPage';
 import EventsPage from './pages/EventsPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import CompleteProfile from './pages/CompleteProfile';
 import AdminPage from './pages/AdminPage';
 import WelcomeForm from './components/WelcomeForm';
 import AdminUsersPage from './pages/AdminUsersPage';
@@ -30,17 +30,11 @@ import './App.css';
 function App() {
   // Set initial state to true to show the form immediately
   const [showWelcomeForm, setShowWelcomeForm] = useState(true);
-  const [userInfo, setUserInfo] = useState<{
-    name: string;
-    mobile: string;
-    referralCode?: string;
-  } | null>(null);
 
   useEffect(() => {
     // Check if user has already submitted the form
     const storedUserInfo = localStorage.getItem('userInfo');
     if (storedUserInfo) {
-      setUserInfo(JSON.parse(storedUserInfo));
       setShowWelcomeForm(false); // Hide form if user info exists
     }
   }, []);
@@ -52,7 +46,6 @@ function App() {
   }) => {
     // Save user info to localStorage
     localStorage.setItem('userInfo', JSON.stringify(formData));
-    setUserInfo(formData);
     setShowWelcomeForm(false);
   };
 
@@ -60,7 +53,6 @@ function App() {
   const clearUserData = () => {
     localStorage.removeItem('userInfo');
     setShowWelcomeForm(true);
-    setUserInfo(null);
   };
 
   return (
@@ -91,6 +83,7 @@ function App() {
               <Route path="/alumni" element={<AlumniPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/complete-profile" element={<CompleteProfile />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/users" element={<AdminUsersPage />} />
               <Route path="/admin/institutes" element={<AdminInstitutesPage />} />

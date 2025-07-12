@@ -7,70 +7,24 @@ const ErrorResponse = require('../utils/errorResponse');
 // @access  Public
 exports.registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, mobile, college, course, year, referralCode } = req.body;
+    const { name, phone } = req.body;
 
-    // Check if user already exists
-    let user = await User.findOne({ email });
-    if (user) {
-      return next(new ErrorResponse('User already exists with that email', 400));
+    // Validate
+    if (!name || !phone) {
+      return next(new ErrorResponse('Please provide name and phone', 400));
     }
-    
-    // If referral code is provided, verify it first
-    let referrer = null;
-    if (referralCode) {
-      // Find the referring institute
-      referrer = await User.findOne({ referralCode, role: 'institute' });
-      
-      if (!referrer) {
-        return next(new ErrorResponse('Invalid referral code', 400));
-      }
-    }
-    
-    // Create new user
-    user = new User({
+
+    // Create user
+    const user = await User.create({
       name,
-      email,
-      password,
-      mobile,
-      college,
-      course,
-      year,
-      role: 'user' // Ensure role is always 'user' for this endpoint
+      phone
     });
 
-    // Save user
-    await user.save();
-
-    // If valid referral code was provided, link the accounts
-    if (referrer) {
-      // Update the new user with referredBy
-      user.referredBy = referrer._id;
-      await user.save();
-      
-      // Create a referral record
-      const referral = new Referral({
-        referrer: referrer._id,
-        referred: user._id,
-        referralCode
-      });
-      await referral.save();
-      
-      // Add this user to the referrer's referrals list
-      await referrer.addReferral(user);
-    }
-
-    // Generate JWT token
-    const token = user.getSignedJwtToken();
+    // TODO: Send verification SMS
 
     res.status(201).json({
       success: true,
-      token,
-      data: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      data: user
     });
   } catch (err) {
     next(err);
@@ -126,45 +80,30 @@ exports.createInstituteAccount = async (req, res, next) => {
   }
 };
 
-// @desc    Login user
-// @route   POST /api/users/login
+// @desc    Login user with phone number (OTP verified by Firebase on frontend)
+// @route   POST /api/users/login-phone
 // @access  Public
-exports.loginUser = async (req, res, next) => {
+exports.loginWithPhone = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { phone } = req.body;
 
-    // Validate email & password
-    if (!email || !password) {
-      return next(new ErrorResponse('Please provide an email and password', 400));
+    // Validate
+    if (!phone) {
+      return next(new ErrorResponse('Please provide a phone number', 400));
     }
 
-    // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    // Find user by phone
+    const user = await User.findOne({ phone });
 
     if (!user) {
-      return next(new ErrorResponse('Invalid credentials', 401));
+      return next(new ErrorResponse('User not found', 404));
     }
 
-    // Check if password matches
-    const isMatch = await user.matchPassword(password);
-
-    if (!isMatch) {
-      return next(new ErrorResponse('Invalid credentials', 401));
-    }
-
-    // Generate JWT Token
-    const token = user.getSignedJwtToken();
+    // TODO: Check if user is verified
 
     res.status(200).json({
       success: true,
-      token,
-      data: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        referralCode: user.referralCode
-      }
+      data: user
     });
   } catch (err) {
     next(err);
@@ -294,6 +233,62 @@ exports.promoteToAdmin = async (req, res, next) => {
     user.role = 'admin';
     await user.save();
     
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Complete user profile after OTP verification
+// @route   POST /api/users/complete-profile
+// @access  Public
+exports.completeProfile = async (req, res, next) => {
+  try {
+    const { uid, fullName, phone, referralCode, college, collegeYear } = req.body;
+
+    // Validate required fields
+    if (!uid || !fullName || !phone) {
+      return next(new ErrorResponse('Please provide uid, fullName, and phone', 400));
+    }
+
+    // Find user by uid or create new user
+    let user = await User.findOne({ _id: uid });
+    
+    if (!user) {
+      // If user doesn't exist, create a new one
+      user = new User({
+        _id: uid,
+        name: fullName,
+        phone: phone
+      });
+    }
+
+    // Update user profile
+    user.name = fullName;
+    user.phone = phone;
+    user.college = college || user.college;
+    user.year = collegeYear || user.year;
+
+    // Handle referral code if provided
+    if (referralCode) {
+      const referrer = await User.findOne({ referralCode });
+      if (referrer) {
+        user.referredBy = referrer._id;
+        
+        // Add this user to referrer's referrals array if not already there
+        if (!referrer.referrals.includes(user._id)) {
+          referrer.referrals.push(user._id);
+          await referrer.save();
+        }
+      }
+    }
+
+    // Save user
+    await user.save();
+
     res.status(200).json({
       success: true,
       data: user
