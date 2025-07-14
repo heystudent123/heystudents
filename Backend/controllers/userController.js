@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
 const Referral = require('../models/Referral');
 const ErrorResponse = require('../utils/errorResponse');
 
@@ -20,10 +21,14 @@ exports.registerUser = async (req, res, next) => {
       phone
     });
 
-    // TODO: Send verification SMS
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRE || '30d'
+    });
 
     res.status(201).json({
       success: true,
+      token,
       data: user
     });
   } catch (err) {
@@ -101,8 +106,14 @@ exports.loginWithPhone = async (req, res, next) => {
 
     // TODO: Check if user is verified
 
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRE || '30d'
+    });
+
     res.status(200).json({
       success: true,
+      token,
       data: user
     });
   } catch (err) {
@@ -129,14 +140,42 @@ exports.getMe = async (req, res, next) => {
 // @desc    Update user profile
 // @route   PUT /api/users/me
 // @access  Private
+// @desc    Get all users (admin)
+// @route   GET /api/users
+// @access  Private/Admin
+exports.getUsers = async (req, res, next) => {
+  try {
+    const users = await User.find();
+    res.status(200).json({ success: true, count: users.length, data: users });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get single user by ID (admin)
+// @route   GET /api/users/:id
+// @access  Private/Admin
+exports.getUserById = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return next(new ErrorResponse('User not found', 404));
+    }
+    res.status(200).json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.updateProfile = async (req, res, next) => {
   try {
     const fieldsToUpdate = {
       name: req.body.name,
-      mobile: req.body.mobile,
+      phone: req.body.phone,
       college: req.body.college,
       course: req.body.course,
-      year: req.body.year
+      year: req.body.year,
+      email: req.body.email
     };
 
     // Remove undefined fields
@@ -247,28 +286,36 @@ exports.promoteToAdmin = async (req, res, next) => {
 // @access  Public
 exports.completeProfile = async (req, res, next) => {
   try {
-    const { uid, fullName, phone, referralCode, college, collegeYear } = req.body;
+    const { uid, fullName, phone, email, referralCode, college, collegeYear } = req.body;
 
     // Validate required fields
-    if (!uid || !fullName || !phone) {
-      return next(new ErrorResponse('Please provide uid, fullName, and phone', 400));
+    if (!fullName || !phone) {
+      return next(new ErrorResponse('Please provide fullName and phone', 400));
     }
 
-    // Find user by uid or create new user
-    let user = await User.findOne({ _id: uid });
-    
+    let user = null;
+
+    if (uid) {
+      user = await User.findById(uid);
+    }
+
     if (!user) {
-      // If user doesn't exist, create a new one
+      // Check if a user with this phone already exists to avoid duplicate key error
+      user = await User.findOne({ phone });
+    }
+
+    if (!user) {
+      // create new user if still not found
       user = new User({
-        _id: uid,
         name: fullName,
-        phone: phone
+        phone
       });
     }
 
     // Update user profile
     user.name = fullName;
     user.phone = phone;
+    if (email) user.email = email;
     user.college = college || user.college;
     user.year = collegeYear || user.year;
 

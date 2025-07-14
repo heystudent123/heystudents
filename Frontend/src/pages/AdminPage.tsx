@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import SharedNavbar from '../components/SharedNavbar';
 
 interface User {
   _id: string;
@@ -42,7 +43,10 @@ const AdminPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <>
+      <SharedNavbar />
+      <div className="navbar-spacer"></div>
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
         
@@ -74,77 +78,26 @@ const AdminPage: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
+          <Link to="/admin/users" className="bg-white overflow-hidden shadow rounded-lg hover:ring-2 hover:ring-primary transition">
+            <div className="px-4 py-5 sm:p-6 h-full">
               <h3 className="text-lg font-medium text-gray-900">User Management</h3>
-              <div className="mt-4">
-                <p className="text-sm text-gray-500">View and manage all registered users.</p>
-                <div className="mt-5">
-                  <Link
-                    to="/admin/users"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90"
-                  >
-                    Manage Users
-                  </Link>
-                </div>
-              </div>
+              <p className="mt-4 text-sm text-gray-500">View and manage all registered users.</p>
+              <span className="mt-5 inline-block px-4 py-2 text-sm font-medium text-white bg-primary rounded-md">Go</span>
             </div>
-          </div>
+          </Link>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg font-medium text-gray-900">Institute Management</h3>
-              <div className="mt-4">
-                <p className="text-sm text-gray-500">Create and manage institute accounts and referrals.</p>
-                <div className="mt-5">
-                  <Link
-                    to="/admin/institutes"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90"
-                  >
-                    Manage Institutes
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
+          <Link to="/admin/accommodations" className="bg-white overflow-hidden shadow rounded-lg hover:ring-2 hover:ring-primary transition">
+            <div className="px-4 py-5 sm:p-6 h-full">
               <h3 className="text-lg font-medium text-gray-900">Accommodation Management</h3>
-              <div className="mt-4">
-                <p className="text-sm text-gray-500">Add, edit, or remove accommodation listings.</p>
-                <div className="mt-5">
-                  <Link
-                    to="/admin/accommodations"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90"
-                  >
-                    Manage Accommodations
-                  </Link>
-                </div>
-              </div>
+              <p className="mt-4 text-sm text-gray-500">Add, edit, or remove accommodation listings.</p>
+              <span className="mt-5 inline-block px-4 py-2 text-sm font-medium text-white bg-primary rounded-md">Go</span>
             </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg font-medium text-gray-900">Events Management</h3>
-              <div className="mt-4">
-                <p className="text-sm text-gray-500">Create or modify upcoming events.</p>
-                <div className="mt-5">
-                  <Link
-                    to="/admin/events"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90"
-                  >
-                    Manage Events
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
+          </Link>
         </div>
       </div>
     </div>
+  </>
   );
 };
 
-export default AdminPage; 
+export default AdminPage;

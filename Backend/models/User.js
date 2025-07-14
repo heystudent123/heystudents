@@ -7,10 +7,28 @@ const UserSchema = new mongoose.Schema({
     trim: true,
     maxlength: [50, 'Name cannot be more than 50 characters']
   },
+  // Primary phone number (required)
+  phone: {
+    type: String,
+    required: [true, 'Please provide a phone number'],
+    match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number'],
+    unique: true
+  },
+  // Legacy mobile field kept for backward compatibility (will mirror `phone`)
   mobile: {
     type: String,
-    required: [true, 'Please provide a mobile number'],
-    match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit mobile number']
+    required: false
+  },
+  // Optional email address
+  email: {
+    type: String,
+    required: false,
+    lowercase: true,
+    trim: true,
+    match: [
+      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+      'Please provide a valid email'
+    ]
   },
   college: {
     type: String,

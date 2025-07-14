@@ -91,19 +91,20 @@ export interface AuthApi {
     name: string;
     email: string;
     password: string;
-    mobile: string;
+    phone: string;
     college?: string;
     course?: string;
     year?: string;
     referralCode?: string;
   }) => Promise<any>;
   verifyReferralCode: (referralCode: string) => Promise<any>;
-  loginWithPhone: (phoneNumber: string) => Promise<any>;
+  loginWithPhone: (phone: string) => Promise<any>;
   updateProfile: (userId: string, profileData: any) => Promise<any>;
   completeProfile: (profileData: {
     uid: string;
     fullName: string;
     phone: string;
+    email?: string;
     referralCode?: string;
     college?: string;
     collegeYear?: string;
@@ -135,7 +136,7 @@ export const authApi: AuthApi = {
     name: string;
     email: string;
     password: string;
-    mobile: string;
+    phone: string;
     college?: string;
     course?: string;
     year?: string;
@@ -160,9 +161,9 @@ export const authApi: AuthApi = {
     }
   },
 
-  loginWithPhone: async (phoneNumber: string) => {
+  loginWithPhone: async (phone: string) => {
     try {
-      const response = await api.post('/users/login-phone', { phoneNumber });
+      const response = await api.post('/users/login-phone', { phone });
       return response.data;
     } catch (error) {
       console.error('Phone login error:', error);
@@ -170,9 +171,9 @@ export const authApi: AuthApi = {
     }
   },
 
-  updateProfile: async (userId: string, profileData: any) => {
+  updateProfile: async (_userId: string, profileData: any) => {
     try {
-      const response = await api.put(`/users/${userId}/profile`, profileData);
+      const response = await api.put('/users/me', profileData);
       return response.data;
     } catch (error) {
       console.error('Update profile error:', error);
@@ -184,6 +185,7 @@ export const authApi: AuthApi = {
     uid: string;
     fullName: string;
     phone: string;
+    email?: string;
     referralCode?: string;
     college?: string;
     collegeYear?: string;

@@ -118,6 +118,15 @@ html, body {
   }
   
   /* Card Components */
+
+/* Invisible but mounted reCAPTCHA container */
+#recaptcha-container {
+  position: fixed;
+  bottom: -100px; /* push out of viewport */
+  transform: scale(0);
+  pointer-events: none;
+}
+
   .card {
     @apply bg-white rounded-2xl shadow-card border border-neutral-100 overflow-hidden;
   }

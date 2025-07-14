@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SharedNavbar from '../components/SharedNavbar';
@@ -25,8 +25,7 @@ const Login: React.FC = () => {
   const [recaptchaError, setRecaptchaError] = useState('');
   const [resendCountdown, setResendCountdown] = useState(60);
   const [resendDisabled, setResendDisabled] = useState(true);
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const navigate = useNavigate();
   const { loginWithPhone } = useAuth();
 
@@ -41,16 +40,11 @@ const Login: React.FC = () => {
       window.recaptchaVerifier = null;
     }
     
-    if (!recaptchaContainerRef.current) {
-      setRecaptchaError('reCAPTCHA container not found');
-      return;
-    }
-    
     // Delay reCAPTCHA initialization slightly to ensure DOM is ready
     const initRecaptcha = setTimeout(() => {
       try {
         console.log('Initializing reCAPTCHA...');
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current!, {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           'size': 'invisible',
           'callback': (response: string) => {
             console.log('reCAPTCHA verified successfully', response);
@@ -123,30 +117,31 @@ const Login: React.FC = () => {
     try {
       console.log('Sending OTP to:', phoneNumber);
       
-      // Always recreate the reCAPTCHA verifier to ensure a fresh instance
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-        } catch (e) {
-          console.error('Error clearing existing reCAPTCHA:', e);
-        }
-      }
-      
-      console.log('Creating new reCAPTCHA verifier');
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current!, {
-        'size': 'invisible',
-        'callback': (response: string) => {
-          console.log('reCAPTCHA verified successfully with response:', response);
-        },
-        'expired-callback': () => {
-          console.log('reCAPTCHA expired');
-          setError('reCAPTCHA expired. Please try again.');
-        },
-        'error-callback': (error: Error) => {
-          console.error('reCAPTCHA error:', error);
-          setError('reCAPTCHA error occurred. Please try again.');
-        }
+      // Ensure a single persistent reCAPTCHA container exists
+    if (!document.getElementById('recaptcha-container')) {
+      const recaptchaDiv = document.createElement('div');
+      recaptchaDiv.id = 'recaptcha-container';
+      recaptchaDiv.style.position = 'absolute';
+      recaptchaDiv.style.left = '-9999px';
+      recaptchaDiv.style.top = '0'; // keep it off-screen but in DOM
+      document.body.appendChild(recaptchaDiv);
+    }
+
+    // Re-use existing verifier if available, otherwise create it once
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible'
       });
+      try {
+        await window.recaptchaVerifier.render();
+      } catch (_) {
+        /* already rendered */
+      }
+    } else {
+      // reuse existing verifier; no need to reset/clear as invisible solves it
+    }
+
+      console.log('Using existing reCAPTCHA verifier');
       
       const appVerifier = window.recaptchaVerifier;
       
@@ -173,12 +168,7 @@ const Login: React.FC = () => {
       
       // Reset reCAPTCHA on error
       if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-          window.recaptchaVerifier = null;
-        } catch (clearErr) {
-          console.error('Error clearing reCAPTCHA:', clearErr);
-        }
+        console.log('Keeping existing reCAPTCHA verifier instance after error');
       }
       
       // Provide more specific error messages
@@ -219,16 +209,24 @@ const Login: React.FC = () => {
         console.log('OTP verified successfully', user);
         
         // Get formatted phone number
-        let phoneNumber = formData.phone;
-        if (!phoneNumber.startsWith('+')) {
-          phoneNumber = `+91${phoneNumber}`;
-        }
-        
+        let phoneNumber = formData.phone.trim();
+      if (!phoneNumber.startsWith('+')) {
+        phoneNumber = `+91${phoneNumber}`;
+      }
+
+      // Persist verified phone for next page
+      localStorage.setItem('verifiedPhone', phoneNumber);
+
         try {
-          // Try to login with phone number
-          await loginWithPhone(phoneNumber);
-          // Automatically redirect to complete profile page after successful verification
-          navigate('/complete-profile');
+          // Try to login with phone number and get user data
+          const loggedUser = await loginWithPhone(phoneNumber);
+
+          // If user already has profile information (e.g. name/fullName present) redirect to home, else to complete-profile
+          if (loggedUser && (loggedUser.fullName || loggedUser.name)) {
+            navigate('/');
+          } else {
+            navigate('/complete-profile', { state: { verifiedPhone: phoneNumber } });
+          }
         } catch (loginErr) {
           console.error('Error logging in with phone:', loginErr);
           // Even if login fails, still redirect to complete profile
@@ -414,7 +412,7 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
-      <div id="recaptcha-container" ref={recaptchaContainerRef} className="invisible"></div>
+      <div id="recaptcha-container" className="invisible"></div>
     </div>
   );
 };

@@ -105,14 +105,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithPhone = async (phoneNumber: string, userData?: any): Promise<User> => {
     setLoading(true);
     try {
-      // Check if phone number is verified
-      if (verifiedPhoneNumber !== phoneNumber) {
+      // Normalize phone numbers to avoid mismatches due to spaces or formatting
+      const normalize = (num: string | null) => {
+      const digits = (num || '').replace(/\D/g, '');
+      return digits.slice(-10); // Use last 10 digits for comparison
+    };
+      if (verifiedPhoneNumber && normalize(verifiedPhoneNumber) !== normalize(phoneNumber)) {
         throw new Error('Phone number not verified');
       }
 
+      const normalized = normalize(phoneNumber);
+
       // Try to login with phone number
       try {
-        const response = await authApi.loginWithPhone(phoneNumber);
+        const response = await authApi.loginWithPhone(normalized);
         
         // Store token and user data
         localStorage.setItem('token', response.token);
@@ -127,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error.response?.status === 404 && userData) {
           const response = await authApi.register({
             ...userData,
-            mobile: phoneNumber
+            phone: normalized
           });
           
           // Store token and user data

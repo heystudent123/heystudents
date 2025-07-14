@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import './Navbar.css';
+import { useAuth } from '../context/AuthContext';
 
 const SharedNavbar: React.FC = () => {
   const location = useLocation();
+  const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
@@ -66,12 +68,28 @@ const SharedNavbar: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <Link to="/login" className="font-medium text-gray-600 hover:text-gray-900">
-                Sign In
-              </Link>
-              <Link to="/signup" className="bg-orange-500 text-white px-4 py-2 rounded-md font-medium hover:bg-orange-600 transition-colors">
-                Get Started
-              </Link>
+              {user ? (
+                <>
+                  {user.role === 'admin' && (
+                    <Link to="/admin" className="font-medium text-blue-600 hover:text-blue-800">
+                      Admin Panel
+                    </Link>
+                  )}
+                  <span className="text-gray-700 font-medium">Hi, {user.displayName || user.fullName || user.name}</span>
+                  <button
+                    onClick={logout}
+                    className="bg-red-500 text-white px-3 py-2 rounded-md text-sm hover:bg-red-600 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="font-medium text-gray-600 hover:text-gray-900">
+                    Sign In
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           
@@ -121,20 +139,38 @@ const SharedNavbar: React.FC = () => {
               About Us
             </Link>
             <div className="border-t border-gray-200 my-2"></div>
-            <Link 
-              to="/login" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50"
-              onClick={handleLinkClick}
-            >
-              Sign In
-            </Link>
-            <Link 
-              to="/signup" 
-              className="block px-3 py-2 rounded-md text-base font-medium bg-orange-500 text-white hover:bg-orange-600"
-              onClick={handleLinkClick}
-            >
-              Get Started
-            </Link>
+            {user ? (
+              <>
+                {user.role === 'admin' && (
+                  <Link 
+                    to="/admin" 
+                    className="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-gray-50"
+                    onClick={handleLinkClick}
+                  >
+                    Admin Panel
+                  </Link>
+                )}
+                <span className="block px-3 py-2 rounded-md text-base font-medium text-gray-700">
+                  Hi, {user.displayName || user.fullName || user.name}
+                </span>
+                <button
+                  onClick={() => { logout(); handleLinkClick(); }}
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-gray-50"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/login" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50"
+                  onClick={handleLinkClick}
+                >
+                  Sign In
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

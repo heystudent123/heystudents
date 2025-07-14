@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SharedNavbar from '../components/SharedNavbar';
 import { authApi } from '../services/api';
 
 const CompleteProfile: React.FC = () => {
+  const navigate = useNavigate();
   const { user, updateUserProfile } = useAuth();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [referralError, setReferralError] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
-    phone: '',
+    phone: (location.state as any)?.verifiedPhone || localStorage.getItem('verifiedPhone') || '',
+    email: '',
     referralCode: '',
     college: '',
     collegeYear: ''
@@ -23,6 +27,11 @@ const CompleteProfile: React.FC = () => {
         ...prev,
         phone: user.phone || user.phoneNumber || ''
       }));
+    } else {
+      const storedPhone = (location.state as any)?.verifiedPhone || localStorage.getItem('verifiedPhone');
+      if (storedPhone) {
+        setFormData(prev => ({ ...prev, phone: storedPhone }));
+      }
     }
   }, [user]);
 
@@ -70,11 +79,16 @@ const CompleteProfile: React.FC = () => {
         }
       }
 
+      // Normalize phone to last 10 digits to satisfy backend validation
+      const digitsOnly = formData.phone.replace(/\D/g, '');
+      const normalizedPhone = digitsOnly.slice(-10);
+
       // Save user profile data to MongoDB
       await authApi.completeProfile({
         uid: user?._id || '',
         fullName: formData.fullName,
-        phone: formData.phone,
+        phone: normalizedPhone,
+        email: formData.email,
         referralCode: formData.referralCode,
         college: formData.college,
         collegeYear: formData.collegeYear
@@ -88,7 +102,7 @@ const CompleteProfile: React.FC = () => {
       });
 
       // Navigate to home page after successful profile completion
-      // Removed navigate here
+      navigate('/');
     } catch (err: any) {
       console.error('Error completing profile:', err);
       setError(err.response?.data?.message || 'Failed to complete profile. Please try again.');
@@ -124,6 +138,28 @@ const CompleteProfile: React.FC = () => {
 
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="rounded-md shadow-sm -space-y-px">
+              {/* Phone Number (auto-filled) */}
+              <div className="mb-4">
+                <label htmlFor="phone" className="block text-sm font-medium text-neutral-dark mb-1">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5h2l2 7-2 7H3V5zm4 0h10l2 7-2 7H7V5zm13 0h1v14h-1V5z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 bg-gray-100 cursor-not-allowed focus:outline-none sm:text-sm"
+                    value={formData.phone}
+                    readOnly
+                  />
+                </div>
+              </div>
+
               {/* Full Name - Required */}
               <div className="mb-4">
                 <label htmlFor="fullName" className="block text-sm font-medium text-neutral-dark mb-1">
@@ -148,24 +184,27 @@ const CompleteProfile: React.FC = () => {
                 </div>
               </div>
 
-              {/* Phone Number - Auto-filled and read-only */}
+
+
+              {/* Email - Optional */}
               <div className="mb-4">
-                <label htmlFor="phone" className="block text-sm font-medium text-neutral-dark mb-1">
-                  Phone Number
+                <label htmlFor="email" className="block text-sm font-medium text-neutral-dark mb-1">
+                  Email <span className="text-gray-500">(Optional)</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 12H8m8 0l-8-8m8 8l-8 8" />
                     </svg>
                   </div>
                   <input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    readOnly
-                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl bg-gray-100 text-gray-500 sm:text-sm transition-all duration-200"
-                    value={formData.phone}
+                    id="email"
+                    name="email"
+                    type="email"
+                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                    placeholder="you@example.com"
+                    value={formData.email}
+                    onChange={handleChange}
                   />
                 </div>
               </div>
