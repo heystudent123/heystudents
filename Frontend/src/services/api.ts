@@ -112,11 +112,16 @@ export interface AuthApi {
   validateReferral: (referralCode: string) => Promise<any>;
   createInstitute: (instituteData: {
     name: string;
-    email: string;
-    password: string;
     mobile: string;
+    email?: string;
+    password?: string;
+    address?: string;
     customReferralCode?: string;
   }) => Promise<any>;
+  getRegisteredUsers: () => Promise<any>;
+  promoteToAdmin: (userId: string) => Promise<any>;
+  promoteToInstitute: (userId: string, data?: { customReferralCode?: string }) => Promise<any>;
+  deleteUser: (userId: string) => Promise<any>;
   getReferrals: () => Promise<any>;
   getUsers: (role?: string) => Promise<any>;
 }
@@ -160,6 +165,16 @@ export const authApi: AuthApi = {
       throw error;
     }
   },
+  
+  validateReferral: async (referralCode: string) => {
+    try {
+      const response = await api.get(`/validation/referral/${referralCode}`);
+      return response.data;
+    } catch (error) {
+      console.error('Referral validation error:', error);
+      throw error;
+    }
+  },
 
   loginWithPhone: async (phone: string) => {
     try {
@@ -199,22 +214,16 @@ export const authApi: AuthApi = {
     }
   },
 
-  validateReferral: async (referralCode: string) => {
-    try {
-      const response = await api.post('/validate-referral', { referralCode });
-      return response.data;
-    } catch (error) {
-      console.error('Referral validation error:', error);
-      throw error;
-    }
-  },
+  // This function is now updated to use the GET endpoint
+  // The old POST endpoint is still available for backward compatibility
 
   // Create institute account (admin only)
   createInstitute: async (instituteData: {
     name: string;
-    email: string;
-    password: string;
     mobile: string;
+    email?: string;
+    password?: string;
+    address?: string;
     customReferralCode?: string;
   }) => {
     try {
@@ -225,8 +234,52 @@ export const authApi: AuthApi = {
       throw error;
     }
   },
+  
+  // Get all registered users (for mobile number selection)
+  getRegisteredUsers: async () => {
+    try {
+      const response = await api.get('/users/registered');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching registered users:', error);
+      throw error;
+    }
+  },
 
-  // Get referrals (for institute or admin)
+  // Promote user to admin role
+  promoteToAdmin: async (userId: string) => {
+    try {
+      const response = await api.put(`/users/${userId}/promote`, {});
+      return response.data;
+    } catch (error) {
+      console.error('Error promoting user to admin:', error);
+      throw error;
+    }
+  },
+
+  // Promote user to institute role
+  promoteToInstitute: async (userId: string, data: { customReferralCode?: string } = {}) => {
+    try {
+      const response = await api.put(`/users/${userId}/promote-to-institute`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error promoting user to institute:', error);
+      throw error;
+    }
+  },
+
+  // Delete user (admin only)
+  deleteUser: async (userId: string) => {
+    try {
+      const response = await api.delete(`/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  },
+
+  // Get user's referrals
   getReferrals: async () => {
     try {
       const response = await api.get('/users/referrals');

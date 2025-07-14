@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { authApi } from '../services/api';
 
 interface Institute {
@@ -24,11 +24,17 @@ const AdminInstitutesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [registeredUsers, setRegisteredUsers] = useState<{_id: string, name: string, phone: string}[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<{_id: string, name: string, phone: string}[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
     name: '',
+    mobile: '',
     email: '',
     password: '',
-    mobile: '',
+    address: '',
     customReferralCode: '',
   });
   const [formError, setFormError] = useState<string | null>(null);
@@ -37,6 +43,58 @@ const AdminInstitutesPage: React.FC = () => {
 
   useEffect(() => {
     fetchInstitutes();
+    fetchRegisteredUsers();
+  }, []);
+  
+  // Fetch registered users for the mobile number dropdown
+  const fetchRegisteredUsers = async () => {
+    try {
+      const response = await authApi.getRegisteredUsers();
+      setRegisteredUsers(response.data);
+      setFilteredUsers(response.data);
+    } catch (err) {
+      console.error('Failed to fetch registered users:', err);
+    }
+  };
+  
+  // Handle mobile number search
+  const handleMobileSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    setFormData({ ...formData, mobile: value });
+    
+    if (value) {
+      setFilteredUsers(
+        registeredUsers.filter(user => 
+          user.phone.includes(value) || user.name.toLowerCase().includes(value.toLowerCase())
+        )
+      );
+      setShowDropdown(true);
+    } else {
+      setFilteredUsers(registeredUsers);
+      setShowDropdown(false);
+    }
+  };
+  
+  // Select user from dropdown
+  const selectUser = (user: {_id: string, name: string, phone: string}) => {
+    setFormData({ ...formData, mobile: user.phone });
+    setSearchTerm(user.phone);
+    setShowDropdown(false);
+  };
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const fetchInstitutes = async () => {
@@ -55,9 +113,9 @@ const AdminInstitutesPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
-    if (!formData.name || !formData.email || !formData.password || !formData.mobile) {
-      setFormError('Please fill in all required fields');
+    // Basic validation - only name and mobile are required now
+    if (!formData.name || !formData.mobile) {
+      setFormError('Please fill in all required fields (Name and Mobile Number)');
       return;
     }
     
@@ -70,22 +128,37 @@ const AdminInstitutesPage: React.FC = () => {
     setFormError(null);
     
     try {
-      await authApi.createInstitute({
+      // Create institute with required fields
+      const instituteData: {
+        name: string;
+        mobile: string;
+        email?: string;
+        password?: string;
+        address?: string;
+        customReferralCode?: string;
+      } = {
         name: formData.name,
-        email: formData.email,
-        password: formData.password,
         mobile: formData.mobile,
-        customReferralCode: formData.customReferralCode || undefined,
-      });
+      };
+      
+      // Add optional fields if provided
+      if (formData.email) instituteData.email = formData.email;
+      if (formData.password) instituteData.password = formData.password;
+      if (formData.address) instituteData.address = formData.address;
+      if (formData.customReferralCode) instituteData.customReferralCode = formData.customReferralCode;
+      
+      await authApi.createInstitute(instituteData);
       
       // Reset form and hide it
       setFormData({
         name: '',
+        mobile: '',
         email: '',
         password: '',
-        mobile: '',
+        address: '',
         customReferralCode: '',
       });
+      setSearchTerm('');
       setShowAddForm(false);
       
       // Refresh institutes list
@@ -132,7 +205,7 @@ const AdminInstitutesPage: React.FC = () => {
             <div className="md:col-span-1">
               <h3 className="text-lg font-medium leading-6 text-gray-900">Add New Institute</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Create a new institute account with a custom referral code.
+                Create a new institute account. Only name and mobile number are required.
               </p>
             </div>
             <div className="mt-5 md:mt-0 md:col-span-2">
@@ -159,49 +232,118 @@ const AdminInstitutesPage: React.FC = () => {
                   </div>
 
                   <div className="col-span-6 sm:col-span-3">
+                    <label htmlFor="mobile" className="block text-sm font-medium text-gray-700">
+                      Mobile Number *
+                    </label>
+                    <div className="relative" ref={dropdownRef}>
+                      <div className="flex rounded-md shadow-sm">
+                        <div className="relative flex-grow focus-within:z-10">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="h-5 w-5 text-gray-400">🔍</span>
+                          </div>
+                          <input
+                            type="text"
+                            name="mobile"
+                            id="mobile"
+                            required
+                            placeholder="Search by mobile number"
+                            className="focus:ring-primary focus:border-primary block w-full rounded-md pl-10 sm:text-sm border-gray-300"
+                            value={searchTerm}
+                            onChange={handleMobileSearch}
+                            onClick={() => setShowDropdown(true)}
+                          />
+                          {searchTerm && (
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                              <button
+                                type="button"
+                                className="text-gray-400 hover:text-gray-500"
+                                onClick={() => {
+                                  setSearchTerm('');
+                                  setFormData({ ...formData, mobile: '' });
+                                }}
+                              >
+                                <span className="h-5 w-5">✕</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {showDropdown && (
+                        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                          {filteredUsers.length > 0 ? (
+                            filteredUsers.map((user) => (
+                              <div
+                                key={user._id}
+                                className="cursor-pointer hover:bg-gray-100 px-4 py-2"
+                                onClick={() => selectUser(user)}
+                              >
+                                <p className="font-medium">{user.phone}</p>
+                                <p className="text-sm text-gray-500">{user.name}</p>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-4 py-2 text-sm text-gray-500">
+                              No users found
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Select from registered user mobile numbers
+                    </p>
+                  </div>
+
+                  <div className="col-span-6 sm:col-span-3">
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                      Email address *
+                      Email address
                     </label>
                     <input
                       type="email"
                       name="email"
                       id="email"
-                      required
                       className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Optional field
+                    </p>
                   </div>
 
                   <div className="col-span-6 sm:col-span-3">
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                      Password *
+                      Password
                     </label>
                     <input
                       type="password"
                       name="password"
                       id="password"
-                      required
                       className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Optional field
+                    </p>
                   </div>
-
+                  
                   <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor="mobile" className="block text-sm font-medium text-gray-700">
-                      Mobile Number *
+                    <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                      Address
                     </label>
                     <input
                       type="text"
-                      name="mobile"
-                      id="mobile"
-                      required
-                      placeholder="10-digit number"
+                      name="address"
+                      id="address"
                       className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      value={formData.mobile}
-                      onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Optional field
+                    </p>
                   </div>
 
                   <div className="col-span-6">

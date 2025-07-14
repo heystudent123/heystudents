@@ -41,12 +41,25 @@ exports.registerUser = async (req, res, next) => {
 // @access  Private/Admin
 exports.createInstituteAccount = async (req, res, next) => {
   try {
-    const { name, email, password, mobile, customReferralCode } = req.body;
+    const { name, mobile, email, password, address, customReferralCode } = req.body;
 
-    // Check if user already exists
-    let existingUser = await User.findOne({ email });
+    // Validate required fields
+    if (!name || !mobile) {
+      return next(new ErrorResponse('Please provide name and mobile number', 400));
+    }
+
+    // Check if user already exists with this mobile number
+    let existingUser = await User.findOne({ phone: mobile });
     if (existingUser) {
-      return next(new ErrorResponse('User already exists with that email', 400));
+      return next(new ErrorResponse('User already exists with that mobile number', 400));
+    }
+    
+    // Check if email exists and is unique if provided
+    if (email) {
+      existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return next(new ErrorResponse('User already exists with that email', 400));
+      }
     }
 
     // If custom referral code is provided, check if it's already in use
@@ -60,12 +73,16 @@ exports.createInstituteAccount = async (req, res, next) => {
     // Create new institute account
     const institute = new User({
       name,
-      email,
-      password,
-      mobile,
+      phone: mobile,  // Set phone as the primary identifier
+      mobile,        // Keep mobile for backward compatibility
       role: 'institute',
       referralCode: customReferralCode // Will be auto-generated if not provided
     });
+    
+    // Add optional fields if provided
+    if (email) institute.email = email;
+    if (password) institute.password = password;
+    if (address) institute.address = address;
 
     // Save institute account
     await institute.save();
@@ -75,7 +92,9 @@ exports.createInstituteAccount = async (req, res, next) => {
       data: {
         _id: institute._id,
         name: institute.name,
+        phone: institute.phone,
         email: institute.email,
+        address: institute.address,
         role: institute.role,
         referralCode: institute.referralCode
       }
@@ -140,6 +159,50 @@ exports.getMe = async (req, res, next) => {
 // @desc    Update user profile
 // @route   PUT /api/users/me
 // @access  Private
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const { referralCode, ...otherUpdates } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return next(new ErrorResponse('User not found', 404));
+    }
+
+    // If referral code is being added and user doesn't already have one
+    if (referralCode && !user.referralCode) {
+      // Check if referral code exists
+      const referringUser = await User.findOne({ referralCode });
+      
+      if (!referringUser) {
+        return next(new ErrorResponse('Invalid referral code', 400));
+      }
+      
+      // Set referral code
+      user.referralCode = referralCode;
+      user.referredBy = referringUser._id;
+    } else if (referralCode && user.referralCode) {
+      // User already has a referral code
+      return next(new ErrorResponse('Referral code can only be added once', 400));
+    }
+
+    // Update other fields
+    Object.keys(otherUpdates).forEach(key => {
+      if (otherUpdates[key] !== undefined) {
+        user[key] = otherUpdates[key];
+      }
+    });
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Get all users (admin)
 // @route   GET /api/users
 // @access  Private/Admin
@@ -219,8 +282,14 @@ exports.getUserReferrals = async (req, res, next) => {
 // @access  Private/Admin
 exports.getUsers = async (req, res, next) => {
   try {
-    const role = req.query.role || 'user';
-    const users = await User.find({ role });
+    let query = {};
+    
+    // If role query param is provided, filter by that role
+    if (req.query.role) {
+      query.role = req.query.role;
+    }
+    
+    const users = await User.find(query);
     
     res.status(200).json({
       success: true,
@@ -270,6 +339,50 @@ exports.promoteToAdmin = async (req, res, next) => {
     
     // Update user role to admin
     user.role = 'admin';
+    await user.save();
+    
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Promote user to institute
+// @route   PUT /api/users/:id/promote-to-institute
+// @access  Private/Admin
+exports.promoteToInstitute = async (req, res, next) => {
+  try {
+    const { customReferralCode } = req.body;
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
+    }
+    
+    // Check if user is already an institute
+    if (user.role === 'institute') {
+      return next(new ErrorResponse('User is already an institute', 400));
+    }
+
+    // If custom referral code is provided, check if it's already in use
+    if (customReferralCode) {
+      const existingCode = await User.findOne({ referralCode: customReferralCode });
+      if (existingCode) {
+        return next(new ErrorResponse('Referral code already in use', 400));
+      }
+      // Set custom referral code
+      user.referralCode = customReferralCode;
+    } else if (!user.referralCode) {
+      // Generate a new referral code if one doesn't exist
+      // This will use the generateReferralCode method from the User model
+      user.referralCode = await user.constructor.generateReferralCode();
+    }
+    
+    // Update user role to institute
+    user.role = 'institute';
     await user.save();
     
     res.status(200).json({
@@ -343,4 +456,46 @@ exports.completeProfile = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-}; 
+};
+
+// @desc    Delete user
+// @route   DELETE /api/users/:id
+// @access  Private/Admin
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
+    }
+    
+    // Delete the user
+    await user.remove();
+    
+    res.status(200).json({
+      success: true,
+      data: {}
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get registered users (for mobile selection)
+// @route   GET /api/users/registered
+// @access  Private/Admin
+exports.getRegisteredUsers = async (req, res, next) => {
+  try {
+    // Get all users with their phone numbers
+    // Only return the id, name, and phone fields
+    const users = await User.find().select('_id name phone');
+    
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users
+    });
+  } catch (err) {
+    next(err);
+  }
+};

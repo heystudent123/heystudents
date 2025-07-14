@@ -45,7 +45,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/alumni', alumniRoutes);
 app.use('/api/accommodations', accommodationRoutes);
 app.use('/api/referrals', referralRoutes);
-app.use('/api', validationRoutes);
+app.use('/api/validation', validationRoutes);
 
 // Root route
 app.get('/', (req, res) => {

@@ -3,10 +3,18 @@ const ErrorResponse = require('../utils/errorResponse');
 
 // @desc    Validate referral code
 // @route   POST /api/validate-referral
+// @route   GET /api/referral/:code
 // @access  Public
 exports.validateReferralCode = async (req, res, next) => {
   try {
-    const { referralCode } = req.body;
+    // Get referral code from request body or params
+    let referralCode;
+    
+    if (req.method === 'GET') {
+      referralCode = req.params.code;
+    } else {
+      referralCode = req.body.referralCode;
+    }
 
     // Check if referral code exists
     if (!referralCode) {

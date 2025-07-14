@@ -5,5 +5,6 @@ const router = express.Router();
 
 // Validate referral code
 router.post('/validate-referral', validateReferralCode);
+router.get('/referral/:code', validateReferralCode);
 
 module.exports = router;

@@ -15,6 +15,7 @@ import EventsPage from './pages/EventsPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import CompleteProfile from './pages/CompleteProfile';
+import UserProfile from './pages/UserProfile';
 import AdminPage from './pages/AdminPage';
 import WelcomeForm from './components/WelcomeForm';
 import AdminUsersPage from './pages/AdminUsersPage';
@@ -84,6 +85,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/complete-profile" element={<CompleteProfile />} />
+              <Route path="/profile" element={<UserProfile />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/users" element={<AdminUsersPage />} />
               <Route path="/admin/institutes" element={<AdminInstitutesPage />} />

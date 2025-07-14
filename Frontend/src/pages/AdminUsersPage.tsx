@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import { authApi } from '../services/api';
 
 interface User {
   _id: string;
   name: string;
   email: string;
   role: string;
-  mobile: string;
+  phone: string;
   college?: string;
   course?: string;
   year?: string;
@@ -19,6 +19,9 @@ const AdminUsersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showInstituteModal, setShowInstituteModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [customReferralCode, setCustomReferralCode] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,11 +47,8 @@ const AdminUsersPage: React.FC = () => {
     // Fetch users
     const fetchUsers = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/users', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setUsers(response.data.data);
+        const response = await authApi.getUsers();
+        setUsers(response.data);
         setLoading(false);
       } catch (err: any) {
         console.error('Error fetching users:', err);
@@ -62,19 +62,56 @@ const AdminUsersPage: React.FC = () => {
 
   const promoteToAdmin = async (userId: string) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/users/${userId}/promote`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // Use authApi instead of direct axios call
+      await authApi.promoteToAdmin(userId);
       
       // Refresh user list
-      const response = await axios.get('http://localhost:5000/api/users', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setUsers(response.data.data);
+      const response = await authApi.getUsers();
+      setUsers(response.data);
     } catch (err: any) {
       console.error('Error promoting user:', err);
       alert(err.response?.data?.message || 'Failed to promote user');
+    }
+  };
+  
+  const deleteUser = async (userId: string) => {
+    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      try {
+        await authApi.deleteUser(userId);
+        
+        // Refresh user list
+        const response = await authApi.getUsers();
+        setUsers(response.data);
+      } catch (err: any) {
+        console.error('Error deleting user:', err);
+        alert(err.response?.data?.message || 'Failed to delete user');
+      }
+    }
+  };
+
+  const openInstituteModal = (userId: string) => {
+    setSelectedUserId(userId);
+    setCustomReferralCode('');
+    setShowInstituteModal(true);
+  };
+
+  const promoteToInstitute = async () => {
+    try {
+      await authApi.promoteToInstitute(selectedUserId, {
+        customReferralCode: customReferralCode || undefined
+      });
+      
+      // Refresh user list
+      const response = await authApi.getUsers();
+      setUsers(response.data);
+      
+      // Close modal
+      setShowInstituteModal(false);
+      setSelectedUserId('');
+      setCustomReferralCode('');
+    } catch (err: any) {
+      console.error('Error promoting user to institute:', err);
+      alert(err.response?.data?.message || 'Failed to promote user to institute');
     }
   };
 
@@ -155,20 +192,38 @@ const AdminUsersPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.mobile}
+                        {user.phone}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {user.college || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {user.role !== 'admin' && (
+                        <div className="flex flex-col space-y-2">
+                          {/* Only show promotion buttons for regular users */}
+                          {user.role !== 'admin' && user.role !== 'institute' && (
+                            <>
+                              <button
+                                onClick={() => promoteToAdmin(user._id)}
+                                className="text-primary hover:text-primary/80"
+                              >
+                                Promote to Admin
+                              </button>
+                              <button
+                                onClick={() => openInstituteModal(user._id)}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                Promote to Institute
+                              </button>
+                            </>
+                          )}
+                          {/* Show delete button for all users */}
                           <button
-                            onClick={() => promoteToAdmin(user._id)}
-                            className="text-primary hover:text-primary/80"
+                            onClick={() => deleteUser(user._id)}
+                            className="text-red-600 hover:text-red-800"
                           >
-                            Promote to Admin
+                            Delete User
                           </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -184,6 +239,52 @@ const AdminUsersPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Institute Promotion Modal */}
+      {showInstituteModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+          <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Promote to Institute</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              This will promote the user to an institute role. Institutes can have students use their referral code during registration.
+            </p>
+            
+            <div className="mb-4">
+              <label htmlFor="customReferralCode" className="block text-sm font-medium text-gray-700 mb-1">
+                Custom Referral Code (Optional)
+              </label>
+              <input
+                type="text"
+                id="customReferralCode"
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                placeholder="Enter custom referral code"
+                value={customReferralCode}
+                onChange={(e) => setCustomReferralCode(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                If left blank, a random referral code will be generated.
+              </p>
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                onClick={() => setShowInstituteModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                onClick={promoteToInstitute}
+              >
+                Promote
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

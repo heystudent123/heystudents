@@ -45,9 +45,14 @@ const UserSchema = new mongoose.Schema({
     required: false,
     enum: ['1', '2', '3', '4', 'alumni', '']
   },
+  address: {
+    type: String,
+    required: false,
+    trim: true
+  },
   role: {
     type: String,
-    enum: ['student', 'alumni', 'admin'],
+    enum: ['student', 'admin', 'institute'],
     default: 'student'
   },
   referralCode: {

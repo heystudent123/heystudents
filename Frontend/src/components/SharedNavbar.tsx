@@ -75,7 +75,14 @@ const SharedNavbar: React.FC = () => {
                       Admin Panel
                     </Link>
                   )}
-                  <span className="text-gray-700 font-medium">Hi, {user.displayName || user.fullName || user.name}</span>
+                  {user.role === 'institute' && (
+                    <Link to="/institute/dashboard" className="font-medium text-blue-600 hover:text-blue-800">
+                      Institute Dashboard
+                    </Link>
+                  )}
+                  <Link to="/profile" className="font-medium text-gray-700 hover:text-blue-600">
+                    Hi, {user.displayName || user.fullName || user.name}
+                  </Link>
                   <button
                     onClick={logout}
                     className="bg-red-500 text-white px-3 py-2 rounded-md text-sm hover:bg-red-600 transition-colors"
@@ -150,9 +157,22 @@ const SharedNavbar: React.FC = () => {
                     Admin Panel
                   </Link>
                 )}
-                <span className="block px-3 py-2 rounded-md text-base font-medium text-gray-700">
-                  Hi, {user.displayName || user.fullName || user.name}
-                </span>
+                {user.role === 'institute' && (
+                  <Link 
+                    to="/institute/dashboard" 
+                    className="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-gray-50"
+                    onClick={handleLinkClick}
+                  >
+                    Institute Dashboard
+                  </Link>
+                )}
+                <Link 
+                  to="/profile" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+                  onClick={handleLinkClick}
+                >
+                  My Profile
+                </Link>
                 <button
                   onClick={() => { logout(); handleLinkClick(); }}
                   className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-gray-50"
