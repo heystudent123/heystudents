@@ -47,7 +47,8 @@ const AdminUsersPage: React.FC = () => {
     // Fetch users
     const fetchUsers = async () => {
       try {
-        const response = await authApi.getUsers();
+        // Pass empty string to get all users regardless of role
+        const response = await authApi.getUsers('');
         setUsers(response.data);
         setLoading(false);
       } catch (err: any) {
@@ -65,8 +66,8 @@ const AdminUsersPage: React.FC = () => {
       // Use authApi instead of direct axios call
       await authApi.promoteToAdmin(userId);
       
-      // Refresh user list
-      const response = await authApi.getUsers();
+      // Refresh user list - get all users regardless of role
+      const response = await authApi.getUsers('');
       setUsers(response.data);
     } catch (err: any) {
       console.error('Error promoting user:', err);
@@ -79,8 +80,8 @@ const AdminUsersPage: React.FC = () => {
       try {
         await authApi.deleteUser(userId);
         
-        // Refresh user list
-        const response = await authApi.getUsers();
+        // Refresh user list - get all users regardless of role
+        const response = await authApi.getUsers('');
         setUsers(response.data);
       } catch (err: any) {
         console.error('Error deleting user:', err);
@@ -101,8 +102,8 @@ const AdminUsersPage: React.FC = () => {
         customReferralCode: customReferralCode || undefined
       });
       
-      // Refresh user list
-      const response = await authApi.getUsers();
+      // Refresh user list - get all users regardless of role
+      const response = await authApi.getUsers('');
       setUsers(response.data);
       
       // Close modal

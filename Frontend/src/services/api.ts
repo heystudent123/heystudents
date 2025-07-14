@@ -291,15 +291,17 @@ export const authApi: AuthApi = {
   },
 
   // Get all users of a specific role (admin only)
-  getUsers: async (role = 'user') => {
+  getUsers: async (role: string = 'user') => {
     try {
-      const response = await api.get('/users', { params: { role } });
+      // If role is empty string, don't include it in params to get all users
+      const params = role ? { role } : {};
+      const response = await api.get('/users', { params });
       return response.data;
     } catch (error) {
       console.error('Get users error:', error);
       throw error;
     }
-  }
+  },
 };
 
 export default api; 
