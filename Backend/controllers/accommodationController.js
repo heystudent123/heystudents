@@ -108,6 +108,19 @@ exports.createAccommodation = async (req, res, next) => {
   try {
     // Add user id to req.body
     req.body.createdBy = req.user.id;
+
+    // Map incoming 'features' (from frontend) to 'amenities' field expected by schema
+    if (req.body.features && !req.body.amenities) {
+      req.body.amenities = Array.isArray(req.body.features)
+        ? req.body.features
+        : [req.body.features];
+      delete req.body.features;
+    }
+
+    // Handle uploaded files – multer-storage-cloudinary puts the hosted URL in file.path
+    if (req.files && req.files.length > 0) {
+      req.body.images = req.files.map((f) => f.path);
+    }
     
     const accommodation = await Accommodation.create(req.body);
     
@@ -131,6 +144,14 @@ exports.updateAccommodation = async (req, res, next) => {
       return next(new ErrorResponse(`Accommodation not found with id of ${req.params.id}`, 404));
     }
     
+    // Map 'features' to 'amenities' for updates as well
+    if (req.body.features && !req.body.amenities) {
+      req.body.amenities = Array.isArray(req.body.features)
+        ? req.body.features
+        : [req.body.features];
+      delete req.body.features;
+    }
+
     accommodation = await Accommodation.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true

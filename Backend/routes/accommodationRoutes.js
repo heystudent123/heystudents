@@ -10,6 +10,8 @@ const {
 
 const { protect, authorize } = require('../middleware/auth');
 
+const { upload } = require('../utils/cloudinary');
+
 const router = express.Router();
 
 // Public routes
@@ -20,7 +22,7 @@ router.get('/:id', getAccommodationById);
 router.post('/:id/reviews', protect, addAccommodationReview);
 
 // Admin only routes
-router.post('/', protect, authorize('admin'), createAccommodation);
+router.post('/', protect, authorize('admin'), upload.array('images', 6), createAccommodation);
 router.put('/:id', protect, authorize('admin'), updateAccommodation);
 router.delete('/:id', protect, authorize('admin'), deleteAccommodation);
 

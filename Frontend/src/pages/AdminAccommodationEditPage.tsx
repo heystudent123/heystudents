@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import api from '../services/api';
 
 interface Address {
   street?: string;
@@ -20,7 +21,25 @@ interface Accommodation {
   contact: string;
   images: string[];
   features: string[];
+  nearestCollege?: string;
+  distanceFromCollege?: number;
+  nearestMetro?: string;
+  distanceFromMetro?: number;
 }
+
+const AMENITIES = [
+  'Fully furnished AC room',
+  'Unlimited laundry',
+  'High speed wifi up to 100mbps',
+  'R-O water',
+  'Dining area',
+  'Hygienic meal',
+  'Medical Facility',
+  'Daily cleaning',
+  'Attached Bathroom',
+  'Fridge in Dinning Area',
+  'CCTV Surveillance'
+];
 
 const AdminAccommodationEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,9 +63,23 @@ const AdminAccommodationEditPage: React.FC = () => {
     type: '',
     contact: '',
     images: [],
-    features: []
+    features: [],
+    nearestCollege: '',
+    distanceFromCollege: undefined,
+    nearestMetro: '',
+    distanceFromMetro: undefined
   });
 
+  // New state to track selected image files
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number[]>([]);
+
+  // Remove image helper
+  const handleRemoveImage = (idx: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  
   useEffect(() => {
     // Check if admin is logged in
     const storedUser = localStorage.getItem('user');
@@ -91,7 +124,24 @@ const AdminAccommodationEditPage: React.FC = () => {
     }
   }, [id, navigate]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  // Amenity helpers
+const toggleAmenity = (amenity: string) => {
+  setAccommodation(prev => {
+    const exists = prev.features.includes(amenity);
+    const newFeatures = exists ? prev.features.filter(f => f !== amenity) : [...prev.features, amenity];
+    return { ...prev, features: newFeatures };
+  });
+};
+
+const handleSelectAllAmenities = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.checked) {
+    setAccommodation(prev => ({ ...prev, features: AMENITIES }));
+  } else {
+    setAccommodation(prev => ({ ...prev, features: [] }));
+  }
+};
+
+const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
     if (name.startsWith('address.')) {
@@ -112,29 +162,74 @@ const AdminAccommodationEditPage: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+  if (selectedImages.some(f => f.size > 256 * 1024)) {
+    setError('One or more selected images exceed the 250KB limit.');
+    return;
+  }
     e.preventDefault();
     setSubmitting(true);
     setError('');
+    const formData = new FormData();
+
+    // Append primitives
+    formData.append('name', accommodation.name || '');
+    formData.append('type', accommodation.type || 'PG');
+    formData.append('description', accommodation.description || '');
+    formData.append('priceRange', accommodation.priceRange || '');
+    formData.append('contact', accommodation.contact || '');
+
+    // Address fields (Mongoose supports dot notation)
+    Object.entries(accommodation.address).forEach(([k, v]) => formData.append(`address.${k}`, v || ''));
+
+    // Features
+    accommodation.features.forEach(f => formData.append('features', f));
+
+    // Metro & College
+    formData.append('nearestMetro', accommodation.nearestMetro || '');
+    formData.append('distanceFromMetro', String(accommodation.distanceFromMetro ?? ''));
+    formData.append('nearestCollege', accommodation.nearestCollege || '');
+    formData.append('distanceFromCollege', String(accommodation.distanceFromCollege ?? ''));
+
+    // Images
+    selectedImages.forEach(file => formData.append('images', file));
+
+  // Initialize progress
+  setUploadProgress(selectedImages.map(() => 0));
 
     try {
       const token = localStorage.getItem('token');
       
       if (id) {
         // Update existing accommodation
-        await axios.put(`http://localhost:5000/api/accommodations/${id}`, accommodation, {
-          headers: { 
-            'Content-Type': 'application/json',
+        await api.put(`/accommodations/${id}`, formData, {
+          headers: {
             Authorization: `Bearer ${token}`
+          },
+          onUploadProgress: (pe) => {
+            if (!pe.total) return;
+            setUploadProgress([Math.round((pe.loaded / pe.total) * 100)]);
           }
         });
       } else {
         // Create new accommodation
-        await axios.post('http://localhost:5000/api/accommodations', accommodation, {
-          headers: { 
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          }
-        });
+        await api.post('/accommodations', formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`
+        },
+        onUploadProgress: (progressEvent) => {
+          const { loaded, total } = progressEvent;
+          if (!total) return;
+          // Distribute progress per file proportionally by size
+          let bytes = loaded;
+          const newProg = selectedImages.map(f => {
+            if (bytes <= 0) return 0;
+            const pct = Math.min(1, bytes / f.size);
+            bytes -= f.size;
+            return Math.round(pct * 100);
+          });
+          setUploadProgress(newProg);
+        }
+      });
       }
 
       navigate('/admin/accommodations');
@@ -317,6 +412,83 @@ const AdminAccommodationEditPage: React.FC = () => {
               </div>
 
               <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Amenities (facilities)
+                </label>
+                {/* Select All */}
+                <div className="flex items-center mt-1">
+                  <input
+                    type="checkbox"
+                    id="amenities_all"
+                    checked={accommodation.features.length === AMENITIES.length}
+                    onChange={handleSelectAllAmenities}
+                    className="h-4 w-4 text-primary border-gray-300 rounded"
+                  />
+                  <label htmlFor="amenities_all" className="ml-2 text-sm text-gray-700">
+                    Select All
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                  {AMENITIES.map((amenity) => (
+                    <label key={amenity} className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 text-primary border-gray-300 rounded"
+                        checked={accommodation.features.includes(amenity)}
+                        onChange={() => toggleAmenity(amenity)}
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{amenity}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="nearestMetro" className="block text-sm font-medium text-gray-700">Nearest Metro</label>
+                <input
+                  type="text"
+                  name="nearestMetro"
+                  id="nearestMetro"
+                  value={accommodation.nearestMetro || ''}
+                  onChange={handleChange}
+                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label htmlFor="distanceFromMetro" className="block text-sm font-medium text-gray-700">Distance from Metro (km)</label>
+                <input
+                  type="number"
+                  name="distanceFromMetro"
+                  id="distanceFromMetro"
+                  value={accommodation.distanceFromMetro ?? ''}
+                  onChange={handleChange}
+                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label htmlFor="nearestCollege" className="block text-sm font-medium text-gray-700">Nearest College</label>
+                <input
+                  type="text"
+                  name="nearestCollege"
+                  id="nearestCollege"
+                  value={accommodation.nearestCollege || ''}
+                  onChange={handleChange}
+                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label htmlFor="distanceFromCollege" className="block text-sm font-medium text-gray-700">Distance from College (km)</label>
+                <input
+                  type="number"
+                  name="distanceFromCollege"
+                  id="distanceFromCollege"
+                  value={accommodation.distanceFromCollege ?? ''}
+                  onChange={handleChange}
+                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                />
+              </div>
+
+              <div className="col-span-2">
                 <label htmlFor="contact" className="block text-sm font-medium text-gray-700">
                   Contact
                 </label>
@@ -331,7 +503,73 @@ const AdminAccommodationEditPage: React.FC = () => {
                 />
               </div>
               
-              <div className="col-span-2 mt-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Images (max 6)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (!files.length) return;
+                    // Filter files >250KB
+                    const filtered = files.filter(f => {
+                      if (f.size > 256 * 1024) {
+                        setError(prev => prev || `${f.name} exceeds 250KB and was skipped`);
+                        return false;
+                      }
+                      return true;
+                    });
+                    setSelectedImages(prev => {
+                      const combined = [...prev, ...filtered];
+                      return combined.slice(0, 6); // limit 6
+                    });
+                  }}
+                  className="mt-1 focus:ring-primary focus:border-primary block w-full text-sm text-gray-700"
+                />
+              {/* Preview thumbnails */}
+              {selectedImages.length > 0 && (
+                <>
+                <div className="col-span-2">
+                  <div className="flex flex-wrap gap-4 mt-2">
+                    {selectedImages.map((file, idx) => (
+                      <div key={idx} className="relative w-24 h-24">
+                        {/* eslint-disable-next-line jsx-a11y/img-redundant-alt */}
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Selected image ${idx + 1}`}
+                          className="w-full h-full object-cover rounded-md"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                          aria-label="Remove image"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Progress bars */}
+                {uploadProgress.length === selectedImages.length && uploadProgress.some(p => p < 100) && (
+                  <div className="flex flex-col gap-2 w-full mt-4">
+                    {uploadProgress.map((p, idx) => (
+                      <div key={`prog-${idx}`} className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full"
+                          style={{ width: `${p}%` }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>)}
+              </div>
+              <div className="col-span-2">
                 <button
                   type="submit"
                   disabled={submitting}
