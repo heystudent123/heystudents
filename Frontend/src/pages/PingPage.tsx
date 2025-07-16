@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import SharedNavbar from '../components/SharedNavbar';
 
+// Get the base URL for the ping endpoint
+// The ping endpoint is at the root level, not under /api
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const BASE_URL = API_URL.replace('/api', ''); // Remove /api suffix if present
+
 const PingPage: React.FC = () => {
   const [lastPingTime, setLastPingTime] = useState<string | null>(null);
   const [nextPingTime, setNextPingTime] = useState<Date | null>(null);
@@ -13,7 +18,10 @@ const PingPage: React.FC = () => {
   const sendPing = async () => {
     try {
       setPingStatus('idle');
-      const response = await axios.get('http://localhost:5000/ping');
+      console.log(`Sending ping request to server at: ${BASE_URL}/ping`);
+      const response = await axios.get(`${BASE_URL}/ping`);
+      
+      console.log('Received pong response:', response.data);
       
       // Update ping history
       setPingHistory(prev => [

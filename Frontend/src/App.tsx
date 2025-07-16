@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import pingService from './services/pingService';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import AccommodationListingPage from './pages/AccommodationPage';
@@ -40,6 +41,14 @@ function App() {
     if (storedUserInfo) {
       setShowWelcomeForm(false); // Hide form if user info exists
     }
+    
+    // Start the ping service
+    pingService.start();
+    
+    // Clean up on unmount
+    return () => {
+      pingService.stop();
+    };
   }, []);
 
   const handleWelcomeFormSubmit = (formData: {
