@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { accommodationsApi } from '../services/api';
-import Filter, { FilterOptions } from '../components/Filter';
 
 // Define the Accommodation interface
 interface Accommodation {
@@ -95,7 +94,7 @@ class HostelListingPageClass extends Component<{}, State> {
   }
   
   // Handle filter changes
-  handleFilterChange(filters: FilterOptions) {
+  handleFilterChange(filters: any) {
     this.setState({ loading: true });
     
     setTimeout(() => {
@@ -123,7 +122,7 @@ class HostelListingPageClass extends Component<{}, State> {
 
         // Filter by amenities
         if (filters.amenities.length > 0) {
-          const hasAllAmenities = filters.amenities.every((amenity) =>
+          const hasAllAmenities = filters.amenities.every((amenity: string) =>
             acc.amenities.includes(amenity)
           );
           if (!hasAllAmenities) {
@@ -213,11 +212,6 @@ class HostelListingPageClass extends Component<{}, State> {
         
         {/* Main Content */}
         <div ref={this.listingRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Filters - Desktop */}
-          <div className="hidden md:block w-64 flex-shrink-0 sticky top-24 self-start">
-            <Filter onFilterChange={this.handleFilterChange} />
-          </div>
-          
           {/* Accommodations List */}
           <div className="flex-1">
             {/* Results header */}

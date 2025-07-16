@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
-import { College } from '../types/alumni';
-import { delhiUniversityColleges } from '../data/colleges';
+
+// Define College interface locally
+interface College {
+  id: number;
+  name: string;
+}
+
+// Define colleges data locally
+const delhiUniversityColleges: College[] = [
+  { id: 1, name: 'Acharya Narendra Dev College' },
+  { id: 2, name: 'Aditi Mahavidyalaya' },
+  // Add more colleges as needed
+];
 
 interface CollegeSelectorProps {
   selectedCollege: string;
