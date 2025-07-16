@@ -1,6 +1,35 @@
 const Accommodation = require('../models/Accommodation');
 const ErrorResponse = require('../utils/errorResponse');
 
+// @desc    Check if uniqueCode already exists
+// @route   GET /api/accommodations/check-unique-code/:code
+// @access  Private/Admin
+exports.checkUniqueCode = async (req, res, next) => {
+  try {
+    const { code } = req.params;
+    
+    // Find accommodation with this uniqueCode
+    const accommodation = await Accommodation.findOne({ uniqueCode: code });
+    
+    if (accommodation) {
+      // Return exists=true and the id of the accommodation
+      return res.status(200).json({
+        success: true,
+        exists: true,
+        id: accommodation._id.toString()
+      });
+    }
+    
+    // No accommodation found with this uniqueCode
+    return res.status(200).json({
+      success: true,
+      exists: false
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Get all accommodations
 // @route   GET /api/accommodations
 // @access  Public
@@ -106,8 +135,10 @@ exports.getAccommodationById = async (req, res, next) => {
 // @access  Private/Admin
 exports.createAccommodation = async (req, res, next) => {
   try {
-    // Add user id to req.body
-    req.body.createdBy = req.user.id;
+    // Add user id to req.body if user exists
+    if (req.user && req.user.id) {
+      req.body.createdBy = req.user.id;
+    }
 
     // Remove empty _id coming from front-end in create mode
     if (req.body._id === '') {
@@ -119,6 +150,12 @@ exports.createAccommodation = async (req, res, next) => {
         ? req.body.features
         : [req.body.features];
       delete req.body.features;
+    }
+    
+    // Convert priceRange to startingFrom if needed
+    if (req.body.priceRange && !req.body.startingFrom) {
+      req.body.startingFrom = req.body.priceRange;
+      delete req.body.priceRange;
     }
 
 
@@ -152,10 +189,16 @@ exports.updateAccommodation = async (req, res, next) => {
         : [req.body.features];
       delete req.body.features;
     }
+    
+    // Convert priceRange to startingFrom if needed
+    if (req.body.priceRange && !req.body.startingFrom) {
+      req.body.startingFrom = req.body.priceRange;
+      delete req.body.priceRange;
+    }
 
     accommodation = await Accommodation.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
-      runValidators: true
+      runValidators: false
     });
     
     res.status(200).json({

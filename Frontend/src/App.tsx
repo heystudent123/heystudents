@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import AccommodationListingPage from './pages/AccommodationPage';
@@ -24,6 +25,7 @@ import AdminEventsPage from './pages/AdminEventsPage';
 import AdminInstitutesPage from './pages/AdminInstitutesPage';
 import InstituteDashboardPage from './pages/InstituteDashboardPage';
 import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
+import PingPage from './pages/PingPage';
 import { AuthProvider } from './context/AuthContext';
 import LoopBreaker from './pages/LoopBreaker';
 import './App.css';
@@ -73,6 +75,7 @@ function App() {
               <Route path="/resources" element={<ResourcesPage />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/accommodation" element={<AccommodationListingPage />} />
+              <Route path="/ping" element={<ProtectedRoute requiredRole="admin"><PingPage /></ProtectedRoute>} />
               {/* Demo page to show how to fix React infinite loops */}
               <Route path="/loop-breaker" element={<LoopBreaker />} />
               <Route path="/accommodation/:id" element={<AccommodationDetailPage />} />

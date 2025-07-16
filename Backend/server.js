@@ -52,6 +52,15 @@ app.get('/', (req, res) => {
   res.send('Hey Students DU API is running');
 });
 
+// Ping route
+app.get('/ping', (req, res) => {
+  res.status(200).json({ 
+    status: 'success', 
+    message: 'pong', 
+    timestamp: new Date().toISOString() 
+  });
+});
+
 // Port
 const PORT = process.env.PORT || 5000;
 

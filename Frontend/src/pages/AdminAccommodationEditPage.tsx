@@ -3,25 +3,17 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import api from '../services/api';
 
-interface Address {
-  street?: string;
-  area?: string;
-  city?: string;
-  pincode?: string;
-}
+// Address interface removed as per requirements
 
 interface Accommodation {
   _id: string;
-  name?: string;
   title?: string;
   description: string;
-  address: Address;
-  priceRange: string;
+  startingFrom: string; // Changed from priceRange to startingFrom
   type: string;
-  contact: string;
   images: string[];
-  gender?: string;
-  uniqueCode?: string;
+  availableFor?: string; // Backend field
+  uniqueCode: string; // Now required
   features: string[];
   nearestCollege?: string;
   distanceFromCollege?: number;
@@ -43,6 +35,12 @@ const AMENITIES = [
   'CCTV Surveillance'
 ];
 
+// Special food preference options that won't be included in Select All
+const FOOD_PREFERENCES = [
+  'Veg',
+  'Non-veg'
+];
+
 const AdminAccommodationEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -52,21 +50,13 @@ const AdminAccommodationEditPage: React.FC = () => {
   
   const [accommodation, setAccommodation] = useState<Accommodation>({
     _id: '',
-    name: '',
     title: '',
     description: '',
-    address: {
-      street: '',
-      area: '',
-      city: '',
-      pincode: ''
-    },
-    priceRange: '',
-    type: '',
-    contact: '',
+    startingFrom: '',
+    type: 'PG', // Default type set to PG
     images: [],
     uniqueCode: '',
-    gender: '',
+    availableFor: '',
     features: [],
     nearestCollege: '',
     distanceFromCollege: undefined,
@@ -76,20 +66,26 @@ const AdminAccommodationEditPage: React.FC = () => {
 
   // Image link states
   const [imageLinks, setImageLinks] = useState<string[]>([]);
-  const [newLink, setNewLink] = useState('');
+  const [imageInputs, setImageInputs] = useState<string[]>(['', '', '', '', '', '']);
+  
+  // State for uniqueCode validation
+  const [isCheckingUniqueCode, setIsCheckingUniqueCode] = useState(false);
+  const [uniqueCodeError, setUniqueCodeError] = useState('');
   
   
 
-  // Remove image helper
-  const handleAddLink = () => {
-    if (!newLink.trim()) return;
-    if (imageLinks.length >= 6) { setError('Maximum 6 images allowed'); return; }
-    setImageLinks(prev => [...prev, newLink.trim()]);
-    setNewLink('');
+  // Handle image input change
+  const handleImageInputChange = (index: number, value: string) => {
+    const newImageInputs = [...imageInputs];
+    newImageInputs[index] = value;
+    setImageInputs(newImageInputs);
   };
 
-  const handleRemoveLink = (idx: number) => {
-    setImageLinks(prev => prev.filter((_, i) => i !== idx));
+  // Clear image input
+  const clearImageInput = (index: number) => {
+    const newImageInputs = [...imageInputs];
+    newImageInputs[index] = '';
+    setImageInputs(newImageInputs);
   }
 
   
@@ -125,9 +121,20 @@ const AdminAccommodationEditPage: React.FC = () => {
         setAccommodation({
           ...fetched,
           features: fetched.features ?? fetched.amenities ?? [],
-          images: fetched.images ?? []
+          images: fetched.images ?? [],
+          startingFrom: fetched.startingFrom ?? fetched.priceRange ?? ''
         });
-    setImageLinks(response.data.data.images || []);
+        
+        // Populate image inputs with existing images
+        const existingImages = response.data.data.images || [];
+        const newImageInputs = [...imageInputs];
+        existingImages.forEach((img: string, idx: number) => {
+          if (idx < 6) {
+            newImageInputs[idx] = img;
+          }
+        });
+        setImageInputs(newImageInputs);
+        setImageLinks(existingImages);
         setLoading(false);
       } catch (err: any) {
         console.error('Error fetching accommodation:', err);
@@ -153,50 +160,93 @@ const toggleAmenity = (amenity: string) => {
 };
 
 const handleSelectAllAmenities = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Keep any existing food preferences when toggling all amenities
+  const currentFoodPrefs = accommodation.features.filter(feature => 
+    FOOD_PREFERENCES.includes(feature)
+  );
+  
   if (e.target.checked) {
-    setAccommodation(prev => ({ ...prev, features: AMENITIES }));
+    // Add all standard amenities while preserving food preferences
+    setAccommodation(prev => ({ 
+      ...prev, 
+      features: [...AMENITIES, ...currentFoodPrefs]
+    }));
   } else {
-    setAccommodation(prev => ({ ...prev, features: [] }));
+    // Remove all standard amenities but keep food preferences
+    setAccommodation(prev => ({ 
+      ...prev, 
+      features: currentFoodPrefs 
+    }));
   }
 };
 
-const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    // generic field handler
+// Check if uniqueCode already exists
+  const checkUniqueCode = async (code: string) => {
+    if (!code.trim()) return;
+    
+    try {
+      setIsCheckingUniqueCode(true);
+      setUniqueCodeError('');
+      
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:5000/api/accommodations/check-unique-code/${code}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // If response contains exists=true and it's not the current accommodation being edited
+      if (response.data.exists && (!id || response.data.id !== id)) {
+        setUniqueCodeError('This unique code already exists. Please use a different code.');
+        return true; // Code exists
+      }
+      
+      return false; // Code doesn't exist or belongs to current accommodation
+    } catch (err: any) {
+      console.error('Error checking unique code:', err);
+      // Only set error if it's specifically about uniqueness
+      if (err.response?.status === 409) {
+        setUniqueCodeError('This unique code already exists. Please use a different code.');
+        return true;
+      }
+      return false;
+    } finally {
+      setIsCheckingUniqueCode(false);
+    }
+  };
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    if (name.startsWith('address.')) {
-      const addressField = name.split('.')[1];
-      setAccommodation({
-        ...accommodation,
-        address: {
-          ...accommodation.address,
-          [addressField]: value
-        }
-      });
-    } else {
-      setAccommodation({
-        ...accommodation,
-        [name]: value
-      });
+    // Update the accommodation state
+    setAccommodation(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Check uniqueCode when it changes
+    if (name === 'uniqueCode' && value.trim()) {
+      // Use a debounce effect for better UX
+      const timeoutId = setTimeout(() => {
+        checkUniqueCode(value);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accommodation.name || !accommodation.name.trim()) { setError('Name is required'); return; }
 
-    // incorporate any link that has been typed but not yet "Added"
-    const cleanedLinks = [
-      ...imageLinks,
-      ...(newLink.trim()
-        ? newLink
-            .split(/[,\n]/)
-            .map(s => s.trim())
-            .filter(Boolean)
-        : [])
-    ]
-      .map(l => l.trim())
-      .filter((l, idx, arr) => l && arr.indexOf(l) === idx); // remove empties & duplicates
+    // Get all non-empty image links from the separate inputs
+    const cleanedLinks = imageInputs
+      .map(link => link.trim())
+      .filter(link => link !== '');
+
+    // Check if uniqueCode already exists before submitting
+    const uniqueCodeExists = await checkUniqueCode(accommodation.uniqueCode);
+    if (uniqueCodeExists) {
+      // Don't proceed if uniqueCode already exists
+      return;
+    }
 
     setSubmitting(true);
     setError('');
@@ -211,7 +261,11 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
       navigate('/admin/accommodations');
     } catch (err: any) {
       console.error('Error saving accommodation:', err);
-      setError(err.response?.data?.message || 'Failed to save accommodation');
+      if (err.response?.status === 409) {
+        setError('This unique code already exists. Please use a different code.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to save accommodation');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -272,171 +326,97 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
           <form onSubmit={handleSubmit} className="px-4 py-5 sm:p-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div className="col-span-2">
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  id="name"
-                  value={accommodation.name || ''}
-                  onChange={handleChange}
-                  
-                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
-
-              <div className="col-span-2">
                 <label htmlFor="uniqueCode" className="block text-sm font-medium text-gray-700">
-                  Unique Code (Custom)
+                  Unique Code <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="uniqueCode"
-                  id="uniqueCode"
-                  value={accommodation.uniqueCode || ''}
-                  onChange={handleChange}
-                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
-
-              
-
-
-              <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-                  Type
-                </label>
-                <select
-                  name="type"
-                  id="type"
-                  value={accommodation.type || ''}
-                  onChange={handleChange}
-                  
-                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                >
-                  <option value="">Select Type</option>
-                  <option value="PG">PG</option>
-                  <option value="Hostel">Hostel</option>
-                  <option value="Apartment">Apartment</option>
-                  <option value="Flat">Flat</option>
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="uniqueCode"
+                    id="uniqueCode"
+                    value={accommodation.uniqueCode || ''}
+                    onChange={handleChange}
+                    required
+                    className={`mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm ${uniqueCodeError ? 'border-red-500' : 'border-gray-300'} rounded-md`}
+                  />
+                  {isCheckingUniqueCode && (
+                    <div className="absolute right-2 top-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary"></div>
+                    </div>
+                  )}
+                </div>
+                {uniqueCodeError && (
+                  <p className="mt-1 text-sm text-red-600">{uniqueCodeError}</p>
+                )}
               </div>
 
               <div>
-                <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="availableFor" className="block text-sm font-medium text-gray-700">
                   Accommodation For
                 </label>
                 <select
-                  name="gender"
-                  id="gender"
-                  value={accommodation.gender || ''}
+                  name="availableFor"
+                  id="availableFor"
+                  value={accommodation.availableFor || ''}
                   onChange={handleChange}
                   className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                 >
                   <option value="">Select</option>
                   <option value="Boys">Boys</option>
                   <option value="Girls">Girls</option>
-                  <option value="Co-ed">Co-ed</option>
+                  <option value="Both">Co-ed</option>
                 </select>
               </div>
 
               <div>
-                <label htmlFor="priceRange" className="block text-sm font-medium text-gray-700">
-                  Price Range
+                <label htmlFor="startingFrom" className="block text-sm font-medium text-gray-700">
+                  Starting From <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  name="priceRange"
-                  id="priceRange"
-                  value={accommodation.priceRange || ''}
+                  name="startingFrom"
+                  id="startingFrom"
+                  value={accommodation.startingFrom || ''}
                   onChange={handleChange}
-                  placeholder="e.g. ₹5000 - ₹10000"
+                  placeholder="e.g., ₹5,000"
                   className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
-
-            <div>
-              <label htmlFor="address.area" className="block text-sm font-medium text-gray-700">
-                Area
-              </label>
-              <input
-                type="text"
-                name="address.area"
-                id="address.area"
-                value={accommodation.address?.area || ''}
-                onChange={handleChange}
-                className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-              />
-            </div>
-
-              <div>
-                <label htmlFor="address.street" className="block text-sm font-medium text-gray-700">
-                  Street
-                </label>
-                <input
-                  type="text"
-                  name="address.street"
-                  id="address.street"
-                  value={accommodation.address?.street || ''}
-                  onChange={handleChange}
-                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="address.city" className="block text-sm font-medium text-gray-700">
-                  City
-                </label>
-                <input
-                  type="text"
-                  name="address.city"
-                  id="address.city"
-                  value={accommodation.address?.city || ''}
-                  onChange={handleChange}
-                  
-                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="address.pincode" className="block text-sm font-medium text-gray-700">
-                  Pincode
-                </label>
-                <input
-                  type="text"
-                  name="address.pincode"
-                  id="address.pincode"
-                  value={accommodation.address?.pincode || ''}
-                  onChange={handleChange}
-                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                  required
                 />
               </div>
 
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Image Links (comma separated, max 6)
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Image Links (6 separate fields)
                 </label>
-                <div className="flex gap-2 mt-1">
-                  <input
-                    type="url"
-                    value={newLink}
-                    onChange={(e)=>setNewLink(e.target.value)}
-                    className="flex-1 focus:ring-primary focus:border-primary block w-full text-sm border-gray-300 rounded-md"
-                    placeholder="https://example.com/image.jpg"
-                  />
-                  <button type="button" onClick={handleAddLink} className="px-3 py-1 bg-primary text-white rounded-md disabled:opacity-50" disabled={imageLinks.length>=6}>Add</button>
-                </div>
-                {imageLinks.length>0 && (
-                  <div className="flex flex-wrap gap-4 mt-3">
-                    {imageLinks.map((url,idx)=>(
-                      <div key={idx} className="relative w-24 h-24">
-                        <img src={url} alt={`img-${idx}`} className="w-full h-full object-cover rounded-md" />
-                        <button type="button" onClick={()=>handleRemoveLink(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center">&times;</button>
+                {imageInputs.map((url, idx) => (
+                  <div key={idx} className="flex gap-2 mt-2 items-center">
+                    <div className="flex-grow">
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={url}
+                          onChange={(e) => handleImageInputChange(idx, e.target.value)}
+                          className="flex-1 focus:ring-primary focus:border-primary block w-full text-sm border-gray-300 rounded-md"
+                          placeholder={`Image ${idx + 1} URL`}
+                        />
+                        {url && (
+                          <button 
+                            type="button" 
+                            onClick={() => clearImageInput(idx)} 
+                            className="px-3 py-1 bg-red-500 text-white rounded-md"
+                          >
+                            Clear
+                          </button>
+                        )}
                       </div>
-                    ))}
+                    </div>
+                    {url && (
+                      <div className="w-16 h-16 flex-shrink-0">
+                        <img src={url} alt={`img-${idx}`} className="w-full h-full object-cover rounded-md" />
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
 
               <div>
@@ -484,6 +464,25 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
                   </label>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                  {/* Food preferences section - these won't be included in Select All */}
+                  <div className="col-span-2 mb-2 border-b pb-2">
+                    <p className="text-sm font-medium text-gray-700 mb-1">Food Preferences:</p>
+                    <div className="flex gap-4">
+                      {FOOD_PREFERENCES.map((preference) => (
+                        <label key={preference} className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-primary border-gray-300 rounded"
+                            checked={accommodation.features.includes(preference)}
+                            onChange={() => toggleAmenity(preference)}
+                          />
+                          <span className="ml-2 text-sm text-gray-700">{preference}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Regular amenities that are included in Select All */}
                   {AMENITIES.map((amenity) => (
                     <label key={amenity} className="inline-flex items-center">
                       <input
@@ -498,21 +497,8 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="contact" className="block text-sm font-medium text-gray-700">
-                  Contact
-                </label>
-                <input
-                  type="text"
-                  name="contact"
-                  id="contact"
-                  value={accommodation.contact || ''}
-                  onChange={handleChange}
+              {/* Contact field removed as per requirements */}
                   
-                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
-
               <div className="col-span-2">
                 <button
                   type="submit"

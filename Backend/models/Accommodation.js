@@ -1,15 +1,10 @@
 const mongoose = require('mongoose');
 
 const AccommodationSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Please provide a name'],
-    trim: true,
-    maxlength: [100, 'Name cannot be more than 100 characters']
-  },
+  // name field removed as per requirements
   type: {
     type: String,
-    required: [true, 'Please provide accommodation type'],
+    required: false,
     enum: ['PG', 'Hostel', 'Flat', 'Other']
   },
   description: {
@@ -18,29 +13,7 @@ const AccommodationSchema = new mongoose.Schema({
     trim: true,
     maxlength: [1000, 'Description cannot be more than 1000 characters']
   },
-  address: {
-    street: {
-      type: String,
-      required: [true, 'Please provide street address'],
-      trim: true
-    },
-    area: {
-      type: String,
-      required: false,
-      trim: true
-    },
-    city: {
-      type: String,
-      required: [true, 'Please provide city'],
-      trim: true,
-      default: 'Delhi'
-    },
-    pincode: {
-      type: String,
-      required: false,
-      match: [/^[0-9]{6}$/, 'Please provide a valid 6-digit pincode']
-    }
-  },
+  // address field removed as per requirements
   nearestCollege: {
     type: [String],
     required: false
@@ -48,6 +21,19 @@ const AccommodationSchema = new mongoose.Schema({
   distanceFromCollege: {
     type: Number,
     required: false
+  },
+  // Unique internal code/reference for accommodation
+  uniqueCode: {
+    type: String,
+    required: true,
+    trim: true,
+    unique: true
+  },
+  // Starting price for accommodation
+  startingFrom: {
+    type: String,
+    required: false,
+    trim: true
   },
   nearestMetro: {
     type: String,
@@ -75,15 +61,15 @@ const AccommodationSchema = new mongoose.Schema({
     type: {
       type: String,
       enum: ['Single', 'Double', 'Triple', 'Other'],
-      required: true
+      required: false
     },
     price: {
       type: Number,
-      required: true
+      required: false
     },
     availability: {
       type: Number,
-      required: true
+      required: false
     }
   }],
   amenities: {
@@ -108,31 +94,7 @@ const AccommodationSchema = new mongoose.Schema({
     type: [String],
     required: false
   },
-  contactDetails: {
-    name: {
-      type: String,
-      required: false,
-      trim: true
-    },
-    phone: {
-      type: String,
-      required: false,
-      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number']
-    },
-    alternatePhone: {
-      type: String,
-      required: false,
-      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number']
-    },
-    email: {
-      type: String,
-      required: false,
-      match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        'Please provide a valid email'
-      ]
-    }
-  },
+  // contactDetails field removed as per requirements
   images: {
     type: [String],
     required: false,
@@ -148,7 +110,7 @@ const AccommodationSchema = new mongoose.Schema({
       type: Number,
       min: 1,
       max: 5,
-      required: true
+      required: false
     },
     comment: String,
     createdAt: {
@@ -168,7 +130,7 @@ const AccommodationSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false
   },
   createdAt: {
     type: Date,
