@@ -233,7 +233,7 @@ const HostelDetailPage: React.FC = () => {
               
               <div className="flex flex-col items-end">
                 <div className="text-2xl font-bold text-white mb-1">
-                  ₹{accommodation.rent.toLocaleString()}
+                  ₹{accommodation.rent?.toLocaleString() || 'N/A'}
                   <span className="text-sm font-normal text-white/80">/month</span>
                 </div>
                 <div className="flex items-center text-white/90">
@@ -523,7 +523,7 @@ const HostelDetailPage: React.FC = () => {
                       </div>
                       <div className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-lg font-bold text-neutral-dark">₹{similar.rent.toLocaleString()}</span>
+                          <span className="text-lg font-bold text-neutral-dark">₹{(similar.rent ?? 0).toLocaleString()}</span>
                           <div className="flex items-center space-x-1">
                             <span className="text-yellow-400">★</span>
                             <span className="font-medium text-neutral-dark">{similar.averageRating || 'N/A'}</span>

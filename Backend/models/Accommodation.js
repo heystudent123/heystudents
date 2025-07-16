@@ -14,7 +14,7 @@ const AccommodationSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: [true, 'Please provide a description'],
+    required: false,
     trim: true,
     maxlength: [1000, 'Description cannot be more than 1000 characters']
   },
@@ -26,7 +26,7 @@ const AccommodationSchema = new mongoose.Schema({
     },
     area: {
       type: String,
-      required: [true, 'Please provide area'],
+      required: false,
       trim: true
     },
     city: {
@@ -37,17 +37,17 @@ const AccommodationSchema = new mongoose.Schema({
     },
     pincode: {
       type: String,
-      required: [true, 'Please provide pincode'],
+      required: false,
       match: [/^[0-9]{6}$/, 'Please provide a valid 6-digit pincode']
     }
   },
   nearestCollege: {
     type: [String],
-    required: [true, 'Please provide nearest college(s)']
+    required: false
   },
   distanceFromCollege: {
     type: Number,
-    required: [true, 'Please provide distance from college in kilometers']
+    required: false
   },
   nearestMetro: {
     type: String,
@@ -60,7 +60,7 @@ const AccommodationSchema = new mongoose.Schema({
   },
   rent: {
     type: Number,
-    required: [true, 'Please provide rent amount']
+    required: false
   },
   securityDeposit: {
     type: Number,
@@ -68,7 +68,7 @@ const AccommodationSchema = new mongoose.Schema({
   },
   availableFor: {
     type: String,
-    required: [true, 'Please specify if it is for boys, girls, or both'],
+    required: false,
     enum: ['Boys', 'Girls', 'Both']
   },
   roomTypes: [{
@@ -111,12 +111,12 @@ const AccommodationSchema = new mongoose.Schema({
   contactDetails: {
     name: {
       type: String,
-      required: [true, 'Please provide contact name'],
+      required: false,
       trim: true
     },
     phone: {
       type: String,
-      required: [true, 'Please provide contact phone number'],
+      required: false,
       match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number']
     },
     alternatePhone: {

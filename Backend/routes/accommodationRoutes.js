@@ -10,7 +10,9 @@ const {
 
 const { protect, authorize } = require('../middleware/auth');
 
-const { upload } = require('../utils/cloudinary');
+const multer = require('multer');
+// store uploaded images to /uploads directory
+const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
 
@@ -22,7 +24,7 @@ router.get('/:id', getAccommodationById);
 router.post('/:id/reviews', protect, addAccommodationReview);
 
 // Admin only routes
-router.post('/', protect, authorize('admin'), upload.array('images', 6), createAccommodation);
+router.post('/', protect, authorize('admin'), createAccommodation);
 router.put('/:id', protect, authorize('admin'), updateAccommodation);
 router.delete('/:id', protect, authorize('admin'), deleteAccommodation);
 
