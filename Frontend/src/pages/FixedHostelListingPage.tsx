@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { accommodationsApi } from '../services/api';
 
 // Fallback image as data URI to avoid network requests
@@ -69,11 +69,12 @@ interface FilterOptions {
 // Props for HostelCard component
 interface HostelCardProps {
   accommodation: Accommodation;
-  onClick: (id: string) => void;
 }
 
 // HostelCard component - memoized for performance
-const HostelCard = React.memo(({ accommodation, onClick }: HostelCardProps) => {
+const HostelCard = React.memo(({ accommodation }: HostelCardProps) => {
+  const navigate = useNavigate();
+  
   // Function to get image URL with fallback
   const getImageUrl = (accommodation: Accommodation) => {
     if (accommodation.images?.[0]) {
@@ -94,10 +95,7 @@ const HostelCard = React.memo(({ accommodation, onClick }: HostelCardProps) => {
   };
 
   return (
-    <div 
-      onClick={() => onClick(accommodation._id || accommodation.id || '')}
-      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-300"
-    >
+    <div className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-300">
       {/* Image */}
       <div className="relative h-48 overflow-hidden">
         <img 
@@ -123,66 +121,67 @@ const HostelCard = React.memo(({ accommodation, onClick }: HostelCardProps) => {
           {/* Rating */}
           {getAverageRating(accommodation) !== null && (
             <div className="flex items-center bg-blue-50 px-2 py-1 rounded">
-              <svg className="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-              </svg>
-              <span className="text-sm font-medium">{getAverageRating(accommodation)}</span>
+              <span className="text-yellow-500 mr-1">★</span>
+              <span className="text-blue-800 font-medium">{getAverageRating(accommodation)}</span>
             </div>
           )}
         </div>
         
-        {/* Title */}
-        <h3 className="text-xl font-bold text-gray-900 mb-2">
-          {accommodation.type === 'PG' && (accommodation.availableFor === 'Girls' || accommodation.gender === 'Girls') ? 'PG for Girls' : accommodation.name}
-        </h3>
+        {/* Name and Description */}
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">{accommodation.name}</h3>
+        <p className="text-gray-600 text-sm mb-2">
+          {accommodation.location?.address || 'Address not provided'}
+        </p>
         
-        {/* Type and Gender */}
+        {/* Tags and other info */}
         <div className="flex flex-wrap gap-2 mb-3">
           {accommodation.type && (
-            <div className="flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
               {accommodation.type}
-            </div>
+            </span>
           )}
-          {(accommodation.availableFor || accommodation.gender) && (
-            <div className="flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-              {accommodation.availableFor || accommodation.gender}
-            </div>
+          {accommodation.availableFor && (
+            <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
+              {accommodation.availableFor}
+            </span>
+          )}
+          {accommodation.distanceToCollege && (
+            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+              {accommodation.distanceToCollege} km to college
+            </span>
           )}
         </div>
         
         {/* Amenities */}
         {accommodation.amenities && accommodation.amenities.length > 0 && (
           <div className="mb-3">
+            <p className="text-gray-700 text-sm mb-1">Amenities:</p>
             <div className="flex flex-wrap gap-1">
-              {accommodation.amenities.slice(0, 3).map((amenity, index) => (
-                <span 
-                  key={index} 
-                  className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded"
-                >
+              {accommodation.amenities.slice(0, 4).map((amenity, index) => (
+                <span key={index} className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
                   {amenity}
                 </span>
               ))}
-              {accommodation.amenities.length > 3 && (
-                <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                  +{accommodation.amenities.length - 3} more
+              {accommodation.amenities.length > 4 && (
+                <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
+                  +{accommodation.amenities.length - 4}
                 </span>
               )}
             </div>
           </div>
         )}
-        
-        {/* View Details Button */}
-        <div className="mt-4">
-          <button 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-300"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick(accommodation._id || accommodation.id || '');
-            }}
-          >
-            View Details
-          </button>
-        </div>
+      </div>
+      {/* View Details Button */}
+      <div className="mt-4">
+        <button
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-300"
+          onClick={() => {
+            const id = accommodation._id || accommodation.id || '';
+            navigate(`/accommodation/${id}`);
+          }}
+        >
+          View Details
+        </button>
       </div>
     </div>
   );
@@ -220,11 +219,6 @@ const FixedHostelListingPage: React.FC = () => {
 
     fetchAccommodations();
   }, []);
-
-  // Handle card click to navigate to detail page
-  const handleCardClick = useCallback((id: string) => {
-    navigate(`/accommodation/${id}`);
-  }, [navigate]);
 
   // Filter accommodations based on search term
   const filteredAccommodations = useMemo(() => {
@@ -333,7 +327,6 @@ const FixedHostelListingPage: React.FC = () => {
                 <HostelCard
                   key={accommodation._id || accommodation.id}
                   accommodation={accommodation}
-                  onClick={handleCardClick}
                 />
               ))}
             </div>

@@ -10,11 +10,8 @@ const Footer: React.FC = () => {
       { name: 'Find Accommodation', href: '/accommodation' }
     ],
     support: [
-      { name: 'Help Center', href: '/help-center' },
       { name: 'Contact Us', href: '/contact' },
       { name: 'About Us', href: '/about' },
-      { name: 'Privacy Policy', href: '/privacy-policy' },
-      { name: 'Terms of Service', href: '/terms-of-service' }
     ]
   };
 

@@ -16,6 +16,7 @@ import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
 import AccommodationListingPage from './pages/AccommodationPage';
 import AccommodationDetailPage from './pages/HostelDetailPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import Footer from './components/Footer';
 import './App.css';
 
 const App: React.FC = () => {
@@ -48,12 +49,6 @@ const App: React.FC = () => {
     setShowWelcomeForm(false);
   };
 
-  // For testing - remove stored data to see form again
-  const clearUserData = () => {
-    localStorage.removeItem('userInfo');
-    setShowWelcomeForm(true);
-  };
-
   return (
     <AuthProvider>
       <Router>
@@ -84,18 +79,8 @@ const App: React.FC = () => {
               <Route path="/accommodation" element={<AccommodationListingPage />} />
               <Route path="/accommodation/:id" element={<AccommodationDetailPage />} />
             </Routes>
-            
-            {/* Temporary button for testing - remove in production */}
-            {!showWelcomeForm && (
-              <button 
-                onClick={clearUserData}
-                className="fixed bottom-4 right-4 bg-gray-800 text-white p-2 rounded text-sm"
-              >
-                Reset Form (Dev Only)
-              </button>
-            )}
           </main>
-          {/* <Footer /> */}
+          <Footer />
         </div>
       </Router>
     </AuthProvider>

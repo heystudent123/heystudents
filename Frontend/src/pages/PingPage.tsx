@@ -5,7 +5,9 @@ import SharedNavbar from '../components/SharedNavbar';
 // Get the base URL for the ping endpoint
 // The ping endpoint is at the root level, not under /api
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-const BASE_URL = API_URL.replace('/api', ''); // Remove /api suffix if present
+// Use URL parsing to safely handle path segments
+const baseUrl = new URL(API_URL);
+const BASE_URL = baseUrl.origin; // This preserves the protocol, host, and port without path
 
 const PingPage: React.FC = () => {
   const [lastPingTime, setLastPingTime] = useState<string | null>(null);
