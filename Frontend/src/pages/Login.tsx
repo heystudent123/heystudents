@@ -14,6 +14,7 @@ declare global {
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({
+    countryCode: '+91',
     phone: '',
     otp: ''
   });
@@ -114,7 +115,7 @@ const Login: React.FC = () => {
       return;
     }
 
-    const phoneNumber = formData.phone;
+    const phoneNumber = getFullPhoneNumber();
 
     setLoading(true);
     setError('');
@@ -251,6 +252,11 @@ const Login: React.FC = () => {
     // Clear error when user starts typing new OTP
     setError('');
   };
+  
+  // Get full phone number with country code
+  const getFullPhoneNumber = () => {
+    return `${formData.countryCode}${formData.phone}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#fff9ed] font-sans">
@@ -284,15 +290,27 @@ const Login: React.FC = () => {
               <label htmlFor="phone" className="block text-sm font-medium text-neutral-dark mb-1">
                 Phone Number
               </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder="Enter your phone number"
-                className="w-full px-4 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
-                disabled={otpSent}
-              />
+              <div className="flex">
+                <select
+                  name="countryCode"
+                  value={formData.countryCode}
+                  onChange={handleInputChange}
+                  className="px-3 py-3.5 border border-gray-300 rounded-l-xl focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200 bg-gray-50"
+                  disabled={otpSent}
+                >
+                  <option value="+91">+91 (India)</option>
+                  <option value="+1">+1 (US)</option>
+                </select>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="Enter your phone number"
+                  className="w-full px-4 py-3.5 border border-gray-300 border-l-0 rounded-r-xl focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                  disabled={otpSent}
+                />
+              </div>
             </div>
 
             {!otpSent ? (

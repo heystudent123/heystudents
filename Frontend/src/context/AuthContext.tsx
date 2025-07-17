@@ -112,9 +112,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Normalize phone numbers to avoid mismatches due to spaces or formatting
       const normalize = (num: string | null) => {
-      const digits = (num || '').replace(/\D/g, '');
-      return digits.slice(-10); // Use last 10 digits for comparison
-    };
+        // Keep the country code intact if present
+        const digits = (num || '').replace(/\s/g, ''); // Remove spaces but keep + and country code
+        if (digits.startsWith('+')) {
+          return digits; // Return full number with country code
+        }
+        // If no country code, assume it's just the local number
+        return digits.slice(-10); // Use last 10 digits for comparison
+      };
+      
       if (verifiedPhoneNumber && normalize(verifiedPhoneNumber) !== normalize(phoneNumber)) {
         throw new Error('Phone number not verified');
       }

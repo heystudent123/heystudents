@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SharedNavbar from '../components/SharedNavbar';
+import Footer from '../components/Footer';
 import { authApi } from '../services/api';
 
 const CompleteProfile: React.FC = () => {
@@ -13,25 +14,42 @@ const CompleteProfile: React.FC = () => {
   const [referralError, setReferralError] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
-    phone: (location.state as any)?.verifiedPhone || localStorage.getItem('verifiedPhone') || '',
+    phone: '',
     email: '',
     referralCode: '',
     college: '',
     collegeYear: ''
   });
+  
+  // Split phone number into country code and number
+  const [countryCode, setCountryCode] = useState('+91');
 
   useEffect(() => {
     // Auto-fill phone number from auth if available
+    let phoneNumber = '';
+    
     if (user?.phone || user?.phoneNumber) {
+      phoneNumber = user.phone || user.phoneNumber || '';
+    } else {
+      phoneNumber = (location.state as any)?.verifiedPhone || localStorage.getItem('verifiedPhone') || '';
+    }
+    
+    // Extract country code if present
+    if (phoneNumber.startsWith('+')) {
+      // Find the first digit after the + sign
+      const countryCodeEndIndex = phoneNumber.startsWith('+91') ? 3 : 
+                                 phoneNumber.startsWith('+1') ? 2 : 3;
+      
+      setCountryCode(phoneNumber.substring(0, countryCodeEndIndex));
       setFormData(prev => ({
         ...prev,
-        phone: user.phone || user.phoneNumber || ''
+        phone: phoneNumber.substring(countryCodeEndIndex)
       }));
     } else {
-      const storedPhone = (location.state as any)?.verifiedPhone || localStorage.getItem('verifiedPhone');
-      if (storedPhone) {
-        setFormData(prev => ({ ...prev, phone: storedPhone }));
-      }
+      setFormData(prev => ({
+        ...prev,
+        phone: phoneNumber
+      }));
     }
   }, [user]);
 
@@ -79,15 +97,14 @@ const CompleteProfile: React.FC = () => {
         }
       }
 
-      // Normalize phone to last 10 digits to satisfy backend validation
-      const digitsOnly = formData.phone.replace(/\D/g, '');
-      const normalizedPhone = digitsOnly.slice(-10);
+      // Combine country code with phone number
+      const fullPhoneNumber = `${countryCode}${formData.phone.replace(/\D/g, '')}`;
 
       // Save user profile data to MongoDB
       await authApi.completeProfile({
         uid: user?._id || '',
         fullName: formData.fullName,
-        phone: normalizedPhone,
+        phone: fullPhoneNumber,
         email: formData.email,
         referralCode: formData.referralCode,
         college: formData.college,
@@ -112,10 +129,10 @@ const CompleteProfile: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#fff9ed] flex flex-col">
       <SharedNavbar />
-      <div className="flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
+      <div className="flex-grow flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg space-y-8">
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Complete Your Profile</h2>
             <p className="mt-2 text-center text-sm text-gray-600">
@@ -143,19 +160,25 @@ const CompleteProfile: React.FC = () => {
                 <label htmlFor="phone" className="block text-sm font-medium text-neutral-dark mb-1">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5h2l2 7-2 7H3V5zm4 0h10l2 7-2 7H7V5zm13 0h1v14h-1V5z" />
-                    </svg>
-                  </div>
+                <div className="flex">
+                  <select
+                    name="countryCode"
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="px-3 py-3.5 border border-gray-300 rounded-l-xl focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200 bg-gray-50"
+                    disabled
+                  >
+                    <option value="+91">+91 (India)</option>
+                    <option value="+1">+1 (US)</option>
+                  </select>
                   <input
                     id="phone"
                     name="phone"
                     type="tel"
-                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 bg-gray-100 cursor-not-allowed focus:outline-none sm:text-sm"
+                    className="w-full px-4 py-3.5 border border-gray-300 border-l-0 rounded-r-xl placeholder-gray-400 bg-gray-100 cursor-not-allowed focus:outline-none sm:text-sm"
                     value={formData.phone}
                     readOnly
+                    disabled
                   />
                 </div>
               </div>
@@ -183,8 +206,6 @@ const CompleteProfile: React.FC = () => {
                   />
                 </div>
               </div>
-
-
 
               {/* Email - Optional */}
               <div className="mb-4">
@@ -288,10 +309,10 @@ const CompleteProfile: React.FC = () => {
               </div>
             </div>
 
-            <div>
+            <div className="mt-8">
               <button
                 type="submit"
-                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 hover:from-blue-700 hover:via-blue-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
                 disabled={loading}
               >
                 {loading ? (
@@ -307,6 +328,7 @@ const CompleteProfile: React.FC = () => {
           </form>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
