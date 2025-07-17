@@ -18,7 +18,7 @@ const features = [
   },
   {
     name: 'Food Options',
-    description: 'Discover affordable cafes, canteens and food joints near your college with student discounts and meal deals.',
+    description: 'Discover affordable cafes, canteens and food joints near your college.',
     icon: (
       <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
@@ -39,11 +39,11 @@ const FeatureSection: React.FC = () => {
       <div className="container-custom">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary-50 text-primary-600 text-sm font-medium mb-4">
+          <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary-50 text-black text-sm font-medium mb-4">
             <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
             Platform Features
           </div>
-          <h2 className="text-4xl md:text-5xl font-display font-bold text-neutral-900 mb-6">Your Complete <span className="text-gradient">PG & Hostel Resource</span></h2>
+          <h2 className="text-4xl md:text-5xl font-display font-bold text-neutral-900 mb-6">Your Complete <span className="text-black">PG & Hostel Resource</span></h2>
           <p className="text-xl text-neutral-600 max-w-3xl mx-auto leading-relaxed">Everything you need for finding the perfect accommodation near Delhi University — verified PGs, hostels, and meal options to make your college life comfortable.</p>
         </div>
 

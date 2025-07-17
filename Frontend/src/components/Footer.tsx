@@ -58,7 +58,7 @@ const Footer: React.FC = () => {
     <footer className="bg-neutral-900 text-white">
       {/* Top wave decoration */}
       <div className="w-full overflow-hidden">
-        <svg className="w-full h-12 text-neutral-50" viewBox="0 0 1200 120" preserveAspectRatio="none">
+        <svg className="w-full h-12 text-[#fff9ed]" viewBox="0 0 1200 120" preserveAspectRatio="none">
           <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="currentColor"></path>
         </svg>
       </div>
@@ -95,20 +95,7 @@ const Footer: React.FC = () => {
               ))}
             </div>
             
-            {/* Newsletter signup */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-white">Stay Updated</h4>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-                <button className="btn-primary px-6 py-2 whitespace-nowrap rounded-xl">
-                  Subscribe
-                </button>
-              </div>
-            </div>
+
           </div>
           
           {/* Platform links */}
@@ -158,18 +145,6 @@ const Footer: React.FC = () => {
         {/* Contact info */}
         <div className="mt-16 pt-8 border-t border-neutral-800">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex items-start space-x-3">
-              <div className="w-10 h-10 bg-neutral-800 rounded-xl flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div>
-                <h4 className="font-semibold text-white mb-1">Address</h4>
-                <p className="text-neutral-300">North Campus, Delhi University<br />Delhi - 110007</p>
-              </div>
-            </div>
             
             <div className="flex items-start space-x-3">
               <div className="w-10 h-10 bg-neutral-800 rounded-xl flex items-center justify-center">
@@ -179,7 +154,7 @@ const Footer: React.FC = () => {
               </div>
               <div>
                 <h4 className="font-semibold text-white mb-1">Email</h4>
-                <p className="text-neutral-300">info@heystudents.in<br />support@heystudents.in</p>
+                <p className="text-neutral-300">heystudentyt@gmail.com</p>
               </div>
             </div>
             

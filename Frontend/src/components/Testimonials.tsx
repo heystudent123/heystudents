@@ -110,15 +110,15 @@ const TestimonialCard: React.FC<TestimonialProps> = ({ name, role, company, cont
   
   return (
     <div 
-      className={`p-6 rounded-2xl shadow-sm transition-all duration-300 ${isHovered ? 'shadow-md' : ''} bg-[#fff9ed]`}
+      className={`p-6 rounded-2xl shadow-md transition-all duration-300 bg-[#fff9ed] border border-black`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="mb-2">
-        <h3 className={`text-lg font-semibold ${isHovered ? 'text-primary-700' : 'text-neutral-900'} transition-colors duration-300`}>{name}</h3>
-        <p className={`text-xs ${isHovered ? 'text-secondary-500' : 'text-neutral-500'} transition-colors duration-300`}>{company}, {role}</p>
+        <h3 className="text-lg font-semibold text-neutral-900">{name}</h3>
+        <p className="text-xs text-neutral-500">{company}, {role}</p>
       </div>
-      <p className={`text-sm leading-relaxed ${isHovered ? 'text-neutral-800' : 'text-neutral-700'} transition-colors duration-300`}>"{content}"</p>
+      <p className={`text-sm leading-relaxed text-neutral-700`}>{content}</p>
     </div>
   );
 };
@@ -294,7 +294,7 @@ const Testimonials: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900 mb-3 md:mb-4">
-            For Students, <span className="text-gradient bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">By Students</span>
+            For Students, <span className="text-black">By Students</span>
           </h2>
           <p className="text-lg md:text-xl text-neutral-600 max-w-3xl mx-auto">
             Join thousands of Delhi University students who use Hey Students to enhance their university experience.

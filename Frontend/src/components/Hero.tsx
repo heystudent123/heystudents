@@ -30,7 +30,7 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link to="/pg-search" className="btn-primary btn-lg group">
+              <Link to="/pg-search" className="bg-black text-white py-3 px-6 rounded-xl shadow-lg hover:bg-gray-900 transition-all duration-300 flex items-center justify-center btn-lg group">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" />
                 </svg>
@@ -113,7 +113,7 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
                 </div>
               </div>
               
-              <div className="absolute -bottom-6 -left-6 p-4 max-w-xs animate-float group hover:scale-105 transition-all duration-300 cursor-pointer z-10 bg-white shadow-lg rounded-xl" style={{ animationDelay: '1s' }}>
+              <div className="absolute -bottom-20 -left-6 p-4 max-w-xs animate-float group hover:scale-105 transition-all duration-300 cursor-pointer z-10 bg-white shadow-lg rounded-xl overflow-visible" style={{ animationDelay: '1s' }}>
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center group-hover:bg-primary-600 transition-colors duration-300">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
@@ -125,9 +125,11 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
                     <div className="text-sm text-neutral-600">Perfect PG in Minutes</div>
                   </div>
                 </div>
-                <div className="max-h-0 overflow-hidden group-hover:max-h-32 transition-all duration-500 ease-in-out">
-                  <div className="mt-3 bg-neutral-100 p-3 rounded-lg text-sm text-neutral-700">
-                    Our AI-powered matching system finds you the perfect PG based on your budget, location preferences, and lifestyle needs.
+                <div className="relative">
+                  <div className="absolute left-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-500 w-full">
+                    <div className="bg-neutral-100 p-3 rounded-lg text-sm text-neutral-700 shadow-md border border-neutral-200">
+                      Our AI-powered matching system finds you the perfect PG based on your budget, location preferences, and lifestyle needs.
+                    </div>
                   </div>
                 </div>
               </div>

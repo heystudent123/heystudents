@@ -108,139 +108,150 @@ const HostelCard = React.memo(({ accommodation }: HostelCardProps) => {
 
   return (
     <div 
-      className="bg-[#fff9ed] rounded-lg shadow-md overflow-hidden cursor-pointer transition-all duration-300 ease-in-out relative transform hover:scale-105"
+      className="bg-[#fff9ed] rounded-2xl shadow-sm overflow-hidden cursor-pointer transition-all duration-300 ease-in-out relative transform hover:scale-[1.02] hover:shadow-md border border-neutral-100"
       style={{
         zIndex: isHovered ? 10 : 1
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={() => navigate(`/accommodation/${accommodation._id || accommodation.id}`)}
     >
       {/* Image Carousel */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-56 overflow-hidden">
         {accommodation.images && accommodation.images.length > 0 ? (
           <>
             <div className="absolute inset-0 flex transition-transform duration-500 ease-in-out" style={{
               transform: `translateX(-${currentImageIndex * 100}%)`
             }}>
-              {accommodation.images.map((img, idx) => (
-                <div key={idx} className="w-full flex-shrink-0">
-                  <img 
-                    src={img} 
-                    alt={`${accommodation.name} ${idx+1}`} 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-            {/* Navigation Dots */}
-            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
-              {accommodation.images.map((_, idx) => (
-                <button 
-                  key={idx}
-                  className={`w-2 h-2 rounded-full ${idx === currentImageIndex ? 'bg-white' : 'bg-gray-300'}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentImageIndex(idx);
+              {accommodation.images.map((imageUrl, index) => (
+                <img 
+                  key={index}
+                  className="flex-shrink-0 w-full h-full object-cover" 
+                  src={imageUrl} 
+                  alt={`${accommodation.name} image ${index+1}`} 
+                  loading="lazy" 
+                  onError={(e) => {
+                    e.currentTarget.src = FALLBACK_IMAGE;
                   }}
                 />
               ))}
             </div>
+
+            {/* Image indicators */}
+            {accommodation.images.length > 1 && (
+              <div className="absolute bottom-3 left-0 right-0 flex justify-center space-x-2">
+                {accommodation.images.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex ? 'bg-white w-4' : 'bg-white/40'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex(index);
+                    }}
+                  ></button>
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <img 
-            src={FALLBACK_IMAGE} 
-            alt={accommodation.name || 'Accommodation'} 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover" 
+            src={getImageUrl(accommodation)} 
+            alt={accommodation.name} 
           />
         )}
+        
+        {/* Price badge */}
+        <div className="absolute top-3 right-3 bg-black text-white px-3 py-1 rounded-lg text-sm font-medium">
+          {formatPrice(accommodation)}
+        </div>
+
+        {/* Verified badge */}
+        {accommodation.verified && (
+          <div className="absolute top-3 left-3 bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-medium flex items-center">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Verified
+          </div>
+        )}
       </div>
-      
+
       {/* Content */}
-      <div className="p-4">
-        {/* Price */}
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-xl font-bold text-[#1a1d23]">
-            {formatPrice(accommodation)}
-            <span className="text-sm text-[#6b7280] font-normal">/month</span>
-          </span>
+      <div className="p-5">
+        {/* Title and Rating */}
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-semibold text-lg leading-tight line-clamp-1 text-[#030301]">{accommodation.name}</h3>
           
-          {/* Rating */}
-          {getAverageRating(accommodation) !== null && (
-            <div className="flex items-center">
-              <svg className="w-5 h-5 text-[#f7dc6f]" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          {/* Rating display */}
+          {(accommodation.rating || getAverageRating(accommodation)) && (
+            <div className="flex items-center bg-yellow-100 px-2 py-0.5 rounded-lg">
+              <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
               </svg>
-              <span className="ml-1 text-[#374151]">
-                {getAverageRating(accommodation)}
-              </span>
+              <span className="ml-1 text-sm font-semibold">{accommodation.rating || getAverageRating(accommodation)}</span>
             </div>
           )}
         </div>
-        
-        {/* Name */}
-        <h3 className="text-lg font-semibold text-[#1a1d23] mb-1">
-          {accommodation.name}
-        </h3>
-        
+
         {/* Location */}
-        <p className="text-[#6b7280] text-sm mb-3">
-          {[accommodation.address?.area || accommodation.location?.address, accommodation.address?.city || accommodation.location?.city]
-            .filter(Boolean)
-            .join(', ')}
-        </p>
+        <div className="flex items-center text-gray-600 text-sm mb-3">
+          <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          <span className="truncate">
+            {accommodation.location?.address || 
+             (accommodation.address ? 
+              `${accommodation.address.street || ''} ${accommodation.address.area || ''}, ${accommodation.address.city || ''}` : 
+              'Location unavailable'
+             )
+            }
+          </span>
+        </div>
         
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1 mb-3">
-          {accommodation.type && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#dbeafe] text-[#3b82f6]">
-              {accommodation.type}
+        {/* Amenities */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {accommodation.amenities?.slice(0, 3).map((amenity, index) => (
+            <span 
+              key={index}
+              className="inline-block bg-neutral-100 rounded-full px-3 py-1 text-xs font-medium text-neutral-800"
+            >
+              {amenity}
             </span>
-          )}
-          {accommodation.availableFor && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#c6efce] text-[#2ecc71]">
-              {accommodation.availableFor}
-            </span>
-          )}
-          {accommodation.verified && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#c7d2fe] text-[#7a69ff]">
-              Verified
+          ))}
+          {accommodation.amenities && accommodation.amenities.length > 3 && (
+            <span className="inline-block bg-neutral-100 rounded-full px-3 py-1 text-xs font-medium text-neutral-600">
+              +{accommodation.amenities.length - 3} more
             </span>
           )}
         </div>
+
+        {/* For gender or availableFor */}
+        {(accommodation.gender || accommodation.availableFor) && (
+          <div className="text-sm text-neutral-600 mb-3">
+            <span className="text-xs font-medium text-neutral-500 block mb-1">For:</span>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#fff9ed] border border-neutral-200 text-xs font-medium text-neutral-800">
+                {accommodation.availableFor || accommodation.gender}
+              </span>
+            </div>
+          </div>
+        )}
         
-        {/* View Button */}
-        <button 
-          onClick={() => navigate(`/accommodation/${accommodation._id || accommodation.id}`)}
-          className="w-full mt-2 bg-gradient-to-r from-[#3b82f6] to-[#63b3ed] hover:from-[#3b82f6] hover:to-[#63b3ed] text-white font-medium py-2 px-4 rounded-md transition duration-300"
-        >
-          View Details
-        </button>
+        {/* View Details button */}
+        <div className="mt-auto pt-2">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/accommodation/${accommodation._id || accommodation.id}`);
+            }}
+            className="w-full bg-black text-white py-2.5 px-4 rounded-xl font-medium text-sm hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
+          >
+            View Details
+          </button>
+        </div>
       </div>
-      
-      {/* Amenities Section */}
-      {isHovered && accommodation.amenities && accommodation.amenities.length > 0 && (
-        <div className="absolute bottom-0 left-0 right-0 bg-white p-4 transition-all duration-300 ease-in-out transform translate-y-0">
-          <h4 className="text-lg font-semibold text-gray-900 mb-2">Amenities</h4>
-          <ul className="grid grid-cols-2 gap-2">
-            {accommodation.amenities.slice(0, 4).map((amenity, index) => (
-              <li key={index} className="flex items-center text-sm text-gray-700">
-                <svg className="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                {amenity}
-              </li>
-            ))}
-            {accommodation.amenities.length > 4 && (
-              <li className="text-sm text-gray-500">
-                +{accommodation.amenities.length - 4} more
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
     </div>
   );
 });
@@ -309,21 +320,21 @@ const FixedHostelListingPage: React.FC = () => {
   }, [filteredAccommodations, sortOption]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Search and Filter Section */}
-      <div className="bg-[#fff9ed] p-4 rounded-lg shadow-sm">
+      <div className="bg-[#fff9ed] p-6 rounded-xl shadow-sm border border-neutral-100">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search Input */}
           <div className="flex-grow">
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
               <input
                 type="text"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-[#fff9ed] placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="block w-full pl-11 pr-4 py-3 border border-neutral-200 rounded-xl leading-5 bg-[#fff9ed] placeholder-neutral-500 focus:outline-none focus:ring-black focus:border-black sm:text-sm transition-colors"
                 placeholder="Search by name, city or address..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -332,18 +343,25 @@ const FixedHostelListingPage: React.FC = () => {
           </div>
           
           {/* Sort Dropdown */}
-          <div className="w-full md:w-48">
-            <select
-              className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-[#fff9ed]"
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
-            >
-              <option value="default">Sort By</option>
-              <option value="price-low-high">Price: Low to High</option>
-              <option value="price-high-low">Price: High to Low</option>
-              <option value="rating">Rating</option>
-              <option value="verified">Verified First</option>
-            </select>
+          <div className="w-full md:w-60">
+            <div className="relative">
+              <select
+                className="block appearance-none w-full pl-4 pr-10 py-3 text-base border border-neutral-200 rounded-xl focus:outline-none focus:ring-black focus:border-black sm:text-sm bg-[#fff9ed] transition-colors"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+              >
+                <option value="default">Sort By: Recommended</option>
+                <option value="price-low-high">Price: Low to High</option>
+                <option value="price-high-low">Price: High to Low</option>
+                <option value="rating">Rating: High to Low</option>
+                <option value="verified">Verified First</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -351,30 +369,39 @@ const FixedHostelListingPage: React.FC = () => {
       {/* Results Section */}
       <div>
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
+          <div className="flex justify-center items-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <strong className="font-bold">Error: </strong>
-            <span className="block sm:inline">{error}</span>
+          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl" role="alert">
+            <div className="flex">
+              <svg className="w-5 h-5 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <strong className="font-medium">Error: </strong>
+                <span className="block sm:inline">{error}</span>
+              </div>
+            </div>
           </div>
         ) : sortedAccommodations.length === 0 ? (
-          <div className="bg-[#fff9ed] text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="bg-[#fff9ed] border border-neutral-100 rounded-xl shadow-sm text-center py-16 px-4">
+            <svg className="mx-auto h-16 w-16 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No accommodations found</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <h3 className="mt-4 text-lg font-medium text-neutral-900">No accommodations found</h3>
+            <p className="mt-2 text-neutral-500 max-w-md mx-auto">
               {searchTerm ? `No results match "${searchTerm}"` : "There are no accommodations available at the moment."}
             </p>
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-500 mb-4">
-              Showing {sortedAccommodations.length} {sortedAccommodations.length === 1 ? 'accommodation' : 'accommodations'}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="flex justify-between items-center mb-6">
+              <p className="text-neutral-600">
+                Showing <span className="font-medium">{sortedAccommodations.length}</span> {sortedAccommodations.length === 1 ? 'accommodation' : 'accommodations'}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {sortedAccommodations.map((accommodation) => (
                 <HostelCard
                   key={accommodation._id || accommodation.id}
