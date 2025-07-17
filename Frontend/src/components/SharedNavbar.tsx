@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import logo from '../img/Logo (2).png';
 
 const SharedNavbar: React.FC = () => {
   const location = useLocation();
@@ -74,11 +75,16 @@ const SharedNavbar: React.FC = () => {
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2" onClick={handleLinkClick}>
-              <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                HS
-              </div>
-              <span className="font-bold text-xl text-gray-900">Hey Students</span>
+            <Link to="/" className="flex items-center" onClick={handleLinkClick}>
+              <img 
+                src={logo} 
+                alt="Hey Students Logo" 
+                style={{ 
+                  maxHeight: '200px',
+                  width: 'auto',
+                  objectFit: 'contain'
+                }} 
+              />
             </Link>
             
             {/* Desktop Navigation */}
@@ -90,12 +96,14 @@ const SharedNavbar: React.FC = () => {
                 >
                   Home
                 </Link>
-                <Link 
-                  to="/accommodation" 
-                  className={`font-medium ${location.pathname === '/accommodation' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
-                >
-                  Accommodation
-                </Link>
+                {user && (
+                  <Link 
+                    to="/accommodation" 
+                    className={`font-medium ${location.pathname === '/accommodation' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
+                  >
+                    Accommodation
+                  </Link>
+                )}
                 <Link 
                   to="/about" 
                   className={`font-medium ${location.pathname === '/about' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
@@ -197,13 +205,15 @@ const SharedNavbar: React.FC = () => {
               >
                 Home
               </Link>
-              <Link 
-                to="/accommodation" 
-                className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/accommodation' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
-                onClick={handleLinkClick}
-              >
-                Accommodation
-              </Link>
+              {user && (
+                <Link 
+                  to="/accommodation" 
+                  className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/accommodation' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
+                  onClick={handleLinkClick}
+                >
+                  Accommodation
+                </Link>
+              )}
               <Link 
                 to="/about" 
                 className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/about' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}

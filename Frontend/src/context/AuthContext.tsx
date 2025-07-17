@@ -73,6 +73,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Update state
     setUser(null);
+    
+    // Refresh the page
+    window.location.reload();
   };
 
   // Send OTP to phone number

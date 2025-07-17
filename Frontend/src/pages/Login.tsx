@@ -259,6 +259,11 @@ const Login: React.FC = () => {
         <div className="max-w-md w-full space-y-8">
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-100 rounded-xl">
+              <p className="text-center text-sm text-yellow-800">
+                <span className="font-semibold">Please sign in</span> to get the full experience of Hey Student and access our verified PG listings.
+              </p>
+            </div>
           </div>
 
           {error && (

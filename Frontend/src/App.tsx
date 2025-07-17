@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import WhatsAppButton from './components/WhatsAppButton';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import Login from './pages/Login';
@@ -24,7 +26,21 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <ScrollToTop />
+        <AppContent />
+      </Router>
+    </AuthProvider>
+  );
+}
+
+// Separate component to use hooks inside Router context
+function AppContent() {
   const [showWelcome, setShowWelcome] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check if the welcome screen has been shown before
@@ -41,13 +57,36 @@ function App() {
       pingService.stop();
     };
   }, []);
+  
+  // Redirect to login after 60 seconds if not logged in
+  useEffect(() => {
+    // Don't set timer if user is already logged in
+    if (user) {
+      // Clear the redirect flag when user logs in
+      sessionStorage.removeItem('loginRedirected');
+      return;
+    }
+    
+    // Check if we've already redirected to avoid multiple redirects
+    const hasRedirected = sessionStorage.getItem('loginRedirected');
+    if (hasRedirected) return;
+    
+    const timer = setTimeout(() => {
+      // Only redirect if user is still not logged in after 60 seconds
+      if (!user) {
+        console.log('60 seconds elapsed, redirecting to login');
+        sessionStorage.setItem('loginRedirected', 'true');
+        navigate('/login');
+      }
+    }, 60000); // 60 seconds
+    
+    return () => clearTimeout(timer);
+  }, [user, navigate]);
 
   return (
-    <AuthProvider>
-      <Router>
-        <ScrollToTop />
-        <div className="App">
+    <div className="App">
           <ToastContainer position="bottom-center" />
+          <WhatsAppButton />
           <div className="flex flex-col min-h-screen">
             {/* Modal will be rendered above everything else */}
             {showWelcome && (
@@ -72,15 +111,21 @@ function App() {
                 <Route path="/admin/accommodations/new" element={<AdminAccommodationEditPage />} />
                 <Route path="/admin/accommodations/edit/:id" element={<AdminAccommodationEditPage />} />
                 <Route path="/institute/dashboard" element={<InstituteDashboardPage />} />
-                <Route path="/accommodation" element={<AccommodationListingPage />} />
-                <Route path="/accommodation/:id" element={<AccommodationDetailPage />} />
+                <Route path="/accommodation" element={
+                  <ProtectedRoute>
+                    <AccommodationListingPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/accommodation/:id" element={
+                  <ProtectedRoute>
+                    <AccommodationDetailPage />
+                  </ProtectedRoute>
+                } />
               </Routes>
             </main>
             <Footer />
           </div>
         </div>
-      </Router>
-    </AuthProvider>
   );
 }
 

@@ -1,11 +1,14 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 interface HeroProps {
   className?: string;
 }
 
 const Hero: React.FC<HeroProps> = ({ className }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   return (
     <div className={`relative min-h-[70vh] overflow-hidden ${className}`}>
       <div className="container-custom pt-8 pb-20 lg:pt-16 lg:pb-32">
@@ -24,18 +27,23 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
             </h1>
             
             <p className="text-lg md:text-xl text-[#030301] max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-              Find Your Perfect PG – Fast & Easy. Just got into college? Let us help you find verified PGs near your campus 
-              based on budget, location, food preference, and more. Your college life begins here – make it a smooth start.
+            Find Your Perfect PG – Fast & Easy
+(An initiative by Hindu and Hansraj Students)
+Just got into college? Let us help you find verified PGs near your campus based on budget, location, food preference, and more.
+Your college life begins here – make it a smooth start.
             </p>
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link to="/accommodation" className="bg-black text-white py-3 px-6 rounded-xl shadow-lg hover:bg-gray-900 transition-all duration-300 flex items-center justify-center btn-lg group">
+              <button 
+                onClick={() => navigate(user ? '/accommodation' : '/login')} 
+                className="bg-black text-white py-3 px-6 rounded-xl shadow-lg hover:bg-gray-900 transition-all duration-300 flex items-center justify-center btn-lg group"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" />
+                  <path d="M8 4a4 4 0 100 8a4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" />
                 </svg>
                 Find Your PG
-              </Link>
+              </button>
             </div>
             
             {/* Social proof */}

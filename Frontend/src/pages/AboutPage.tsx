@@ -98,54 +98,7 @@ const AboutPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Our Journey Section */}
-      <div className="py-16 px-4 md:px-0">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-[#fff9ed] border border-neutral-200 shadow-sm rounded-2xl p-8 md:p-10 lg:p-12">
-            <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold text-black mb-3">Our Journey</h2>
-              <p className="text-neutral-700 max-w-xl mx-auto">
-                From a small idea to revolutionizing student accommodation
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-8">
-              {/* Milestone 1 */}
-              <div className="relative">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="bg-black text-white rounded-full w-10 h-10 flex items-center justify-center font-medium">2020</div>
-                </div>
-                <h3 className="text-lg font-semibold text-black mb-2 text-center">The Beginning</h3>
-                <p className="text-neutral-600 text-center leading-relaxed">
-                  Founded with a mission to solve student accommodation problems we've faced ourselves as students.
-                </p>
-              </div>
-              
-              {/* Milestone 2 */}
-              <div>
-                <div className="flex items-center justify-center mb-4">
-                  <div className="bg-black text-white rounded-full w-10 h-10 flex items-center justify-center font-medium">2022</div>
-                </div>
-                <h3 className="text-lg font-semibold text-black mb-2 text-center">Rapid Growth</h3>
-                <p className="text-neutral-600 text-center leading-relaxed">
-                  Expanded to 10+ universities and helped over 5,000 students find their perfect housing.
-                </p>
-              </div>
-              
-              {/* Milestone 3 */}
-              <div>
-                <div className="flex items-center justify-center mb-4">
-                  <div className="bg-black text-white rounded-full w-10 h-10 flex items-center justify-center font-medium">2023</div>
-                </div>
-                <h3 className="text-lg font-semibold text-black mb-2 text-center">Innovation</h3>
-                <p className="text-neutral-600 text-center leading-relaxed">
-                  Launched our smart matching technology to connect students with their ideal accommodations faster.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       {/* Contact CTA Section */}
       <div className="py-16 px-4 md:px-0 mb-10">
