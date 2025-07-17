@@ -12,7 +12,10 @@ const {
   createInstituteAccount,
   completeProfile,
   deleteUser,
-  getRegisteredUsers
+  getRegisteredUsers,
+  addToWishlist,
+  removeFromWishlist,
+  getWishlist
 } = require('../controllers/userController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -28,6 +31,11 @@ router.post('/complete-profile', completeProfile);
 router.get('/me', protect, getMe);
 router.put('/me', protect, updateProfile);
 router.get('/referrals', protect, getUserReferrals);
+
+// Wishlist routes
+router.get('/wishlist', protect, getWishlist);
+router.post('/wishlist', protect, addToWishlist);
+router.delete('/wishlist/:accommodationId', protect, removeFromWishlist);
 
 // Admin routes
 router.get('/', protect, authorize('admin'), getUsers);

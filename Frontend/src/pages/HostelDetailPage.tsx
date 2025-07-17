@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, NavigateFunction } from 'react-router-dom';
 import { accommodationsApi } from '../services/api';
+import * as wishlistService from '../services/wishlistService';
+import { useAuth } from '../context/AuthContext';
 import SharedNavbar from '../components/SharedNavbar';
+import { toast } from 'react-toastify';
 
 // Fallback image as data URI
 const FALLBACK_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"%3E%3Crect width="600" height="400" fill="%23e2e8f0"%3E%3C/rect%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="system-ui, sans-serif" font-size="24" fill="%2364748b"%3EImage Unavailable%3C/text%3E%3C/svg%3E';
@@ -425,12 +428,65 @@ const LocationSection: React.FC<LocationSectionProps> = ({
 // Component for action buttons section
 interface ActionsSectionProps {
   navigate: NavigateFunction;
+  accommodationId: string;
+  isInWishlist: boolean;
+  isLoggedIn: boolean;
+  onAddToWishlist: () => void;
+  onRemoveFromWishlist: () => void;
 }
 
 const ActionsSection: React.FC<ActionsSectionProps> = ({ 
-  navigate 
+  navigate,
+  accommodationId,
+  isInWishlist,
+  isLoggedIn,
+  onAddToWishlist,
+  onRemoveFromWishlist
 }) => {
-  return null;
+  const handleWishlistClick = () => {
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+    
+    if (isInWishlist) {
+      onRemoveFromWishlist();
+    } else {
+      onAddToWishlist();
+    }
+  };
+  
+  return (
+    <div className="flex justify-between items-center mt-6">
+      <button 
+        onClick={() => navigate(-1)} 
+        className="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-50"
+      >
+        Back to Listings
+      </button>
+      
+      <button
+        onClick={handleWishlistClick}
+        className={`flex items-center space-x-2 px-6 py-2 rounded-md shadow-sm text-base font-medium ${isInWishlist ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill={isInWishlist ? 'currentColor' : 'none'}
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+          className="w-5 h-5"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+          />
+        </svg>
+        <span>{isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}</span>
+      </button>
+    </div>
+  );
 };
 
 // Component for empty state
@@ -483,9 +539,13 @@ const LoadingSkeleton: React.FC = () => {
 const HostelDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const auth = useAuth();
+  const isAuthenticated = auth?.user !== null;
   const [accommodation, setAccommodation] = useState<Accommodation | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInWishlist, setIsInWishlist] = useState<boolean>(false);
+  const [checkingWishlist, setCheckingWishlist] = useState<boolean>(false);
   
   useEffect(() => {
     const fetchAccommodation = async () => {
@@ -508,6 +568,33 @@ const HostelDetailPage: React.FC = () => {
     
     fetchAccommodation();
   }, [id]);
+  
+  // Check if accommodation is in wishlist
+  useEffect(() => {
+    const checkWishlist = async () => {
+      if (!isAuthenticated || !id) return;
+      
+      setCheckingWishlist(true);
+      try {
+        const response = await wishlistService.getWishlist();
+        const wishlistItems = response.data;
+        
+        // Check if current accommodation is in wishlist
+        const found = wishlistItems.some((item: any) => 
+          item._id === id || 
+          (item.accommodation && item.accommodation._id === id)
+        );
+        
+        setIsInWishlist(found);
+      } catch (err) {
+        console.error('Error checking wishlist status:', err);
+      } finally {
+        setCheckingWishlist(false);
+      }
+    };
+    
+    checkWishlist();
+  }, [id, isAuthenticated]);
   
   // Helper functions for formatting
   const formatPrice = (acc: Accommodation): string => {
@@ -538,6 +625,44 @@ const HostelDetailPage: React.FC = () => {
   const formatDistance = (distance?: number, unit: string = 'km'): string => {
     if (distance === undefined) return 'Unknown distance';
     return `${distance} ${unit}`;
+  };
+  
+  // Wishlist handlers
+  const handleAddToWishlist = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
+    if (!id) return;
+    
+    try {
+      await wishlistService.addToWishlist(id);
+      setIsInWishlist(true);
+      toast.success('Added to wishlist', {
+        position: "bottom-center",
+        autoClose: 3000,
+      });
+    } catch (err) {
+      console.error('Error adding to wishlist:', err);
+      toast.error('Failed to add to wishlist');
+    }
+  };
+  
+  const handleRemoveFromWishlist = async () => {
+    if (!isAuthenticated || !id) return;
+    
+    try {
+      await wishlistService.removeFromWishlist(id);
+      setIsInWishlist(false);
+      toast.success('Removed from wishlist', {
+        position: "bottom-center",
+        autoClose: 3000,
+      });
+    } catch (err) {
+      console.error('Error removing from wishlist:', err);
+      toast.error('Failed to remove from wishlist');
+    }
   };
   
   if (loading) {
@@ -604,6 +729,18 @@ const HostelDetailPage: React.FC = () => {
               distanceToMetros={accommodation.nearestMetros}
               formatDistance={formatDistance} 
             />
+            
+            {/* Actions */}
+            <div className="mb-8">
+              <ActionsSection 
+                navigate={navigate}
+                accommodationId={id || ''}
+                isInWishlist={isInWishlist}
+                isLoggedIn={isAuthenticated}
+                onAddToWishlist={handleAddToWishlist}
+                onRemoveFromWishlist={handleRemoveFromWishlist}
+              />
+            </div>
           </div>
         </div>
       </div>

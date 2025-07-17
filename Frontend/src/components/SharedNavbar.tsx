@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const SharedNavbar: React.FC = () => {
@@ -9,6 +9,7 @@ const SharedNavbar: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [showNavbar, setShowNavbar] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const navigate = useNavigate();
 
   // Handle window resize for responsive behavior
   useEffect(() => {
@@ -116,12 +117,37 @@ const SharedNavbar: React.FC = () => {
                         Institute Dashboard
                       </Link>
                     )}
-                    <Link to="/profile" className="font-medium text-gray-700 hover:text-blue-600">
-                      Hi, {user.displayName || user.fullName || user.name}
+                    <Link 
+                      to="/wishlist" 
+                      className="relative group flex items-center justify-center w-8 h-8 rounded-full hover:bg-black/5"
+                      onClick={handleLinkClick}
+                    >
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        strokeWidth={1.5} 
+                        stroke="currentColor" 
+                        className="w-6 h-6 text-gray-700 group-hover:text-black transition-colors"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" 
+                        />
+                      </svg>
                     </Link>
                     <button
+                      onClick={() => navigate('/profile')}
+                      className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-black"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                      </svg>
+                    </button>
+                    <button
                       onClick={logout}
-                      className="bg-red-500 text-white px-3 py-2 rounded-md text-sm hover:bg-red-600 transition-colors"
+                      className="font-medium text-red-500 hover:text-red-600"
                     >
                       Logout
                     </button>
@@ -207,12 +233,36 @@ const SharedNavbar: React.FC = () => {
                     </Link>
                   )}
                   <Link 
-                    to="/profile" 
+                    to="/wishlist" 
                     className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-[#ffe8b5]"
                     onClick={handleLinkClick}
                   >
-                    My Profile
+                    <div className="flex items-center gap-2">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        strokeWidth={1.5} 
+                        stroke="currentColor" 
+                        className="w-5 h-5"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" 
+                        />
+                      </svg>
+                      My Wishlist
+                    </div>
                   </Link>
+                  <button
+                    onClick={() => navigate('/profile')}
+                    className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-black"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                    </svg>
+                  </button>
                   <button
                     onClick={() => { logout(); handleLinkClick(); }}
                     className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-[#ffe8b5]"

@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const Referral = require('../models/Referral');
+const Accommodation = require('../models/Accommodation');
 const ErrorResponse = require('../utils/errorResponse');
 
 // @desc    Register user
@@ -145,8 +146,8 @@ exports.loginWithPhone = async (req, res, next) => {
 // @access  Private
 exports.getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).populate('referredBy', 'name email');
-    
+    const user = await User.findById(req.user.id);
+
     res.status(200).json({
       success: true,
       data: user
@@ -161,39 +162,24 @@ exports.getMe = async (req, res, next) => {
 // @access  Private
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { referralCode, ...otherUpdates } = req.body;
+    const { name, email, phone, college, year } = req.body;
+    
+    // Find user
     const user = await User.findById(req.user.id);
-
+    
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
     }
-
-    // If referral code is being added and user doesn't already have one
-    if (referralCode && !user.referralCode) {
-      // Check if referral code exists
-      const referringUser = await User.findOne({ referralCode });
-      
-      if (!referringUser) {
-        return next(new ErrorResponse('Invalid referral code', 400));
-      }
-      
-      // Set referral code
-      user.referralCode = referralCode;
-      user.referredBy = referringUser._id;
-    } else if (referralCode && user.referralCode) {
-      // User already has a referral code
-      return next(new ErrorResponse('Referral code can only be added once', 400));
-    }
-
-    // Update other fields
-    Object.keys(otherUpdates).forEach(key => {
-      if (otherUpdates[key] !== undefined) {
-        user[key] = otherUpdates[key];
-      }
-    });
-
+    
+    // Update fields
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (phone) user.phone = phone;
+    if (college) user.college = college;
+    if (year) user.year = year;
+    
     await user.save();
-
+    
     res.status(200).json({
       success: true,
       data: user
@@ -209,7 +195,12 @@ exports.updateProfile = async (req, res, next) => {
 exports.getUsers = async (req, res, next) => {
   try {
     const users = await User.find();
-    res.status(200).json({ success: true, count: users.length, data: users });
+    
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users
+    });
   } catch (err) {
     next(err);
   }
@@ -221,36 +212,43 @@ exports.getUsers = async (req, res, next) => {
 exports.getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
+    
     if (!user) {
-      return next(new ErrorResponse('User not found', 404));
+      return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
     }
-    res.status(200).json({ success: true, data: user });
+    
+    res.status(200).json({
+      success: true,
+      data: user
+    });
   } catch (err) {
     next(err);
   }
 };
 
+// @desc    Update user profile
+// @route   PUT /api/users/me
+// @access  Private
 exports.updateProfile = async (req, res, next) => {
   try {
-    const fieldsToUpdate = {
-      name: req.body.name,
-      phone: req.body.phone,
-      college: req.body.college,
-      course: req.body.course,
-      year: req.body.year,
-      email: req.body.email
-    };
-
-    // Remove undefined fields
-    Object.keys(fieldsToUpdate).forEach(key => 
-      fieldsToUpdate[key] === undefined && delete fieldsToUpdate[key]
-    );
-
-    const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
-      new: true,
-      runValidators: true
-    });
-
+    const { name, email, phone, college, year } = req.body;
+    
+    // Find user
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return next(new ErrorResponse('User not found', 404));
+    }
+    
+    // Update fields
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (phone) user.phone = phone;
+    if (college) user.college = college;
+    if (year) user.year = year;
+    
+    await user.save();
+    
     res.status(200).json({
       success: true,
       data: user
@@ -265,7 +263,7 @@ exports.updateProfile = async (req, res, next) => {
 // @access  Private
 exports.getUserReferrals = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).populate('referrals');
     
     res.status(200).json({
       success: true,
@@ -282,14 +280,8 @@ exports.getUserReferrals = async (req, res, next) => {
 // @access  Private/Admin
 exports.getUsers = async (req, res, next) => {
   try {
-    let query = {};
-    
-    // If role query param is provided, filter by that role
-    if (req.query.role) {
-      query.role = req.query.role;
-    }
-    
-    const users = await User.find(query);
+    // Get all users
+    const users = await User.find();
     
     res.status(200).json({
       success: true,
@@ -332,12 +324,12 @@ exports.promoteToAdmin = async (req, res, next) => {
       return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
     }
     
-    // Check if user is already an admin
-    if (user.role === 'admin') {
-      return next(new ErrorResponse('User is already an admin', 400));
+    // Only allow admin to promote users
+    if (req.user.role !== 'admin') {
+      return next(new ErrorResponse('Not authorized to promote users', 401));
     }
     
-    // Update user role to admin
+    // Update user role
     user.role = 'admin';
     await user.save();
     
@@ -355,34 +347,35 @@ exports.promoteToAdmin = async (req, res, next) => {
 // @access  Private/Admin
 exports.promoteToInstitute = async (req, res, next) => {
   try {
-    const { customReferralCode } = req.body;
     const user = await User.findById(req.params.id);
     
     if (!user) {
       return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
     }
     
-    // Check if user is already an institute
-    if (user.role === 'institute') {
-      return next(new ErrorResponse('User is already an institute', 400));
-    }
-
-    // If custom referral code is provided, check if it's already in use
-    if (customReferralCode) {
-      const existingCode = await User.findOne({ referralCode: customReferralCode });
-      if (existingCode) {
-        return next(new ErrorResponse('Referral code already in use', 400));
-      }
-      // Set custom referral code
-      user.referralCode = customReferralCode;
-    } else if (!user.referralCode) {
-      // Generate a new referral code if one doesn't exist
-      // This will use the generateReferralCode method from the User model
-      user.referralCode = await user.constructor.generateReferralCode();
+    // Only allow admin to promote users
+    if (req.user.role !== 'admin') {
+      return next(new ErrorResponse('Not authorized to promote users', 401));
     }
     
-    // Update user role to institute
+    // Check if institute name is provided
+    const { instituteName } = req.body;
+    if (!instituteName) {
+      return next(new ErrorResponse('Please provide institute name', 400));
+    }
+    
+    // Update user role and institute name
     user.role = 'institute';
+    user.instituteName = instituteName;
+    
+    // Generate a referral code if not exists
+    if (!user.referralCode) {
+      // Generate a unique referral code (e.g., first 3 chars of name + random 4 digits)
+      const namePrefix = user.name.substring(0, 3).toUpperCase();
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      user.referralCode = `${namePrefix}${randomNum}`;
+    }
+    
     await user.save();
     
     res.status(200).json({
@@ -497,5 +490,136 @@ exports.getRegisteredUsers = async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  }
+};
+
+// @desc    Add accommodation to user's wishlist
+// @route   POST /api/users/wishlist
+// @access  Private
+exports.addToWishlist = async (req, res, next) => {
+  try {
+    const { accommodationId } = req.body;
+    
+    console.log('Add to wishlist request:', { user: req.user.id, accommodationId });
+    
+    if (!accommodationId) {
+      return next(new ErrorResponse('No accommodation ID provided', 400));
+    }
+    
+    // Check if accommodation exists
+    const accommodation = await Accommodation.findById(accommodationId);
+    if (!accommodation) {
+      return next(new ErrorResponse('Accommodation not found', 404));
+    }
+    
+    // Find user and add to wishlist if not already there
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return next(new ErrorResponse('User not found', 404));
+    }
+    
+    // Initialize wishlist array if it doesn't exist
+    if (!user.wishlist) {
+      user.wishlist = [];
+    }
+    
+    // Check if already in wishlist
+    if (user.wishlist.some(item => item && item.toString() === accommodationId)) {
+      return res.status(200).json({ success: true, message: 'Already in wishlist' });
+    }
+    
+    user.wishlist.push(accommodationId);
+    await user.save();
+    
+    console.log('Added to wishlist successfully');
+    res.status(200).json({ success: true, data: user.wishlist });
+  } catch (error) {
+    console.error('Error in addToWishlist:', error);
+    next(error);
+  }
+};
+
+// @desc    Remove accommodation from user's wishlist
+// @route   DELETE /api/users/wishlist/:accommodationId
+// @access  Private
+exports.removeFromWishlist = async (req, res, next) => {
+  try {
+    const { accommodationId } = req.params;
+    
+    console.log('Remove from wishlist request:', { user: req.user.id, accommodationId });
+    
+    if (!accommodationId) {
+      return next(new ErrorResponse('No accommodation ID provided', 400));
+    }
+    
+    // Find user
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return next(new ErrorResponse('User not found', 404));
+    }
+    
+    // Initialize wishlist array if it doesn't exist
+    if (!user.wishlist) {
+      user.wishlist = [];
+      await user.save();
+      return res.status(200).json({ success: true, data: [] });
+    }
+    
+    // Filter out the accommodation ID
+    user.wishlist = user.wishlist.filter(
+      (item) => item && item.toString() !== accommodationId
+    );
+    
+    await user.save();
+    
+    console.log('Removed from wishlist successfully');
+    res.status(200).json({ success: true, data: user.wishlist });
+  } catch (error) {
+    console.error('Error in removeFromWishlist:', error);
+    next(error);
+  }
+};
+
+// @desc    Get user's wishlist
+// @route   GET /api/users/wishlist
+// @access  Private
+exports.getWishlist = async (req, res, next) => {
+  try {
+    console.log('Get wishlist request for user:', req.user.id);
+    
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return next(new ErrorResponse('User not found', 404));
+    }
+    
+    // Initialize wishlist if it doesn't exist
+    if (!user.wishlist) {
+      user.wishlist = [];
+      await user.save();
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
+    
+    // Populate the wishlist items with all necessary details
+    const populatedUser = await User.findById(req.user.id).populate('wishlist');
+    const wishlistItems = populatedUser.wishlist || [];
+    
+    console.log('Wishlist retrieved successfully, count:', wishlistItems.length);
+    
+    if (wishlistItems.length > 0) {
+      console.log('First wishlist item:', wishlistItems[0]);
+    }
+    
+    res.status(200).json({
+      success: true,
+      count: wishlistItems.length,
+      data: wishlistItems
+    });
+  } catch (error) {
+    console.error('Error in getWishlist:', error);
+    next(error);
   }
 };

@@ -88,7 +88,11 @@ const UserSchema = new mongoose.Schema({
     default: false
   },
   verificationToken: String,
-  verificationExpire: Date
+  verificationExpire: Date,
+  wishlist: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Accommodation'
+  }]
 });
 
 // Generate and hash referral code

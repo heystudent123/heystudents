@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import CompleteProfile from './pages/CompleteProfile';
 import UserProfile from './pages/UserProfile';
+import Wishlist from './pages/Wishlist';
 import AdminPage from './pages/AdminPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminAccommodationsPage from './pages/AdminAccommodationsPage';
@@ -19,6 +20,8 @@ import AccommodationDetailPage from './pages/HostelDetailPage';
 import Footer from './components/Footer';
 import pingService from './services/pingService';
 import './App.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   const [showWelcome, setShowWelcome] = useState(false);
@@ -43,34 +46,38 @@ function App() {
     <AuthProvider>
       <Router>
         <ScrollToTop />
-        <div className="flex flex-col min-h-screen">
-          {/* Modal will be rendered above everything else */}
-          {showWelcome && (
-            <div className="fixed inset-0 z-50 overflow-y-auto">
-              {/* <WelcomeForm onSubmit={handleWelcomeFormSubmit} /> */}
-            </div>
-          )}
-          {/* Navbar removed from here and added to individual page components */}
-          <main className="flex-grow">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/complete-profile" element={<CompleteProfile />} />
-              <Route path="/profile" element={<UserProfile />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/admin/users" element={<AdminUsersPage />} />
-              <Route path="/admin/institutes" element={<AdminInstitutesPage />} />
-              <Route path="/admin/accommodations" element={<AdminAccommodationsPage />} />
-              <Route path="/admin/accommodations/new" element={<AdminAccommodationEditPage />} />
-              <Route path="/admin/accommodations/edit/:id" element={<AdminAccommodationEditPage />} />
-              <Route path="/institute/dashboard" element={<InstituteDashboardPage />} />
-              <Route path="/accommodation" element={<AccommodationListingPage />} />
-              <Route path="/accommodation/:id" element={<AccommodationDetailPage />} />
-            </Routes>
-          </main>
-          <Footer />
+        <div className="App">
+          <ToastContainer position="bottom-center" />
+          <div className="flex flex-col min-h-screen">
+            {/* Modal will be rendered above everything else */}
+            {showWelcome && (
+              <div className="fixed inset-0 z-50 overflow-y-auto">
+                {/* <WelcomeForm onSubmit={handleWelcomeFormSubmit} /> */}
+              </div>
+            )}
+            {/* Navbar removed from here and added to individual page components */}
+            <main className="flex-grow">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/complete-profile" element={<CompleteProfile />} />
+                <Route path="/profile" element={<UserProfile />} />
+                <Route path="/wishlist" element={<Wishlist />} />
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin/users" element={<AdminUsersPage />} />
+                <Route path="/admin/institutes" element={<AdminInstitutesPage />} />
+                <Route path="/admin/accommodations" element={<AdminAccommodationsPage />} />
+                <Route path="/admin/accommodations/new" element={<AdminAccommodationEditPage />} />
+                <Route path="/admin/accommodations/edit/:id" element={<AdminAccommodationEditPage />} />
+                <Route path="/institute/dashboard" element={<InstituteDashboardPage />} />
+                <Route path="/accommodation" element={<AccommodationListingPage />} />
+                <Route path="/accommodation/:id" element={<AccommodationDetailPage />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
         </div>
       </Router>
     </AuthProvider>

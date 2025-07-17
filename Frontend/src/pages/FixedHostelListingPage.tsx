@@ -208,9 +208,9 @@ const HostelCard = React.memo(({ accommodation }: HostelCardProps) => {
         {/* For gender or availableFor */}
         {(accommodation.gender || accommodation.availableFor) && (
           <div className="text-sm text-neutral-600 mb-3">
-            <span className="text-xs font-medium text-neutral-500 block mb-1">For:</span>
-            <div className="flex flex-wrap gap-1.5">
-              <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#fff9ed] border border-neutral-200 text-xs font-medium text-neutral-800">
+            <div className="flex items-center">
+              <span className="text-gray-600">For:</span>
+              <span className="ml-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                 {accommodation.availableFor || accommodation.gender}
               </span>
             </div>
@@ -274,10 +274,10 @@ const FixedHostelListingPage: React.FC = () => {
       // Gender filter
       if (genderFilter !== 'all') {
         const accommodationGender = accom.gender || accom.availableFor || '';
-        if (genderFilter === 'boys' && !accommodationGender.toLowerCase().includes('male') && !accommodationGender.toLowerCase().includes('boys')) {
+        if (genderFilter === 'boys' && !accommodationGender.toLowerCase().includes('male') && !accommodationGender.toLowerCase().includes('boys') && !accommodationGender.toLowerCase().includes('both')) {
           return false;
         }
-        if (genderFilter === 'girls' && !accommodationGender.toLowerCase().includes('female') && !accommodationGender.toLowerCase().includes('girls')) {
+        if (genderFilter === 'girls' && !accommodationGender.toLowerCase().includes('female') && !accommodationGender.toLowerCase().includes('girls') && !accommodationGender.toLowerCase().includes('both')) {
           return false;
         }
       }
@@ -340,6 +340,12 @@ const FixedHostelListingPage: React.FC = () => {
         return accoms;
     }
   }, [filteredAccommodations, sortOption]);
+
+  const resetFilters = () => {
+    setGenderFilter('all');
+    setPriceFilter('all');
+    setSortOption('default');
+  };
 
   return (
     <div className="space-y-8">
@@ -407,6 +413,12 @@ const FixedHostelListingPage: React.FC = () => {
               </div>
             </div>
           </div>
+          <button
+            onClick={resetFilters}
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+          >
+            Reset Filters
+          </button>
         </div>
       </div>
       
