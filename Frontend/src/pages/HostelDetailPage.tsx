@@ -14,6 +14,7 @@ interface Accommodation {
   type?: string;
   description?: string;
   price?: number;
+  startingFrom?: string;
   priceType?: string;
   gender?: string;
   availableFor?: string;
@@ -32,8 +33,6 @@ interface Accommodation {
   nearestColleges?: { name: string; distance?: number; distanceUnit?: string }[];
   nearestMetros?: { name: string; distance?: number; distanceUnit?: string }[];
   uniqueCode?: string;
-  phone?: string;
-  email?: string;
 }
 
 // Component for image gallery
@@ -44,6 +43,8 @@ interface ImageGalleryProps {
 
 const ImageGallery: React.FC<ImageGalleryProps> = ({ images, fallbackImage = FALLBACK_IMAGE }) => {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalActiveIndex, setModalActiveIndex] = useState(0);
   
   const handlePrev = () => {
     setActiveIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
@@ -53,58 +54,217 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, fallbackImage = FAL
     setActiveIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
   };
   
+  const handleModalPrev = () => {
+    setModalActiveIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+  
+  const handleModalNext = () => {
+    setModalActiveIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+  
+  const openModal = (index: number) => {
+    setModalActiveIndex(index);
+    setIsModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+  
+  const closeModal = () => {
+    setIsModalOpen(false);
+    document.body.style.overflow = 'unset';
+  };
+  
+  // Handle escape key to close modal
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    };
+    
+    if (isModalOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isModalOpen]);
+  
   return (
-    <div className="mb-8">
+    <div>
       {/* Main image */}
-      <div className="relative bg-[#fff9ed] border border-neutral-200 rounded-lg overflow-hidden max-w-4xl mx-auto">
-        <div className="aspect-w-16 aspect-h-10" style={{ maxHeight: '400px' }}>
+      <div className="relative bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-lg">
+        <div className="aspect-w-16 aspect-h-9" style={{ height: '500px' }}>
           <img 
             src={images[activeIndex] || fallbackImage} 
             alt="Accommodation" 
-            className="object-cover w-full h-full"
+            className="object-cover w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
             onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage }}
+            onClick={() => openModal(activeIndex)}
           />
         </div>
         
-        {/* Simple navigation controls */}
+        {/* Navigation controls */}
         {images.length > 1 && (
-          <div className="absolute inset-x-0 bottom-0 flex justify-between items-center p-4">
+          <>
+            {/* Previous button */}
             <button 
-              className="bg-white rounded p-2 shadow hover:bg-neutral-100 focus:outline-none"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
               onClick={handlePrev}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             
-            <div className="text-sm bg-white px-3 py-1 rounded shadow">
-              {activeIndex + 1} / {images.length}
-            </div>
-            
+            {/* Next button */}
             <button 
-              className="bg-white rounded p-2 shadow hover:bg-neutral-100 focus:outline-none"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
               onClick={handleNext}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
               </svg>
             </button>
-          </div>
+            
+            {/* Image counter */}
+            <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+              {activeIndex + 1} / {images.length}
+            </div>
+          </>
         )}
       </div>
       
-      {/* Simple dot indicators */}
+      {/* Thumbnail strip for desktop */}
       {images.length > 1 && (
-        <div className="flex justify-center mt-4 space-x-2">
+        <div className="mt-4 hidden md:block">
+          <div className="flex space-x-2 overflow-x-auto pb-2">
+            {images.map((image, idx) => (
+              <button 
+                key={idx} 
+                className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                  activeIndex === idx 
+                    ? 'border-black shadow-lg' 
+                    : 'border-neutral-200 hover:border-neutral-400'
+                }`}
+                onClick={() => setActiveIndex(idx)}
+                onDoubleClick={() => openModal(idx)}
+                aria-label={`Go to image ${idx + 1}`}
+              >
+                <img 
+                  src={image || fallbackImage} 
+                  alt={`Thumbnail ${idx + 1}`}
+                  className="object-cover w-full h-full cursor-pointer"
+                  onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage }}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Dot indicators for mobile */}
+      {images.length > 1 && (
+        <div className="flex justify-center mt-4 space-x-2 md:hidden">
           {images.map((_, idx) => (
             <button 
               key={idx} 
-              className={`w-2 h-2 rounded-full ${activeIndex === idx ? 'bg-black' : 'bg-neutral-300'}`}
+              className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                activeIndex === idx ? 'bg-black' : 'bg-neutral-300'
+              }`}
               onClick={() => setActiveIndex(idx)}
               aria-label={`Go to image ${idx + 1}`}
             />
           ))}
+        </div>
+      )}
+      
+      {/* Compact Modal Carousel */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          {/* Modal Container */}
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            {/* Close button */}
+            <button 
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 z-10 bg-white rounded-full p-1 shadow-md"
+              onClick={closeModal}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            {/* Image container */}
+            <div className="relative">
+              <div className="aspect-w-16 aspect-h-10" style={{ height: '400px' }}>
+                <img 
+                  src={images[modalActiveIndex] || fallbackImage} 
+                  alt="Accommodation image" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage }}
+                />
+              </div>
+              
+              {/* Navigation controls */}
+              {images.length > 1 && (
+                <>
+                  {/* Previous button */}
+                  <button 
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-2 shadow-md transition-all duration-200"
+                    onClick={handleModalPrev}
+                  >
+                    <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Next button */}
+                  <button 
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-2 shadow-md transition-all duration-200"
+                    onClick={handleModalNext}
+                  >
+                    <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Image counter */}
+                  <div className="absolute bottom-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                    {modalActiveIndex + 1} / {images.length}
+                  </div>
+                </>
+              )}
+            </div>
+            
+            {/* Thumbnail strip */}
+            {images.length > 1 && (
+              <div className="p-4 bg-gray-50">
+                <div className="flex space-x-2 overflow-x-auto">
+                  {images.map((image, idx) => (
+                    <button 
+                      key={idx} 
+                      className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                        modalActiveIndex === idx 
+                          ? 'border-black shadow-md' 
+                          : 'border-gray-200 hover:border-gray-400'
+                      }`}
+                      onClick={() => setModalActiveIndex(idx)}
+                    >
+                      <img 
+                        src={image || fallbackImage} 
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="object-cover w-full h-full"
+                        onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Click outside to close */}
+          <div 
+            className="absolute inset-0 -z-10" 
+            onClick={closeModal}
+          />
         </div>
       )}
     </div>
@@ -115,44 +275,48 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, fallbackImage = FAL
 interface KeyDetailsProps {
   accommodation: Accommodation;
   formatPrice: (acc: Accommodation) => string;
-  formatAddress: (acc: Accommodation) => string;
 }
 
-const KeyDetails: React.FC<KeyDetailsProps> = ({ accommodation, formatPrice, formatAddress }) => {
+const KeyDetails: React.FC<KeyDetailsProps> = ({ accommodation, formatPrice }) => {
   return (
-    <div className="bg-[#fff9ed] rounded-2xl shadow-sm p-6 mb-8 border border-neutral-100">
-      <h1 className="text-3xl font-bold text-black mb-2">{accommodation.name}</h1>
-      <div className="flex flex-wrap justify-between items-center">
-        <p className="text-neutral-600">{formatAddress(accommodation)}</p>
-        <div className="text-2xl font-semibold mt-2 md:mt-0">{formatPrice(accommodation)}</div>
+    <div className="bg-[#fff9ed] rounded-2xl shadow-sm p-6 mb-8 border border-neutral-100 text-center">
+      {/* Header with name and price */}
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold text-black mb-2">{accommodation.name}</h1>
+        <div className="text-xl font-semibold text-black">{formatPrice(accommodation)}</div>
       </div>
       
-      {/* Rating and verification */}
-      <div className="flex flex-wrap gap-4 mt-4">
+      {/* Rating and verification badges */}
+      <div className="flex flex-wrap gap-2 justify-center">
         {accommodation.rating !== undefined && (
-          <div className="flex items-center bg-yellow-100 rounded-lg px-3 py-1">
-            <svg className="w-5 h-5 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+          <div className="flex items-center bg-neutral-100 rounded-lg px-3 py-1">
+            <svg className="w-4 h-4 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
-            <span className="font-medium">{accommodation.rating} / 5</span>
+            <span className="text-sm text-neutral-700">{accommodation.rating} / 5</span>
           </div>
         )}
         {accommodation.verified && (
-          <div className="flex items-center bg-green-100 rounded-lg px-3 py-1">
-            <svg className="w-5 h-5 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+          <div className="flex items-center bg-neutral-100 rounded-lg px-3 py-1">
+            <svg className="w-4 h-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
-            <span className="font-medium">Verified</span>
+            <span className="text-sm text-neutral-700">Verified</span>
           </div>
         )}
         {accommodation.uniqueCode && (
-          <div className="flex items-center bg-blue-100 rounded-lg px-3 py-1">
-            <span className="font-medium">Code: {accommodation.uniqueCode}</span>
+          <div className="flex items-center bg-neutral-100 rounded-lg px-3 py-1">
+            <span className="text-sm text-neutral-700">Code: {accommodation.uniqueCode}</span>
           </div>
         )}
         {accommodation.availableFor && (
-          <div className="flex items-center bg-purple-100 rounded-lg px-3 py-1">
-            <span className="font-medium">For: {accommodation.availableFor}</span>
+          <div className="flex items-center bg-neutral-100 rounded-lg px-3 py-1">
+            <span className="text-sm text-neutral-700">For: {accommodation.availableFor}</span>
+          </div>
+        )}
+        {accommodation.gender && (
+          <div className="flex items-center bg-neutral-100 rounded-lg px-3 py-1">
+            <span className="text-sm text-neutral-700">Gender: {accommodation.gender}</span>
           </div>
         )}
       </div>
@@ -260,47 +424,13 @@ const LocationSection: React.FC<LocationSectionProps> = ({
 
 // Component for action buttons section
 interface ActionsSectionProps {
-  phone?: string;
-  email?: string;
   navigate: NavigateFunction;
 }
 
 const ActionsSection: React.FC<ActionsSectionProps> = ({ 
-  phone = '+911234567890', 
-  email = 'info@heystudents.com', 
   navigate 
 }) => {
-  return (
-    <div>
-      <button 
-        className="w-full mb-4 bg-black text-white px-4 py-3 rounded-xl flex items-center justify-center font-semibold hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
-        onClick={() => window.open(`tel:${phone}`, '_blank')}
-      >
-        <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-        </svg>
-        Call Owner
-      </button>
-      <button 
-        className="w-full mb-4 bg-white border border-black text-black px-4 py-3 rounded-xl flex items-center justify-center font-semibold hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
-        onClick={() => window.open(`mailto:${email}`, '_blank')}
-      >
-        <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-        Email Inquiry
-      </button>
-      <button 
-        className="w-full bg-white border border-black text-black px-4 py-3 rounded-xl flex items-center justify-center font-semibold hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
-        onClick={() => navigate(-1)}
-      >
-        <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Go Back
-      </button>
-    </div>
-  );
+  return null;
 };
 
 // Component for empty state
@@ -381,6 +511,16 @@ const HostelDetailPage: React.FC = () => {
   
   // Helper functions for formatting
   const formatPrice = (acc: Accommodation): string => {
+    // Use startingFrom field first, then fallback to price
+    if (acc.startingFrom) {
+      // Check if "Starting from" is already included in the string
+      if (acc.startingFrom.toLowerCase().includes('starting from')) {
+        return acc.startingFrom;
+      } else {
+        return `Starting from Rs. ${acc.startingFrom}/pm`;
+      }
+    }
+    
     if (!acc.price) return 'Price on request';
     
     const formattedPrice = new Intl.NumberFormat('en-IN', {
@@ -389,23 +529,11 @@ const HostelDetailPage: React.FC = () => {
       maximumFractionDigits: 0,
     }).format(acc.price);
     
-    return acc.priceType ? `${formattedPrice} / ${acc.priceType}` : formattedPrice;
+    const priceWithType = acc.priceType ? `${formattedPrice} / ${acc.priceType}` : formattedPrice;
+    return `Starting from ${priceWithType}`;
   };
   
-  const formatAddress = (acc: Accommodation): string => {
-    if (typeof acc.address === 'string') return acc.address;
-    
-    const addrObj = acc.address;
-    if (!addrObj) return 'Address not available';
-    
-    const parts = [];
-    if (addrObj.street) parts.push(addrObj.street);
-    if (addrObj.area) parts.push(addrObj.area);
-    if (addrObj.city) parts.push(addrObj.city);
-    if (addrObj.pincode) parts.push(addrObj.pincode);
-    
-    return parts.length > 0 ? parts.join(', ') : 'Address not available';
-  };
+
   
   const formatDistance = (distance?: number, unit: string = 'km'): string => {
     if (distance === undefined) return 'Unknown distance';
@@ -439,28 +567,31 @@ const HostelDetailPage: React.FC = () => {
   return (
     <div className="bg-[#fff9ed] min-h-screen">
       <SharedNavbar />
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumbs */}
-        <div className="flex flex-wrap text-sm mb-6 text-neutral-500">
-          <span className="hover:text-black cursor-pointer" onClick={() => navigate('/')}>Home</span>
+        <div className="flex flex-wrap text-sm mb-8 text-neutral-500">
+          <span className="hover:text-black cursor-pointer transition-colors" onClick={() => navigate('/')}>Home</span>
           <span className="mx-2">/</span>
-          <span className="hover:text-black cursor-pointer" onClick={() => navigate('/accommodations')}>Accommodations</span>
+          <span className="hover:text-black cursor-pointer transition-colors" onClick={() => navigate('/accommodations')}>Accommodations</span>
           <span className="mx-2">/</span>
           <span className="text-black">{accommodation.name}</span>
         </div>
         
-        {/* Image gallery */}
-        <ImageGallery images={images} />
-        
-        {/* Key details */}
-        <KeyDetails 
-          accommodation={accommodation} 
-          formatPrice={formatPrice} 
-          formatAddress={formatAddress} 
-        />
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+        {/* Main content - Centered */}
+        <div className="max-w-4xl mx-auto">
+          {/* Image gallery */}
+          <div className="mb-8">
+            <ImageGallery images={images} />
+          </div>
+          
+          {/* Key details */}
+          <KeyDetails 
+            accommodation={accommodation} 
+            formatPrice={formatPrice} 
+          />
+          
+          {/* Content sections */}
+          <div className="space-y-8">
             {/* Description */}
             <DescriptionSection description={accommodation.description} />
             
@@ -473,17 +604,6 @@ const HostelDetailPage: React.FC = () => {
               distanceToMetros={accommodation.nearestMetros}
               formatDistance={formatDistance} 
             />
-          </div>
-          
-          <div>
-            {/* Actions */}
-            <div className="bg-[#fff9ed] rounded-2xl shadow-sm p-6 mb-8 border border-neutral-100 sticky top-4">
-              <ActionsSection 
-                navigate={navigate}
-                phone={accommodation.phone || '+911234567890'}
-                email={accommodation.email || 'info@heystudents.com'}
-              />
-            </div>
           </div>
         </div>
       </div>

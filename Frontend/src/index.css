@@ -142,6 +142,15 @@ html, body {
   pointer-events: none;
 }
 
+/* Force hamburger menu to be black */
+.hamburger-menu-btn {
+  color: #000000 !important;
+}
+
+.hamburger-menu-btn svg {
+  stroke: #000000 !important;
+}
+
   .card {
     @apply bg-white rounded-2xl shadow-card border border-neutral-100 overflow-hidden;
   }

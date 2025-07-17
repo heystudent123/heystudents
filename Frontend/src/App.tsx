@@ -1,8 +1,9 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ScrollToTop from './components/ScrollToTop';
+import { AuthProvider } from './context/AuthContext';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import CompleteProfile from './pages/CompleteProfile';
@@ -15,46 +16,36 @@ import InstituteDashboardPage from './pages/InstituteDashboardPage';
 import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
 import AccommodationListingPage from './pages/AccommodationPage';
 import AccommodationDetailPage from './pages/HostelDetailPage';
-import { AuthProvider, useAuth } from './context/AuthContext';
 import Footer from './components/Footer';
+import pingService from './services/pingService';
 import './App.css';
 
-const App: React.FC = () => {
-  // Set initial state to true to show the form immediately
-  const [showWelcomeForm, setShowWelcomeForm] = React.useState(true);
+function App() {
+  const [showWelcome, setShowWelcome] = useState(false);
 
-  React.useEffect(() => {
-    // Check if user has already submitted the form
-    const storedUserInfo = localStorage.getItem('userInfo');
-    if (storedUserInfo) {
-      setShowWelcomeForm(false); // Hide form if user info exists
+  useEffect(() => {
+    // Check if the welcome screen has been shown before
+    const hasShownWelcome = localStorage.getItem('hasShownWelcome');
+    if (!hasShownWelcome) {
+      setShowWelcome(true);
+      localStorage.setItem('hasShownWelcome', 'true');
     }
-    
+
     // Start the ping service
-    // pingService.start();
-    
-    // Clean up on unmount
+    pingService.start();
+
     return () => {
-      // pingService.stop();
+      pingService.stop();
     };
   }, []);
-
-  const handleWelcomeFormSubmit = (formData: {
-    name: string;
-    mobile: string;
-    referralCode?: string;
-  }) => {
-    // Save user info to localStorage
-    localStorage.setItem('userInfo', JSON.stringify(formData));
-    setShowWelcomeForm(false);
-  };
 
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
         <div className="flex flex-col min-h-screen">
           {/* Modal will be rendered above everything else */}
-          {showWelcomeForm && (
+          {showWelcome && (
             <div className="fixed inset-0 z-50 overflow-y-auto">
               {/* <WelcomeForm onSubmit={handleWelcomeFormSubmit} /> */}
             </div>
@@ -64,7 +55,6 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/complete-profile" element={<CompleteProfile />} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SharedNavbar from '../components/SharedNavbar';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
@@ -15,7 +15,7 @@ declare global {
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({
     phone: '',
-    otp: '',
+    otp: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -30,17 +30,25 @@ const Login: React.FC = () => {
   const { loginWithPhone } = useAuth();
 
   useEffect(() => {
+    // Ensure reCAPTCHA container exists and is properly styled
+    const container = document.getElementById('recaptcha-container');
+    if (!container) {
+      console.error('reCAPTCHA container not found');
+      setRecaptchaError('reCAPTCHA initialization failed');
+      return;
+    }
+
     // Clear any previous instances
     if (window.recaptchaVerifier) {
       try {
         window.recaptchaVerifier.clear();
       } catch (e) {
-        console.error('Error clearing existing reCAPTCHA:', e);
+        console.error('Error clearing reCAPTCHA:', e);
       }
       window.recaptchaVerifier = null;
     }
     
-    // Delay reCAPTCHA initialization slightly to ensure DOM is ready
+    // Initialize reCAPTCHA after ensuring container exists
     const initRecaptcha = setTimeout(() => {
       try {
         console.log('Initializing reCAPTCHA...');
@@ -106,10 +114,7 @@ const Login: React.FC = () => {
       return;
     }
 
-    let phoneNumber = formData.phone;
-    if (!phoneNumber.startsWith('+')) {
-      phoneNumber = `+91${phoneNumber}`;
-    }
+    const phoneNumber = formData.phone;
 
     setLoading(true);
     setError('');
@@ -117,28 +122,17 @@ const Login: React.FC = () => {
     try {
       console.log('Sending OTP to:', phoneNumber);
       
-      // Ensure a single persistent reCAPTCHA container exists
-    if (!document.getElementById('recaptcha-container')) {
-      const recaptchaDiv = document.createElement('div');
-      recaptchaDiv.id = 'recaptcha-container';
-      recaptchaDiv.style.position = 'absolute';
-      recaptchaDiv.style.left = '-9999px';
-      recaptchaDiv.style.top = '0'; // keep it off-screen but in DOM
-      document.body.appendChild(recaptchaDiv);
-    }
-
-    // Re-use existing verifier if available, otherwise create it once
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible'
-      });
-      try {
-        await window.recaptchaVerifier.render();
-      } catch (_) {
-        /* already rendered */
+      // Verify reCAPTCHA container exists
+      const container = document.getElementById('recaptcha-container');
+      if (!container) {
+        setError('reCAPTCHA initialization failed');
+        return;
       }
-    } else {
-      // reuse existing verifier; no need to reset/clear as invisible solves it
+
+    // Use existing verifier or wait for initialization
+    if (!window.recaptchaVerifier) {
+      setError('Please wait for reCAPTCHA to initialize...');
+      return;
     }
 
       console.log('Using existing reCAPTCHA verifier');
@@ -208,11 +202,7 @@ const Login: React.FC = () => {
         const user = result.user;
         console.log('OTP verified successfully', user);
         
-        // Get formatted phone number
-        let phoneNumber = formData.phone.trim();
-      if (!phoneNumber.startsWith('+')) {
-        phoneNumber = `+91${phoneNumber}`;
-      }
+        const phoneNumber = formData.phone.trim();
 
       // Persist verified phone for next page
       localStorage.setItem('verifiedPhone', phoneNumber);
@@ -256,8 +246,8 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleOTPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, otp: e.target.value });
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
     // Clear error when user starts typing new OTP
     setError('');
   };
@@ -265,7 +255,7 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#fff9ed] font-sans">
       <SharedNavbar />
-      <div className="flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
@@ -289,31 +279,21 @@ const Login: React.FC = () => {
               <label htmlFor="phone" className="block text-sm font-medium text-neutral-dark mb-1">
                 Phone Number
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  required
-                  placeholder="9876543210"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  disabled={otpSent}
-                  className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
-                />
-              </div>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="Enter your phone number"
+                className="w-full px-4 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                disabled={otpSent}
+              />
             </div>
 
             {!otpSent ? (
               <button
                 type="button"
-                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 hover:from-blue-700 hover:via-blue-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
                 onClick={handleSendOTP}
                 disabled={loading}
               >
@@ -347,14 +327,14 @@ const Login: React.FC = () => {
                       required
                       placeholder="Enter 6-digit OTP"
                       value={formData.otp}
-                      onChange={handleOTPChange}
+                      onChange={handleInputChange}
                       className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
                     />
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 hover:from-blue-700 hover:via-blue-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+                  className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
                   onClick={handleVerifyOTP}
                   disabled={loading}
                 >
@@ -369,7 +349,7 @@ const Login: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-gradient-to-r from-blue-600 via-blue-500 to-orange-500 hover:from-blue-700 hover:via-blue-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+                  className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
                   onClick={handleResendOTP}
                   disabled={resendDisabled}
                 >
@@ -383,18 +363,11 @@ const Login: React.FC = () => {
             ) : null}
           </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-neutral-600">
-              Don't have an account?{' '}
-              <Link to="/register" className="font-medium text-blue-500 hover:text-blue-600 transition-colors">
-                Sign up
-              </Link>
-            </p>
-          </div>
+
         </div>
       </div>
 
-      <div id="recaptcha-container" className="invisible"></div>
+      <div id="recaptcha-container" style={{ position: 'fixed', bottom: '-100px', transform: 'scale(0)', pointerEvents: 'none' }}></div>
     </div>
   );
 };

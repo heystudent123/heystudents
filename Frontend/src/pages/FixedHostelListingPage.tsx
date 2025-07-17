@@ -14,15 +14,7 @@ interface Accommodation {
   price?: number;
   startingFrom?: string;
   uniqueCode?: string; // Added uniqueCode field
-  location?: {
-    address?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-    coordinates?: [number, number];
-  };
-  distanceToCollege?: number;
-  distanceToMetro?: number;
+
   rating?: number;
   reviews?: Array<{
     userId: string;
@@ -35,14 +27,7 @@ interface Accommodation {
   type?: string;
   gender?: string; // For backward compatibility
   availableFor?: string; // Backend field
-  address?: {
-    street?: string;
-    area?: string;
-    city?: string;
-    pincode?: string;
-  };
-  nearestCollege?: string[];
-  nearestMetro?: string;
+
   verified?: boolean;
 }
 
@@ -77,15 +62,22 @@ const HostelCard = React.memo(({ accommodation }: HostelCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
+  // Reset image index when mouse leaves
   useEffect(() => {
-    if (!accommodation.images || accommodation.images.length <= 1) return;
+    if (!isHovered) {
+      setCurrentImageIndex(0);
+    }
+  }, [isHovered]);
+
+  useEffect(() => {
+    if (!accommodation.images || accommodation.images.length <= 1 || !isHovered) return;
 
     const interval = setInterval(() => {
       setCurrentImageIndex(prevIndex => (prevIndex + 1) % accommodation.images!.length);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [accommodation.images]);
+  }, [accommodation.images, isHovered]);
 
   // Function to get image URL with fallback
   const getImageUrl = (accommodation: Accommodation) => {
@@ -194,21 +186,7 @@ const HostelCard = React.memo(({ accommodation }: HostelCardProps) => {
           )}
         </div>
 
-        {/* Location */}
-        <div className="flex items-center text-gray-600 text-sm mb-3">
-          <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
-          <span className="truncate">
-            {accommodation.location?.address || 
-             (accommodation.address ? 
-              `${accommodation.address.street || ''} ${accommodation.address.area || ''}, ${accommodation.address.city || ''}` : 
-              'Location unavailable'
-             )
-            }
-          </span>
-        </div>
+
         
         {/* Amenities */}
         <div className="flex flex-wrap gap-2 mb-4">
@@ -262,7 +240,8 @@ const FixedHostelListingPage: React.FC = () => {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [genderFilter, setGenderFilter] = useState('all');
+  const [priceFilter, setPriceFilter] = useState('all');
   const [sortOption, setSortOption] = useState('default');
   
   // Fetch accommodations on component mount
@@ -289,31 +268,74 @@ const FixedHostelListingPage: React.FC = () => {
     fetchAccommodations();
   }, []);
 
-  // Filter accommodations based on search term
+  // Filter accommodations based on gender and price filters
   const filteredAccommodations = useMemo(() => {
-    if (!searchTerm) return accommodations;
-    const term = searchTerm.toLowerCase();
-    return accommodations.filter(accom => 
-      (accom.name && accom.name.toLowerCase().includes(term)) ||
-      (accom.address?.city && accom.address.city.toLowerCase().includes(term)) ||
-      (accom.address?.area && accom.address.area.toLowerCase().includes(term)) ||
-      (accom.location?.address && accom.location.address.toLowerCase().includes(term)) ||
-      (accom.location?.city && accom.location.city.toLowerCase().includes(term))
-    );
-  }, [accommodations, searchTerm]);
+    return accommodations.filter(accom => {
+      // Gender filter
+      if (genderFilter !== 'all') {
+        const accommodationGender = accom.gender || accom.availableFor || '';
+        if (genderFilter === 'boys' && !accommodationGender.toLowerCase().includes('male') && !accommodationGender.toLowerCase().includes('boys')) {
+          return false;
+        }
+        if (genderFilter === 'girls' && !accommodationGender.toLowerCase().includes('female') && !accommodationGender.toLowerCase().includes('girls')) {
+          return false;
+        }
+      }
+      
+      // Price filter
+      if (priceFilter !== 'all') {
+        // Extract numeric value from startingFrom field or use price field as fallback
+        let price = 0;
+        if (accom.startingFrom) {
+          // Extract numeric value from startingFrom string (e.g., "Starting from ₹8,000" -> 8000)
+          const match = accom.startingFrom.match(/[₹]?([0-9,]+)/);
+          if (match) {
+            price = parseInt(match[1].replace(/,/g, ''));
+          }
+        } else if (accom.price) {
+          price = accom.price;
+        }
+        
+        if (price > 0) {
+          switch (priceFilter) {
+            case 'under-5000':
+              return price < 5000;
+            case '5000-10000':
+              return price >= 5000 && price <= 10000;
+            case '10000-15000':
+              return price >= 10000 && price <= 15000;
+            case 'above-15000':
+              return price > 15000;
+            default:
+              return true;
+          }
+        }
+      }
+      
+      return true;
+    });
+  }, [accommodations, genderFilter, priceFilter]);
+
+  // Helper function to extract price from accommodation
+  const extractPrice = (accom: Accommodation): number => {
+    if (accom.startingFrom) {
+      // Extract numeric value from startingFrom string (e.g., "Starting from ₹8,000" -> 8000)
+      const match = accom.startingFrom.match(/[₹]?([0-9,]+)/);
+      if (match) {
+        return parseInt(match[1].replace(/,/g, ''));
+      }
+    }
+    return accom.price || 0;
+  };
 
   // Sort accommodations
   const sortedAccommodations = useMemo(() => {
     const accoms = [...filteredAccommodations];
     switch (sortOption) {
       case 'price-low-high':
-        return accoms.sort((a, b) => (a.price || 0) - (b.price || 0));
+        return accoms.sort((a, b) => extractPrice(a) - extractPrice(b));
       case 'price-high-low':
-        return accoms.sort((a, b) => (b.price || 0) - (a.price || 0));
-      case 'rating':
-        return accoms.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      case 'verified':
-        return accoms.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
+        return accoms.sort((a, b) => extractPrice(b) - extractPrice(a));
       default:
         return accoms;
     }
@@ -321,24 +343,48 @@ const FixedHostelListingPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* Search and Filter Section */}
+      {/* Filter Section */}
       <div className="bg-[#fff9ed] p-6 rounded-xl shadow-sm border border-neutral-100">
         <div className="flex flex-col md:flex-row gap-4">
-          {/* Search Input */}
-          <div className="flex-grow">
+          {/* Gender Filter */}
+          <div className="w-full md:w-60">
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <select
+                className="block appearance-none w-full pl-4 pr-10 py-3 text-base border border-neutral-200 rounded-xl focus:outline-none focus:ring-black focus:border-black sm:text-sm bg-[#fff9ed] transition-colors"
+                value={genderFilter}
+                onChange={(e) => setGenderFilter(e.target.value)}
+              >
+                <option value="all">All Genders</option>
+                <option value="boys">Boys Only</option>
+                <option value="girls">Girls Only</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
-              <input
-                type="text"
-                className="block w-full pl-11 pr-4 py-3 border border-neutral-200 rounded-xl leading-5 bg-[#fff9ed] placeholder-neutral-500 focus:outline-none focus:ring-black focus:border-black sm:text-sm transition-colors"
-                placeholder="Search by name, city or address..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            </div>
+          </div>
+          
+          {/* Price Filter */}
+          <div className="w-full md:w-60">
+            <div className="relative">
+              <select
+                className="block appearance-none w-full pl-4 pr-10 py-3 text-base border border-neutral-200 rounded-xl focus:outline-none focus:ring-black focus:border-black sm:text-sm bg-[#fff9ed] transition-colors"
+                value={priceFilter}
+                onChange={(e) => setPriceFilter(e.target.value)}
+              >
+                <option value="all">All Prices</option>
+                <option value="under-5000">Under ₹5,000</option>
+                <option value="5000-10000">₹5,000 - ₹10,000</option>
+                <option value="10000-15000">₹10,000 - ₹15,000</option>
+                <option value="above-15000">Above ₹15,000</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
           </div>
           
@@ -353,8 +399,6 @@ const FixedHostelListingPage: React.FC = () => {
                 <option value="default">Sort By: Recommended</option>
                 <option value="price-low-high">Price: Low to High</option>
                 <option value="price-high-low">Price: High to Low</option>
-                <option value="rating">Rating: High to Low</option>
-                <option value="verified">Verified First</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,7 +435,7 @@ const FixedHostelListingPage: React.FC = () => {
             </svg>
             <h3 className="mt-4 text-lg font-medium text-neutral-900">No accommodations found</h3>
             <p className="mt-2 text-neutral-500 max-w-md mx-auto">
-              {searchTerm ? `No results match "${searchTerm}"` : "There are no accommodations available at the moment."}
+              {(genderFilter !== 'all' || priceFilter !== 'all') ? "No accommodations match your selected filters." : "There are no accommodations available at the moment."}
             </p>
           </div>
         ) : (

@@ -145,7 +145,7 @@ const TestimonialCarousel: React.FC<{ testimonials: TestimonialProps[] }> = ({ t
       <div className="h-full w-full relative">
         {/* Current testimonial */}
         <div className="absolute inset-0 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm mx-auto border border-gray-100">
+          <div className="bg-[#fff9ed] rounded-2xl shadow-md p-6 w-full max-w-sm mx-auto border border-black">
             <div className="mb-4">
               <p className="text-gray-600 italic">"{testimonials[currentIndex].content}"</p>
             </div>

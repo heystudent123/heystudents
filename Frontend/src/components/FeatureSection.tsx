@@ -55,19 +55,19 @@ const FeatureSection: React.FC = () => {
             .map(feature => (
               <div 
                 key={feature.name} 
-                className="group h-full p-8 rounded-3xl bg-[#fff9ed] border border-neutral-200 hover:border-neutral-300 transition-all duration-300 hover:shadow-lg"
+                className="group h-full p-8 rounded-3xl bg-[#5a684e] border border-transparent transition-all duration-300"
               >
                 <div className="relative">
                   {/* Icon */}
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${feature.iconBg} ${feature.textColor} mb-6`}>
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 text-white mb-6">
                     {feature.icon}
                   </div>
                   
                   {/* Content */}
-                  <h3 className="text-2xl font-display font-bold text-neutral-900 mb-4 group-hover:text-primary-600 transition-colors duration-300">
+                  <h3 className="text-2xl font-display font-bold text-white mb-4 group-hover:text-gray-200 transition-colors duration-300">
                     {feature.name}
                   </h3>
-                  <p className="text-neutral-600 leading-relaxed">
+                  <p className="text-white leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -80,19 +80,19 @@ const FeatureSection: React.FC = () => {
             .map(feature => (
               <div 
                 key={feature.name} 
-                className="group h-full p-8 rounded-3xl bg-[#fff9ed] border border-neutral-200 hover:border-neutral-300 transition-all duration-300 hover:shadow-lg"
+                className="group h-full p-8 rounded-3xl bg-[#bdab93] border border-transparent transition-all duration-300"
               >
                 <div className="relative">
                   {/* Icon */}
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${feature.iconBg} ${feature.textColor} mb-6`}>
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 text-white mb-6">
                     {feature.icon}
                   </div>
                   
                   {/* Content */}
-                  <h3 className="text-2xl font-display font-bold text-neutral-900 mb-4 group-hover:text-primary-600 transition-colors duration-300">
+                  <h3 className="text-2xl font-display font-bold text-white mb-4 group-hover:text-gray-200 transition-colors duration-300">
                     {feature.name}
                   </h3>
-                  <p className="text-neutral-600 leading-relaxed">
+                  <p className="text-white leading-relaxed">
                     {feature.description}
                   </p>
                 </div>

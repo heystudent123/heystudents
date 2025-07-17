@@ -30,7 +30,7 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link to="/pg-search" className="bg-black text-white py-3 px-6 rounded-xl shadow-lg hover:bg-gray-900 transition-all duration-300 flex items-center justify-center btn-lg group">
+              <Link to="/accommodation" className="bg-black text-white py-3 px-6 rounded-xl shadow-lg hover:bg-gray-900 transition-all duration-300 flex items-center justify-center btn-lg group">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" />
                 </svg>
@@ -121,14 +121,14 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
                     </svg>
                   </div>
                   <div>
-                    <div className="font-semibold text-neutral-900">Smart Matching</div>
-                    <div className="text-sm text-neutral-600">Perfect PG in Minutes</div>
+                    <div className="font-semibold text-neutral-900">Verified Network of PGs</div>
+                    <div className="text-sm text-neutral-600">Trusted & Verified</div>
                   </div>
                 </div>
                 <div className="relative">
                   <div className="absolute left-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-500 w-full">
                     <div className="bg-neutral-100 p-3 rounded-lg text-sm text-neutral-700 shadow-md border border-neutral-200">
-                      Our AI-powered matching system finds you the perfect PG based on your budget, location preferences, and lifestyle needs.
+                      Our extensive network of verified PGs ensures you find safe, clean, and reliable accommodation that meets your budget and location preferences.
                     </div>
                   </div>
                 </div>
