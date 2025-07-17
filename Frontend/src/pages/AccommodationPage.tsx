@@ -4,7 +4,7 @@ import FixedHostelListingPage from './FixedHostelListingPage';
 
 const AccommodationPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#fff9ed]">
       {/* Use the SharedNavbar component for consistency */}
       <SharedNavbar />
       

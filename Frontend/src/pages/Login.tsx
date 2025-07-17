@@ -263,7 +263,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#fff9ed] font-sans">
       <SharedNavbar />
       <div className="flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
@@ -394,24 +394,6 @@ const Login: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-orange-600 py-6 text-white/80 text-center mt-auto w-full">
-        <div className="container mx-auto px-4">
-          <p className="text-sm">&copy; {new Date().getFullYear()} Hey Students. All rights reserved.</p>
-          <div className="text-sm mt-2">
-            <Link to="/terms" className="font-medium text-blue-600 hover:text-blue-500">
-              Terms
-            </Link>
-            <span className="mx-2">|</span>
-            <Link to="/privacy" className="font-medium text-blue-600 hover:text-blue-500">
-              Privacy Policy
-            </Link>
-            <span className="mx-2">|</span>
-            <Link to="/support" className="font-medium text-blue-600 hover:text-blue-500">
-              Support
-            </Link>
-          </div>
-        </div>
-      </div>
       <div id="recaptcha-container" className="invisible"></div>
     </div>
   );

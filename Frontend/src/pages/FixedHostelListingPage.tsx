@@ -74,7 +74,19 @@ interface HostelCardProps {
 // HostelCard component - memoized for performance
 const HostelCard = React.memo(({ accommodation }: HostelCardProps) => {
   const navigate = useNavigate();
-  
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (!accommodation.images || accommodation.images.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentImageIndex(prevIndex => (prevIndex + 1) % accommodation.images!.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [accommodation.images]);
+
   // Function to get image URL with fallback
   const getImageUrl = (accommodation: Accommodation) => {
     if (accommodation.images?.[0]) {
@@ -95,94 +107,140 @@ const HostelCard = React.memo(({ accommodation }: HostelCardProps) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-300">
-      {/* Image */}
+    <div 
+      className="bg-[#fff9ed] rounded-lg shadow-md overflow-hidden cursor-pointer transition-all duration-300 ease-in-out relative transform hover:scale-105"
+      style={{
+        zIndex: isHovered ? 10 : 1
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Image Carousel */}
       <div className="relative h-48 overflow-hidden">
-        <img 
-          src={getImageUrl(accommodation)} 
-          alt={accommodation.name || 'Accommodation'} 
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            // Fallback if image fails to load
-            (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
-          }}
-        />
+        {accommodation.images && accommodation.images.length > 0 ? (
+          <>
+            <div className="absolute inset-0 flex transition-transform duration-500 ease-in-out" style={{
+              transform: `translateX(-${currentImageIndex * 100}%)`
+            }}>
+              {accommodation.images.map((img, idx) => (
+                <div key={idx} className="w-full flex-shrink-0">
+                  <img 
+                    src={img} 
+                    alt={`${accommodation.name} ${idx+1}`} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            {/* Navigation Dots */}
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+              {accommodation.images.map((_, idx) => (
+                <button 
+                  key={idx}
+                  className={`w-2 h-2 rounded-full ${idx === currentImageIndex ? 'bg-white' : 'bg-gray-300'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentImageIndex(idx);
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <img 
+            src={FALLBACK_IMAGE} 
+            alt={accommodation.name || 'Accommodation'} 
+            className="w-full h-full object-cover"
+          />
+        )}
       </div>
       
       {/* Content */}
       <div className="p-4">
         {/* Price */}
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xl font-bold text-blue-600">
+          <span className="text-xl font-bold text-[#1a1d23]">
             {formatPrice(accommodation)}
-            <span className="text-sm text-gray-500 font-normal">/month</span>
+            <span className="text-sm text-[#6b7280] font-normal">/month</span>
           </span>
           
           {/* Rating */}
           {getAverageRating(accommodation) !== null && (
-            <div className="flex items-center bg-blue-50 px-2 py-1 rounded">
-              <span className="text-yellow-500 mr-1">★</span>
-              <span className="text-blue-800 font-medium">{getAverageRating(accommodation)}</span>
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-[#f7dc6f]" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <span className="ml-1 text-[#374151]">
+                {getAverageRating(accommodation)}
+              </span>
             </div>
           )}
         </div>
         
-        {/* Name and Description */}
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">{accommodation.name}</h3>
-        <p className="text-gray-600 text-sm mb-2">
-          {accommodation.location?.address || 'Address not provided'}
+        {/* Name */}
+        <h3 className="text-lg font-semibold text-[#1a1d23] mb-1">
+          {accommodation.name}
+        </h3>
+        
+        {/* Location */}
+        <p className="text-[#6b7280] text-sm mb-3">
+          {[accommodation.address?.area || accommodation.location?.address, accommodation.address?.city || accommodation.location?.city]
+            .filter(Boolean)
+            .join(', ')}
         </p>
         
-        {/* Tags and other info */}
-        <div className="flex flex-wrap gap-2 mb-3">
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1 mb-3">
           {accommodation.type && (
-            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#dbeafe] text-[#3b82f6]">
               {accommodation.type}
             </span>
           )}
           {accommodation.availableFor && (
-            <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#c6efce] text-[#2ecc71]">
               {accommodation.availableFor}
             </span>
           )}
-          {accommodation.distanceToCollege && (
-            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-              {accommodation.distanceToCollege} km to college
+          {accommodation.verified && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#c7d2fe] text-[#7a69ff]">
+              Verified
             </span>
           )}
         </div>
         
-        {/* Amenities */}
-        {accommodation.amenities && accommodation.amenities.length > 0 && (
-          <div className="mb-3">
-            <p className="text-gray-700 text-sm mb-1">Amenities:</p>
-            <div className="flex flex-wrap gap-1">
-              {accommodation.amenities.slice(0, 4).map((amenity, index) => (
-                <span key={index} className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
-                  {amenity}
-                </span>
-              ))}
-              {accommodation.amenities.length > 4 && (
-                <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
-                  +{accommodation.amenities.length - 4}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-      {/* View Details Button */}
-      <div className="mt-4">
-        <button
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-300"
-          onClick={() => {
-            const id = accommodation._id || accommodation.id || '';
-            navigate(`/accommodation/${id}`);
-          }}
+        {/* View Button */}
+        <button 
+          onClick={() => navigate(`/accommodation/${accommodation._id || accommodation.id}`)}
+          className="w-full mt-2 bg-gradient-to-r from-[#3b82f6] to-[#63b3ed] hover:from-[#3b82f6] hover:to-[#63b3ed] text-white font-medium py-2 px-4 rounded-md transition duration-300"
         >
           View Details
         </button>
       </div>
+      
+      {/* Amenities Section */}
+      {isHovered && accommodation.amenities && accommodation.amenities.length > 0 && (
+        <div className="absolute bottom-0 left-0 right-0 bg-white p-4 transition-all duration-300 ease-in-out transform translate-y-0">
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">Amenities</h4>
+          <ul className="grid grid-cols-2 gap-2">
+            {accommodation.amenities.slice(0, 4).map((amenity, index) => (
+              <li key={index} className="flex items-center text-sm text-gray-700">
+                <svg className="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                {amenity}
+              </li>
+            ))}
+            {accommodation.amenities.length > 4 && (
+              <li className="text-sm text-gray-500">
+                +{accommodation.amenities.length - 4} more
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
     </div>
   );
 });
@@ -193,8 +251,8 @@ const FixedHostelListingPage: React.FC = () => {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [sortOption, setSortOption] = useState<string>('default');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOption, setSortOption] = useState('default');
   
   // Fetch accommodations on component mount
   useEffect(() => {
@@ -222,44 +280,38 @@ const FixedHostelListingPage: React.FC = () => {
 
   // Filter accommodations based on search term
   const filteredAccommodations = useMemo(() => {
-    if (!searchTerm.trim()) return accommodations;
-    
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return accommodations.filter(accommodation => 
-      accommodation.name?.toLowerCase().includes(lowerCaseSearchTerm) ||
-      accommodation.location?.city?.toLowerCase().includes(lowerCaseSearchTerm) ||
-      accommodation.location?.address?.toLowerCase().includes(lowerCaseSearchTerm)
+    if (!searchTerm) return accommodations;
+    const term = searchTerm.toLowerCase();
+    return accommodations.filter(accom => 
+      (accom.name && accom.name.toLowerCase().includes(term)) ||
+      (accom.address?.city && accom.address.city.toLowerCase().includes(term)) ||
+      (accom.address?.area && accom.address.area.toLowerCase().includes(term)) ||
+      (accom.location?.address && accom.location.address.toLowerCase().includes(term)) ||
+      (accom.location?.city && accom.location.city.toLowerCase().includes(term))
     );
   }, [accommodations, searchTerm]);
 
-  // Sort accommodations based on selected option
+  // Sort accommodations
   const sortedAccommodations = useMemo(() => {
-    const accommodationsToSort = [...filteredAccommodations];
-    
+    const accoms = [...filteredAccommodations];
     switch (sortOption) {
       case 'price-low-high':
-        return accommodationsToSort.sort((a, b) => 
-          (a.price || Number.MAX_SAFE_INTEGER) - (b.price || Number.MAX_SAFE_INTEGER)
-        );
+        return accoms.sort((a, b) => (a.price || 0) - (b.price || 0));
       case 'price-high-low':
-        return accommodationsToSort.sort((a, b) => 
-          (b.price || 0) - (a.price || 0)
-        );
+        return accoms.sort((a, b) => (b.price || 0) - (a.price || 0));
       case 'rating':
-        return accommodationsToSort.sort((a, b) => 
-          ((getAverageRating(b) || 0) - (getAverageRating(a) || 0))
-        );
+        return accoms.sort((a, b) => (b.rating || 0) - (a.rating || 0));
       case 'verified':
-        return accommodationsToSort.sort((a, b) => ((b.verified ? 1 : 0) - (a.verified ? 1 : 0)));
+        return accoms.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
       default:
-        return accommodationsToSort;
+        return accoms;
     }
   }, [filteredAccommodations, sortOption]);
 
   return (
     <div className="space-y-6">
       {/* Search and Filter Section */}
-      <div className="bg-white p-4 rounded-lg shadow-sm">
+      <div className="bg-[#fff9ed] p-4 rounded-lg shadow-sm">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search Input */}
           <div className="flex-grow">
@@ -271,7 +323,7 @@ const FixedHostelListingPage: React.FC = () => {
               </div>
               <input
                 type="text"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-[#fff9ed] placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Search by name, city or address..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -282,7 +334,7 @@ const FixedHostelListingPage: React.FC = () => {
           {/* Sort Dropdown */}
           <div className="w-full md:w-48">
             <select
-              className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+              className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-[#fff9ed]"
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
             >
@@ -308,9 +360,9 @@ const FixedHostelListingPage: React.FC = () => {
             <span className="block sm:inline">{error}</span>
           </div>
         ) : sortedAccommodations.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="bg-[#fff9ed] text-center py-12">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">No accommodations found</h3>
             <p className="mt-1 text-sm text-gray-500">

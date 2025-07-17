@@ -35,7 +35,7 @@ const features = [
 
 const FeatureSection: React.FC = () => {
   return (
-    <section className="section-padding bg-white">
+    <section className="section-padding bg-[#fff9ed]">
       <div className="container-custom">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -55,7 +55,7 @@ const FeatureSection: React.FC = () => {
             .map(feature => (
               <div 
                 key={feature.name} 
-                className="group h-full p-8 rounded-3xl bg-white border border-neutral-200 hover:border-neutral-300 transition-all duration-300 hover:shadow-lg"
+                className="group h-full p-8 rounded-3xl bg-[#fff9ed] border border-neutral-200 hover:border-neutral-300 transition-all duration-300 hover:shadow-lg"
               >
                 <div className="relative">
                   {/* Icon */}
@@ -80,7 +80,7 @@ const FeatureSection: React.FC = () => {
             .map(feature => (
               <div 
                 key={feature.name} 
-                className="group h-full p-8 rounded-3xl bg-white border border-neutral-200 hover:border-neutral-300 transition-all duration-300 hover:shadow-lg"
+                className="group h-full p-8 rounded-3xl bg-[#fff9ed] border border-neutral-200 hover:border-neutral-300 transition-all duration-300 hover:shadow-lg"
               >
                 <div className="relative">
                   {/* Icon */}

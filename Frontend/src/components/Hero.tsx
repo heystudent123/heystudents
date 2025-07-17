@@ -1,72 +1,58 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const Hero: React.FC = () => {
+interface HeroProps {
+  className?: string;
+}
+
+const Hero: React.FC<HeroProps> = ({ className }) => {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Floating orbs */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-accent-400/20 blur-3xl animate-float"></div>
-        <div className="absolute top-1/3 -left-24 w-72 h-72 rounded-full bg-secondary-400/20 blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-0 right-1/4 w-64 h-64 rounded-full bg-primary-400/30 blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
-        
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-hero-pattern opacity-30"></div>
-        
-        {/* Gradient mesh overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-      </div>
-      
-      <div className="relative container-custom pt-32 pb-20 lg:pt-40 lg:pb-32">
+    <div className={`relative min-h-[70vh] overflow-hidden ${className}`}>
+      <div className="container-custom pt-8 pb-20 lg:pt-16 lg:pb-32">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16">
           {/* Hero content */}
-          <div className="w-full lg:w-1/2 text-center lg:text-left animate-fade-in-up">
+          <div className="w-full lg:w-1/2 text-center animate-fade-in-up">
             {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-sm font-medium mb-6">
-              <span className="w-2 h-2 bg-accent-400 rounded-full mr-2 animate-pulse"></span>
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-gray-100 border border-gray-300 text-gray-800 text-sm font-medium mb-6">
+              <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></span>
               Trusted by 10,000+ DU Students
             </div>
             
-            <h1 className="font-display font-bold tracking-tight text-white mb-6">
-              <span className="block mb-2">College Begins with</span>
-              <span className="text-gradient bg-gradient-to-r from-accent-300 to-secondary-300 bg-clip-text text-transparent">
-                the Right Place to Live
-              </span>
+            <h1 className="font-display font-bold tracking-tight text-[#030301] mb-6 text-center">
+              <span className="block mb-2 font-playfair">College Begins with</span>
+              <span className="font-montserrat">The Right Place to Live</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+            <p className="text-lg md:text-xl text-[#030301] max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed">
               Find Your Perfect PG – Fast & Easy. Just got into college? Let us help you find verified PGs near your campus 
               based on budget, location, food preference, and more. Your college life begins here – make it a smooth start.
             </p>
             
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 mb-12">
-              <Link to="/pg-search" className="btn-accent btn-lg group">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link to="/pg-search" className="btn-primary btn-lg group">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" />
                 </svg>
                 Find Your PG
               </Link>
-              
-              {/* List Your Property button removed */}
             </div>
             
             {/* Social proof */}
-            <div className="flex items-center justify-center lg:justify-start space-x-8 text-white/70">
+            <div className="flex flex-col items-center justify-center gap-4 mt-8">
               <div className="flex items-center">
                 <div className="flex -space-x-2 mr-3">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-r from-accent-400 to-secondary-400 border-2 border-white"></div>
+                    <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 border-2 border-white"></div>
                   ))}
                 </div>
                 <span className="text-sm">Join thousands of students</span>
               </div>
               <div className="flex items-center">
-                <div className="flex text-accent-300 mr-2">
+                <div className="flex text-yellow-500 mr-2">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <svg key={i} className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      <path fillRule="evenodd" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                   ))}
                 </div>

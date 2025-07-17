@@ -115,7 +115,7 @@ const Signup: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen bg-[#fff9ed] font-sans">
       {/* Add SharedNavbar */}
       <SharedNavbar />
       
@@ -490,12 +490,6 @@ const Signup: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer with gradient */}
-      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-orange-600 py-6 text-white/80 text-center mt-auto w-full">
-        <div className="container mx-auto px-4">
-          <p className="text-sm">&copy; {new Date().getFullYear()} Hey Students. All rights reserved.</p>
-        </div>
-      </div>
     </div>
   );
 };

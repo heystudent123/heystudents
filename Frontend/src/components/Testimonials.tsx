@@ -110,9 +110,7 @@ const TestimonialCard: React.FC<TestimonialProps> = ({ name, role, company, cont
   
   return (
     <div 
-      className={`rounded-2xl p-5 shadow-sm border my-4 w-full transition-all duration-300 ${isHovered 
-        ? 'bg-gradient-to-br from-primary-50 to-secondary-50 border-primary-200 transform scale-[1.02]' 
-        : 'bg-white border-neutral-100'}`}
+      className={`p-6 rounded-2xl shadow-sm transition-all duration-300 ${isHovered ? 'shadow-md' : ''} bg-[#fff9ed]`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -258,7 +256,7 @@ const TestimonialColumn: React.FC<{ testimonials: TestimonialProps[], direction:
       onMouseLeave={() => setIsMouseOver(false)}
     >
       {/* Top blur gradient */}
-      <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-white to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[#fff9ed] to-transparent z-10 pointer-events-none"></div>
       
       <div 
         ref={scrollRef}
@@ -277,7 +275,7 @@ const TestimonialColumn: React.FC<{ testimonials: TestimonialProps[], direction:
       </div>
       
       {/* Bottom blur gradient */}
-      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#fff9ed] to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 };
@@ -292,7 +290,7 @@ const Testimonials: React.FC = () => {
   const columnThreeTestimonials = testimonialData.slice(6, 12);
 
   return (
-    <div className="bg-white py-12 md:py-16">
+    <div className="bg-transparent py-12 md:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900 mb-3 md:mb-4">

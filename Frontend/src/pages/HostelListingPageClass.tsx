@@ -193,16 +193,17 @@ class HostelListingPageClass extends Component<{}, State> {
   }
   
   render() {
+    console.log('Rendering HostelListingPageClass');
     const { filteredAccommodations, loading, error, sortBy } = this.state;
     const sortedAccommodations = this.sortAccommodations(filteredAccommodations);
     
     return (
       <div className="min-h-screen bg-neutral pt-16">
         {/* Hero Section */}
-        <div className="relative min-h-[70vh] overflow-hidden bg-gradient-to-br from-primary-dark via-primary to-secondary">
+        <div className="relative min-h-[70vh] overflow-hidden" style={{ backgroundColor: 'red' }}>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 lg:pt-32 lg:pb-36">
             <div className="flex flex-col items-center justify-center text-center">
-              <h1 className="font-display font-bold tracking-tight text-white">
+              <h1 className="font-display font-bold tracking-tight text-neutral-900">
                 <span className="block mb-2">Find Your Perfect</span>
                 <span className="text-accent">Student Accommodation</span>
               </h1>

@@ -92,7 +92,7 @@ const HostelCarousel: React.FC<HostelCarouselProps> = ({
   };
 
   return (
-    <div className="relative py-8 md:py-12 bg-white overflow-hidden">
+    <div className="relative py-8 md:py-12 bg-transparent overflow-hidden">
       <div className="text-center mb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-primary-700">Featured Hostels</h2>
         <p className="mt-2 text-sm md:text-lg text-gray-600">

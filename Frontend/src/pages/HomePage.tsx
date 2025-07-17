@@ -13,10 +13,10 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="min-h-screen w-full" style={{ background: '#fff9ed' }}>
       <SharedNavbar />
       <div style={contentStyle}>
-        <Hero />
+        <Hero className="relative min-h-[70vh] overflow-hidden" />
         <HostelCarousel />
         <FeatureSection />
         <Testimonials />
