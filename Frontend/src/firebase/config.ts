@@ -37,8 +37,8 @@ if (phoneSettings === 'test') {
 }
 
 // Connect to auth emulator if in development
-if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_EMULATOR === 'true') {
-  connectAuthEmulator(auth, 'http://localhost:9099');
+if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_EMULATOR === 'true' && process.env.REACT_APP_FIREBASE_EMULATOR_URL) {
+  connectAuthEmulator(auth, process.env.REACT_APP_FIREBASE_EMULATOR_URL);
   console.log('Using Firebase Auth Emulator');
 }
 

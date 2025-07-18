@@ -1,9 +1,13 @@
 import axios from 'axios';
 
-// Define base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// ✅ Validate API URL environment variable
+if (!process.env.REACT_APP_API_URL) {
+  throw new Error('❌ REACT_APP_API_URL is not defined! Please set it in your environment variables before building.');
+}
+const API_BASE_URL = process.env.REACT_APP_API_URL;
+console.log('✅ API Base URL in use:', API_BASE_URL);
 
-// Create axios instance
+// ✅ Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -11,7 +15,7 @@ const api = axios.create({
   },
 });
 
-// Add token to requests if available
+// ✅ Add token to requests if available
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -23,9 +27,8 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Accommodations API
+// =================== ACCOMMODATIONS API ===================
 export const accommodationsApi = {
-  // Get all accommodations with optional filters
   getAll: async (filters = {}) => {
     try {
       const response = await api.get('/accommodations', { params: filters });
@@ -35,8 +38,7 @@ export const accommodationsApi = {
       throw error;
     }
   },
-  
-  // Get accommodation by ID
+
   getById: async (id: string) => {
     try {
       const response = await api.get(`/accommodations/${id}`);
@@ -46,8 +48,7 @@ export const accommodationsApi = {
       throw error;
     }
   },
-  
-  // Add review to accommodation
+
   addReview: async (id: string, reviewData: any) => {
     try {
       const response = await api.post(`/accommodations/${id}/reviews`, reviewData);
@@ -59,9 +60,8 @@ export const accommodationsApi = {
   },
 };
 
-// Alumni API
+// =================== ALUMNI API ===================
 export const alumniApi = {
-  // Get all alumni with optional filters
   getAll: async (filters = {}) => {
     try {
       const response = await api.get('/alumni', { params: filters });
@@ -71,8 +71,7 @@ export const alumniApi = {
       throw error;
     }
   },
-  
-  // Get alumni by ID
+
   getById: async (id: string) => {
     try {
       const response = await api.get(`/alumni/${id}`);
@@ -84,7 +83,7 @@ export const alumniApi = {
   },
 };
 
-// User authentication API
+// =================== AUTH API ===================
 export interface AuthApi {
   login: (email: string, password: string) => Promise<any>;
   register: (userData: {
@@ -98,11 +97,8 @@ export interface AuthApi {
     referralCode?: string;
   }) => Promise<any>;
   verifyReferralCode: (referralCode: string) => Promise<any>;
-  
-  // Server monitoring functions
-  getServerHealth: () => Promise<any>;
-  getApiStats: () => Promise<any>;
-  loginWithPhone: (phone: string) => Promise<any>;
+  validateReferral: (referralCode: string) => Promise<any>;
+  loginWithPhone: (phone: string, userData?: { name?: string }) => Promise<any>;
   updateProfile: (userId: string, profileData: any) => Promise<any>;
   completeProfile: (profileData: {
     uid: string;
@@ -113,18 +109,16 @@ export interface AuthApi {
     college?: string;
     collegeYear?: string;
   }) => Promise<any>;
-  validateReferral: (referralCode: string) => Promise<any>;
-
-
   getRegisteredUsers: () => Promise<any>;
   promoteToAdmin: (userId: string) => Promise<any>;
-
   deleteUser: (userId: string) => Promise<any>;
   getReferrals: () => Promise<any>;
   getUsers: (role?: string) => Promise<any>;
   promoteToInstitute: (userId: string, customReferralCode?: string) => Promise<any>;
   getInstitutes: () => Promise<any>;
   validateReferralCode: (referralCode: string) => Promise<any>;
+  getServerHealth: () => Promise<any>;
+  getApiStats: () => Promise<any>;
 }
 
 export const authApi: AuthApi = {
@@ -137,19 +131,8 @@ export const authApi: AuthApi = {
       throw error;
     }
   },
-  
 
-  
-  register: async (userData: {
-    name: string;
-    email: string;
-    password: string;
-    phone: string;
-    college?: string;
-    course?: string;
-    year?: string;
-    referralCode?: string;
-  }) => {
+  register: async (userData) => {
     try {
       const response = await api.post('/users/register', userData);
       return response.data;
@@ -168,7 +151,7 @@ export const authApi: AuthApi = {
       throw error;
     }
   },
-  
+
   validateReferral: async (referralCode: string) => {
     try {
       const response = await api.get(`/validation/referral/${referralCode}`);
@@ -179,9 +162,10 @@ export const authApi: AuthApi = {
     }
   },
 
-  loginWithPhone: async (phone: string) => {
+  loginWithPhone: async (phone: string, userData?: { name?: string }) => {
     try {
-      const response = await api.post('/users/login-phone', { phone });
+      const payload = userData?.name ? { phone, name: userData.name } : { phone };
+      const response = await api.post('/users/login-phone', payload);
       return response.data;
     } catch (error) {
       console.error('Phone login error:', error);
@@ -199,15 +183,7 @@ export const authApi: AuthApi = {
     }
   },
 
-  completeProfile: async (profileData: {
-    uid: string;
-    fullName: string;
-    phone: string;
-    email?: string;
-    referralCode?: string;
-    college?: string;
-    collegeYear?: string;
-  }) => {
+  completeProfile: async (profileData) => {
     try {
       const response = await api.post('/users/complete-profile', profileData);
       return response.data;
@@ -217,12 +193,6 @@ export const authApi: AuthApi = {
     }
   },
 
-  // This function is now updated to use the GET endpoint
-  // The old POST endpoint is still available for backward compatibility
-
-
-  
-  // Get all registered users (for mobile number selection)
   getRegisteredUsers: async () => {
     try {
       const response = await api.get('/users/registered');
@@ -233,7 +203,6 @@ export const authApi: AuthApi = {
     }
   },
 
-  // Promote user to admin role
   promoteToAdmin: async (userId: string) => {
     try {
       const response = await api.put(`/users/${userId}/promote`, {});
@@ -244,9 +213,6 @@ export const authApi: AuthApi = {
     }
   },
 
-
-
-  // Delete user (admin only)
   deleteUser: async (userId: string) => {
     try {
       const response = await api.delete(`/users/${userId}`);
@@ -257,7 +223,6 @@ export const authApi: AuthApi = {
     }
   },
 
-  // Get user's referrals
   getReferrals: async () => {
     try {
       const response = await api.get('/users/referrals');
@@ -268,10 +233,8 @@ export const authApi: AuthApi = {
     }
   },
 
-  // Get all users of a specific role (admin only)
   getUsers: async (role: string = 'user') => {
     try {
-      // If role is empty string, don't include it in params to get all users
       const params = role ? { role } : {};
       const response = await api.get('/users', { params });
       return response.data;
@@ -281,7 +244,6 @@ export const authApi: AuthApi = {
     }
   },
 
-  // Promote user to institute role
   promoteToInstitute: async (userId: string, customReferralCode?: string) => {
     try {
       const response = await api.put(`/admin/users/${userId}/promote-to-institute`, { customReferralCode });
@@ -292,7 +254,6 @@ export const authApi: AuthApi = {
     }
   },
 
-  // Get all institutes with referral stats
   getInstitutes: async () => {
     try {
       const response = await api.get('/admin/institutes');
@@ -303,7 +264,6 @@ export const authApi: AuthApi = {
     }
   },
 
-  // Validate referral code
   validateReferralCode: async (referralCode: string) => {
     try {
       const response = await api.get(`/validation/referral-code/${referralCode}`);
@@ -314,7 +274,6 @@ export const authApi: AuthApi = {
     }
   },
 
-  // Server monitoring functions
   getServerHealth: async () => {
     try {
       const response = await api.get('/server/health');

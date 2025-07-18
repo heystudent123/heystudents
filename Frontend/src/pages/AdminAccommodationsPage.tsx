@@ -54,7 +54,7 @@ const AdminAccommodationsPage: React.FC = () => {
     const fetchAccommodations = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/accommodations', {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/accommodations`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log('Accommodation data:', response.data.data[0]);
@@ -77,7 +77,7 @@ const AdminAccommodationsPage: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/accommodations/${id}`, {
+      await axios.delete(`${process.env.REACT_APP_API_URL}/accommodations/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

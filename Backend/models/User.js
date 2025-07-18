@@ -59,8 +59,9 @@ const UserSchema = new mongoose.Schema({
   referralCode: {
     type: String,
     unique: true,
-    sparse: true,
-    trim: true
+    sparse: true, // This ensures the unique index only applies to documents that have the field
+    trim: true,
+    default: undefined // Explicitly set default to undefined to avoid null values
   },
   // Referral code used by students during registration
   referrerCodeUsed: {

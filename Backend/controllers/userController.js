@@ -91,11 +91,16 @@ exports.loginWithPhone = async (req, res, next) => {
       console.log(`User not found with phone ${normalizedPhone}, auto-registering`);
       
       // Create a new user with the phone number
-      user = await User.create({
+      // Explicitly omit referralCode to avoid MongoDB unique constraint errors
+      const newUserData = {
         name: name || 'New User', // Use provided name or default
         phone: normalizedPhone,
-        email: ''
-      });
+        email: '',
+        // Don't set referralCode at all for regular users
+        // This avoids the unique constraint error with null values
+      };
+      
+      user = await User.create(newUserData);
       
       console.log(`Auto-registered new user with ID: ${user._id}`);
     }

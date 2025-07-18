@@ -113,7 +113,7 @@ const AdminAccommodationEditPage: React.FC = () => {
     const fetchAccommodation = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`http://localhost:5000/api/accommodations/${id}`, {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/accommodations/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log('Accommodation data:', response.data.data);
@@ -189,7 +189,7 @@ const handleSelectAllAmenities = (e: React.ChangeEvent<HTMLInputElement>) => {
       setUniqueCodeError('');
       
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/accommodations/check-unique-code/${code}`, {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/accommodations/check-unique-code/${code}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
