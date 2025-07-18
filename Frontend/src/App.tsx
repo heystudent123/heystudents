@@ -16,9 +16,8 @@ import AdminPage from './pages/AdminPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminInstitutesPage from './pages/AdminInstitutesPage';
 import AdminAccommodationsPage from './pages/AdminAccommodationsPage';
-
-
 import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
+import InstituteDashboardPage from './pages/InstituteDashboardPage';
 import AccommodationListingPage from './pages/AccommodationPage';
 import AccommodationDetailPage from './pages/HostelDetailPage';
 import Footer from './components/Footer';
@@ -157,8 +156,12 @@ function AppContent() {
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/admin/users" element={<AdminUsersPage />} />
                 <Route path="/admin/institutes" element={<AdminInstitutesPage />} />
-
                 <Route path="/admin/accommodations" element={<AdminAccommodationsPage />} />
+                <Route path="/institute/dashboard" element={
+                  <ProtectedRoute>
+                    <InstituteDashboardPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/admin/accommodations/new" element={<AdminAccommodationEditPage />} />
                 <Route path="/admin/accommodations/edit/:id" element={<AdminAccommodationEditPage />} />
 

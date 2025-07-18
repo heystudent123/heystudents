@@ -114,13 +114,20 @@ export interface AuthApi {
   getRegisteredUsers: () => Promise<any>;
   promoteToAdmin: (userId: string) => Promise<any>;
   deleteUser: (userId: string) => Promise<any>;
-  getReferrals: () => Promise<any>;
+  getReferrals: (params?: PaginationParams) => Promise<any>;
   getUsers: (role?: string) => Promise<any>;
   promoteToInstitute: (userId: string, customReferralCode?: string) => Promise<any>;
   getInstitutes: () => Promise<any>;
   validateReferralCode: (referralCode: string) => Promise<any>;
   getServerHealth: () => Promise<any>;
   getApiStats: () => Promise<any>;
+}
+
+// Interface for pagination parameters
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  phone?: string;
 }
 
 export const authApi: AuthApi = {
@@ -225,9 +232,9 @@ export const authApi: AuthApi = {
     }
   },
 
-  getReferrals: async () => {
+  getReferrals: async (params?: PaginationParams) => {
     try {
-      const response = await api.get('/users/referrals');
+      const response = await api.get('/users/referrals', { params });
       return response.data;
     } catch (error) {
       console.error('Get referrals error:', error);

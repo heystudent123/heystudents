@@ -255,13 +255,69 @@ exports.updateProfile = async (req, res, next) => {
 // @access  Private
 exports.getUserReferrals = async (req, res, next) => {
   try {
+    // Get pagination parameters
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const phoneSearch = req.query.phone || '';
+    
+    // Find the user
     const user = await User.findById(req.user.id);
     
-    // Since referrals functionality has been removed, return an empty array
+    if (!user) {
+      return next(new ErrorResponse('User not found', 404));
+    }
+    
+    // If user is not an institute, return empty array
+    if (user.role !== 'institute') {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
+    
+    // Find all users who used this institute's referral code
+    let query = { referrerCodeUsed: user.referralCode };
+    
+    // Add phone search if provided
+    if (phoneSearch) {
+      query.phone = { $regex: phoneSearch, $options: 'i' };
+    }
+    
+    // Get total count for pagination
+    const total = await User.countDocuments(query);
+    
+    // Get paginated results
+    const referredUsers = await User.find(query)
+      .select('name phone email college year createdAt')
+      .sort({ createdAt: -1 })
+      .skip(startIndex)
+      .limit(limit);
+    
+    // Pagination result
+    const pagination = {};
+    
+    if (endIndex < total) {
+      pagination.next = {
+        page: page + 1,
+        limit
+      };
+    }
+    
+    if (startIndex > 0) {
+      pagination.prev = {
+        page: page - 1,
+        limit
+      };
+    }
+    
     res.status(200).json({
       success: true,
-      count: 0,
-      data: []
+      count: total,
+      pagination,
+      data: referredUsers
     });
   } catch (err) {
     next(err);
