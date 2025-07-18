@@ -11,7 +11,8 @@ const UserSchema = new mongoose.Schema({
   phone: {
     type: String,
     required: [true, 'Please provide a phone number'],
-    match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number'],
+    // Allow more flexible phone number formats
+    match: [/^[0-9]{8,15}$/, 'Please provide a valid phone number (8-15 digits)'],
     unique: true
   },
   // Legacy mobile field kept for backward compatibility (will mirror `phone`)

@@ -118,6 +118,17 @@ exports.loginWithPhone = async (req, res, next) => {
     });
   } catch (err) {
     console.error('Login with phone error:', err);
+    console.error('Error details:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+    
+    // Send a more specific error message to the client
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Duplicate key error. Please contact support.'
+      });
+    }
+    
+    // For other errors, use the error middleware
     next(err);
   }
 };
