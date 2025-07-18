@@ -102,13 +102,7 @@ const AdminPage: React.FC = () => {
             </div>
           </Link>
           
-          <Link to="/ping" className="bg-white overflow-hidden shadow rounded-lg hover:ring-2 hover:ring-primary transition">
-            <div className="px-4 py-5 sm:p-6 h-full">
-              <h3 className="text-lg font-medium text-gray-900">Server Monitoring</h3>
-              <p className="mt-4 text-sm text-gray-500">Monitor server status and view ping history.</p>
-              <span className="mt-5 inline-block px-4 py-2 text-sm font-medium text-white bg-primary rounded-md">Go</span>
-            </div>
-          </Link>
+
         </div>
       </div>
     </div>

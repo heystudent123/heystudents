@@ -11,7 +11,7 @@ const alumniRoutes = require('./routes/alumniRoutes');
 const accommodationRoutes = require('./routes/accommodationRoutes');
 const referralRoutes = require('./routes/referralRoutes');
 const validationRoutes = require('./routes/validationRoutes');
-
+const serverRoutes = require('./routes/serverRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -47,20 +47,16 @@ app.use('/api/alumni', alumniRoutes);
 app.use('/api/accommodations', accommodationRoutes);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/validation', validationRoutes);
-
+app.use('/api/server', serverRoutes);
 
 // Root route
 app.get('/', (req, res) => {
   res.send('Hey Students DU API is running');
 });
 
-// Ping route
+// 🔁 Keep-alive ping route (for GitHub Actions or uptime pingers)
 app.get('/ping', (req, res) => {
-  res.status(200).json({ 
-    status: 'success', 
-    message: 'pong', 
-    timestamp: new Date().toISOString() 
-  });
+  res.sendStatus(200); // Or: res.send('pong');
 });
 
 // Port
@@ -69,4 +65,4 @@ const PORT = process.env.PORT || 5000;
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-}); 
+});

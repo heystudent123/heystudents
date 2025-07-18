@@ -98,6 +98,10 @@ export interface AuthApi {
     referralCode?: string;
   }) => Promise<any>;
   verifyReferralCode: (referralCode: string) => Promise<any>;
+  
+  // Server monitoring functions
+  getServerHealth: () => Promise<any>;
+  getApiStats: () => Promise<any>;
   loginWithPhone: (phone: string) => Promise<any>;
   updateProfile: (userId: string, profileData: any) => Promise<any>;
   completeProfile: (profileData: {
@@ -302,13 +306,34 @@ export const authApi: AuthApi = {
   // Validate referral code
   validateReferralCode: async (referralCode: string) => {
     try {
-      const response = await api.post('/users/validate-referral-code', { referralCode });
+      const response = await api.get(`/validation/referral-code/${referralCode}`);
       return response.data;
     } catch (error) {
       console.error('Error validating referral code:', error);
       throw error;
     }
   },
+
+  // Server monitoring functions
+  getServerHealth: async () => {
+    try {
+      const response = await api.get('/server/health');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting server health:', error);
+      throw error;
+    }
+  },
+
+  getApiStats: async () => {
+    try {
+      const response = await api.get('/server/api-stats');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching API stats:', error);
+      throw error;
+    }
+  },
 };
 
-export default api; 
+export default api;

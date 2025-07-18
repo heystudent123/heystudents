@@ -21,7 +21,6 @@ import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
 import AccommodationListingPage from './pages/AccommodationPage';
 import AccommodationDetailPage from './pages/HostelDetailPage';
 import Footer from './components/Footer';
-import pingService from './services/pingService';
 import './App.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -51,12 +50,8 @@ function AppContent() {
       localStorage.setItem('hasShownWelcome', 'true');
     }
 
-    // Start the ping service
-    pingService.start();
-
-    return () => {
-      pingService.stop();
-    };
+    // No cleanup needed
+    return () => {};
   }, []);
   
   // Redirect to login after 60 seconds if not logged in
