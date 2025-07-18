@@ -1,40 +1,34 @@
-import axios from 'axios';
-import { API_URL } from '../config';
-import { getToken } from '../utils/auth';
+import api from './api';
 
 // Get all wishlist items
 export const getWishlist = async () => {
-  const config = {
-    headers: {
-      Authorization: `Bearer ${getToken()}`
-    }
-  };
-  
-  const response = await axios.get(`${API_URL}/users/wishlist`, config);
-  return response.data;
+  try {
+    const response = await api.get('/users/wishlist');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching wishlist:', error);
+    throw error;
+  }
 };
 
 // Add item to wishlist
 export const addToWishlist = async (accommodationId: string) => {
-  const config = {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`
-    }
-  };
-  
-  const response = await axios.post(`${API_URL}/users/wishlist`, { accommodationId }, config);
-  return response.data;
+  try {
+    const response = await api.post('/users/wishlist', { accommodationId });
+    return response.data;
+  } catch (error) {
+    console.error('Error adding to wishlist:', error);
+    throw error;
+  }
 };
 
 // Remove item from wishlist
 export const removeFromWishlist = async (accommodationId: string) => {
-  const config = {
-    headers: {
-      Authorization: `Bearer ${getToken()}`
-    }
-  };
-  
-  const response = await axios.delete(`${API_URL}/users/wishlist/${accommodationId}`, config);
-  return response.data;
+  try {
+    const response = await api.delete(`/users/wishlist/${accommodationId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error removing from wishlist:', error);
+    throw error;
+  }
 };

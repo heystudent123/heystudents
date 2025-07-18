@@ -27,7 +27,7 @@ const Wishlist: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If we are still loading, do nothing
+    // If we are still loading auth state, do nothing
     if (authLoading) {
       return;
     }
@@ -46,13 +46,16 @@ const Wishlist: React.FC = () => {
         setWishlistItems(data.data || []);
         setError(null);
       } catch (err: any) {
-        // Only redirect to login if it's an authentication error (401 or 403)
-        if (err.response?.status === 401 || err.response?.status === 403) {
+        // Handle error but don't redirect to login unless token is invalid
+        // This prevents unnecessary redirects when already logged in
+        if (err.response?.status === 401) {
+          // Only redirect if token is invalid/expired
+          console.error('Authentication error:', err);
           navigate('/login');
           return;
         }
         
-        // For other errors, just show the error message but don't log out
+        // For other errors, just show the error message
         setError(err.response?.data?.message || 'Failed to load wishlist');
         console.error('Error fetching wishlist:', err);
       } finally {
