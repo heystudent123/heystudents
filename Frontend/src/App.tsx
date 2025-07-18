@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { trackPageView, trackTiming } from './firebase/config';
 import ProtectedRoute from './components/ProtectedRoute';
 import WhatsAppButton from './components/WhatsAppButton';
 import HomePage from './pages/HomePage';
@@ -41,6 +42,9 @@ function AppContent() {
   const [showWelcome, setShowWelcome] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const prevPathRef = useRef<string>('');
+  const pageEnterTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
     // Check if the welcome screen has been shown before
@@ -53,6 +57,56 @@ function AppContent() {
     // No cleanup needed
     return () => {};
   }, []);
+  
+  // Track page views and time spent on each page
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const currentTime = Date.now();
+    
+    // Get page name from path
+    let pageName = 'Unknown';
+    if (currentPath === '/') pageName = 'Home';
+    else if (currentPath === '/about') pageName = 'About';
+    else if (currentPath === '/login') pageName = 'Login';
+    else if (currentPath === '/profile') pageName = 'Profile';
+    else if (currentPath === '/user-profile') pageName = 'User Profile';
+    else if (currentPath.startsWith('/accommodation')) {
+      pageName = currentPath.includes('/accommodation/') ? 'Accommodation Detail' : 'Accommodation Listing';
+    } else if (currentPath.startsWith('/admin')) {
+      pageName = 'Admin - ' + currentPath.split('/').pop() || 'Dashboard';
+    }
+    
+    // Track page view
+    trackPageView(pageName);
+    
+    // Calculate time spent on previous page if applicable
+    if (prevPathRef.current && prevPathRef.current !== currentPath) {
+      const timeSpent = currentTime - pageEnterTimeRef.current;
+      const prevPageName = prevPathRef.current === '/' ? 'Home' : 
+        prevPathRef.current.charAt(1).toUpperCase() + prevPathRef.current.slice(2).replace('/', ' ');
+      
+      // Track time spent on previous page
+      trackTiming('Page Engagement', `Time on ${prevPageName}`, timeSpent);
+      console.log(`Time spent on ${prevPageName}: ${timeSpent}ms`);
+    }
+    
+    // Update refs for next navigation
+    prevPathRef.current = currentPath;
+    pageEnterTimeRef.current = currentTime;
+    
+    // Track time spent when component unmounts or before unload
+    const handleBeforeUnload = () => {
+      const finalTimeSpent = Date.now() - pageEnterTimeRef.current;
+      trackTiming('Page Engagement', `Time on ${pageName}`, finalTimeSpent);
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [location]);
+  
   
   // Redirect to login after 60 seconds if not logged in
   useEffect(() => {

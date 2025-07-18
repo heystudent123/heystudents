@@ -5,7 +5,7 @@ if (!process.env.REACT_APP_API_URL) {
   throw new Error('❌ REACT_APP_API_URL is not defined! Please set it in your environment variables before building.');
 }
 const API_BASE_URL = process.env.REACT_APP_API_URL;
-console.log('✅ API Base URL in use:', API_BASE_URL);
+
 
 // ✅ Create axios instance
 const api = axios.create({

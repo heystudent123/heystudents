@@ -214,9 +214,10 @@ const ProfilePage: React.FC = () => {
     <div className="min-h-screen bg-[#fff9ed] flex flex-col">
       <SharedNavbar />
       <div className="flex-grow flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg space-y-8">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg space-y-8 border border-[#ffe8b5]">
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Your Profile</h2>
+            <div className="w-16 h-1 mx-auto my-3 bg-[#ffe8b5] rounded"></div>
             <p className="mt-2 text-center text-sm text-gray-600">
               Update your profile information to enhance your experience
             </p>
@@ -276,7 +277,7 @@ const ProfilePage: React.FC = () => {
                     name="fullName"
                     type="text"
                     required
-                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-[#ffe8b5] focus:border-[#ffe8b5] sm:text-sm transition-all duration-200"
                     placeholder="John Doe"
                     value={formData.fullName}
                     onChange={handleChange}
@@ -299,7 +300,7 @@ const ProfilePage: React.FC = () => {
                     id="email"
                     name="email"
                     type="email"
-                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-[#ffe8b5] focus:border-[#ffe8b5] sm:text-sm transition-all duration-200"
                     placeholder="you@example.com"
                     value={formData.email}
                     onChange={handleChange}
@@ -322,7 +323,7 @@ const ProfilePage: React.FC = () => {
                     id="referralCode"
                     name="referralCode"
                     type="text"
-                    className={`appearance-none block w-full pl-10 pr-3 py-3.5 border ${referralStatus.isValid ? 'border-green-500' : referralError ? 'border-red-500' : 'border-gray-300'} rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200`}
+                    className={`appearance-none block w-full pl-10 pr-3 py-3.5 border ${referralStatus.isValid ? 'border-green-500' : referralError ? 'border-red-500' : 'border-[#ffd7be]'} rounded-xl placeholder-gray-400 focus:outline-none focus:ring-[#ffd7be] focus:border-[#ffd7be] sm:text-sm transition-all duration-200`}
                     placeholder="Enter referral code if you have one"
                     value={formData.referralCode}
                     onChange={handleChange}
@@ -365,7 +366,7 @@ const ProfilePage: React.FC = () => {
                     id="college"
                     name="college"
                     type="text"
-                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-[#ffd7be] rounded-xl placeholder-gray-400 focus:outline-none focus:ring-[#ffd7be] focus:border-[#ffd7be] sm:text-sm transition-all duration-200"
                     placeholder="Your college name"
                     value={formData.college}
                     onChange={handleChange}
@@ -387,7 +388,7 @@ const ProfilePage: React.FC = () => {
                   <select
                     id="collegeYear"
                     name="collegeYear"
-                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-[#ffd7be] rounded-xl placeholder-gray-400 focus:outline-none focus:ring-[#ffd7be] focus:border-[#ffd7be] sm:text-sm transition-all duration-200"
                     value={formData.collegeYear}
                     onChange={handleChange}
                   >
@@ -407,7 +408,7 @@ const ProfilePage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-all duration-200"
               >
                 {loading ? (
                   <>
