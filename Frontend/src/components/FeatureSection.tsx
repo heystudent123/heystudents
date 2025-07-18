@@ -55,7 +55,8 @@ const FeatureSection: React.FC = () => {
             .map(feature => (
               <div 
                 key={feature.name} 
-                className="group h-full p-8 rounded-3xl bg-[#5a684e] border border-transparent transition-all duration-300"
+                className="group h-full p-8 rounded-3xl bg-[#5a684e] border border-transparent transition-all duration-300 cursor-pointer hover:shadow-lg"
+                onClick={() => window.location.href = '/accommodation'}
               >
                 <div className="relative">
                   {/* Icon */}

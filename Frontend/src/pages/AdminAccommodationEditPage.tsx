@@ -304,8 +304,8 @@ const handleSelectAllAmenities = (e: React.ChangeEvent<HTMLInputElement>) => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             {id ? 'Edit Accommodation' : 'Add New Accommodation'}
           </h1>
           <Link
@@ -324,7 +324,7 @@ const handleSelectAllAmenities = (e: React.ChangeEvent<HTMLInputElement>) => {
 
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           <form onSubmit={handleSubmit} className="px-4 py-5 sm:p-6">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-y-4 sm:gap-6 sm:grid-cols-2">
               <div className="col-span-2">
                 <label htmlFor="uniqueCode" className="block text-sm font-medium text-gray-700">
                   Unique Code <span className="text-red-500">*</span>
@@ -389,9 +389,9 @@ const handleSelectAllAmenities = (e: React.ChangeEvent<HTMLInputElement>) => {
                   Image Links (6 separate fields)
                 </label>
                 {imageInputs.map((url, idx) => (
-                  <div key={idx} className="flex gap-2 mt-2 items-center">
-                    <div className="flex-grow">
-                      <div className="flex gap-2">
+                  <div key={idx} className="flex flex-col sm:flex-row gap-2 mt-3 items-start sm:items-center">
+                    <div className="flex-grow w-full">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <input
                           type="url"
                           value={url}
@@ -403,7 +403,7 @@ const handleSelectAllAmenities = (e: React.ChangeEvent<HTMLInputElement>) => {
                           <button 
                             type="button" 
                             onClick={() => clearImageInput(idx)} 
-                            className="px-3 py-1 bg-red-500 text-white rounded-md"
+                            className="mt-1 sm:mt-0 px-3 py-1 bg-red-500 text-white rounded-md w-full sm:w-auto"
                           >
                             Clear
                           </button>
@@ -411,7 +411,7 @@ const handleSelectAllAmenities = (e: React.ChangeEvent<HTMLInputElement>) => {
                       </div>
                     </div>
                     {url && (
-                      <div className="w-16 h-16 flex-shrink-0">
+                      <div className="w-16 h-16 flex-shrink-0 mt-2 sm:mt-0">
                         <img src={url} alt={`img-${idx}`} className="w-full h-full object-cover rounded-md" />
                       </div>
                     )}
@@ -463,11 +463,11 @@ const handleSelectAllAmenities = (e: React.ChangeEvent<HTMLInputElement>) => {
                     Select All
                   </label>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 mt-2">
                   {/* Food preferences section - these won't be included in Select All */}
                   <div className="col-span-2 mb-2 border-b pb-2">
                     <p className="text-sm font-medium text-gray-700 mb-1">Food Preferences:</p>
-                    <div className="flex gap-4">
+                    <div className="flex flex-wrap gap-x-6 gap-y-2">
                       {FOOD_PREFERENCES.map((preference) => (
                         <label key={preference} className="inline-flex items-center">
                           <input
@@ -484,7 +484,7 @@ const handleSelectAllAmenities = (e: React.ChangeEvent<HTMLInputElement>) => {
                   
                   {/* Regular amenities that are included in Select All */}
                   {AMENITIES.map((amenity) => (
-                    <label key={amenity} className="inline-flex items-center">
+                    <label key={amenity} className="inline-flex items-center py-1">
                       <input
                         type="checkbox"
                         className="h-4 w-4 text-primary border-gray-300 rounded"

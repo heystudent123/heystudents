@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SharedNavbar from '../components/SharedNavbar';
 import { authApi } from '../services/api';
 
 const UserProfile: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, updateUserProfile } = useAuth();
+  
+  // Check if this is a new user from the location state
+  const isNewUser = location.state?.newUser === true;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [referralError, setReferralError] = useState('');
@@ -88,7 +92,16 @@ const UserProfile: React.FC = () => {
         referralCode: formData.referralCode !== user?.referralCode ? formData.referralCode : undefined
       });
 
-      setSuccess('Profile updated successfully');
+      // If this is a new user, redirect to home page after successful profile update
+      if (isNewUser) {
+        setSuccess('Profile updated successfully! Redirecting to home page...');
+        // Redirect after a short delay to show the success message
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      } else {
+        setSuccess('Profile updated successfully');
+      }
     } catch (err: any) {
       console.error('Error updating profile:', err);
       setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
@@ -115,6 +128,23 @@ const UserProfile: React.FC = () => {
               Update your personal information below
             </p>
           </div>
+          
+          {/* New user notification */}
+          {isNewUser && (
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-100 rounded-xl">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 bg-yellow-100 rounded-full p-1 mr-3">
+                  <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">Please complete your profile</p>
+                  <p className="mt-1 text-sm text-yellow-700">You need to add your full name before you can proceed to the home page.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-xl relative flex items-center" role="alert">

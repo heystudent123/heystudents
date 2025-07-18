@@ -278,11 +278,54 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, fallbackImage = FAL
 interface KeyDetailsProps {
   accommodation: Accommodation;
   formatPrice: (acc: Accommodation) => string;
+  isInWishlist: boolean;
+  isLoggedIn: boolean;
+  onAddToWishlist: () => void;
+  onRemoveFromWishlist: () => void;
+  navigate: NavigateFunction;
 }
 
-const KeyDetails: React.FC<KeyDetailsProps> = ({ accommodation, formatPrice }) => {
+const KeyDetails: React.FC<KeyDetailsProps> = ({ accommodation, formatPrice, isInWishlist, isLoggedIn, onAddToWishlist, onRemoveFromWishlist, navigate }) => {
+  const handleWishlistClick = () => {
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+    
+    if (isInWishlist) {
+      onRemoveFromWishlist();
+    } else {
+      onAddToWishlist();
+    }
+  };
+
   return (
     <div className="bg-[#fff9ed] rounded-2xl shadow-sm p-6 mb-8 border border-neutral-100 text-center">
+      {/* Wishlist button at the top */}
+      <div className="flex justify-center md:justify-end mb-4">
+        <button
+          onClick={handleWishlistClick}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-md shadow-sm text-sm font-medium ${isInWishlist ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+          aria-label={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill={isInWishlist ? 'currentColor' : 'none'}
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className="w-5 h-5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+            />
+          </svg>
+          <span>{isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}</span>
+        </button>
+      </div>
+      
       {/* Header with name and price */}
       <div className="mb-4">
         <h1 className="text-2xl font-semibold text-black mb-2">{accommodation.name}</h1>
@@ -443,47 +486,13 @@ const ActionsSection: React.FC<ActionsSectionProps> = ({
   onAddToWishlist,
   onRemoveFromWishlist
 }) => {
-  const handleWishlistClick = () => {
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
-    
-    if (isInWishlist) {
-      onRemoveFromWishlist();
-    } else {
-      onAddToWishlist();
-    }
-  };
-  
   return (
-    <div className="flex justify-between items-center mt-6">
+    <div className="flex justify-start items-center mt-6">
       <button 
         onClick={() => navigate(-1)} 
         className="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-50"
       >
         Back to Listings
-      </button>
-      
-      <button
-        onClick={handleWishlistClick}
-        className={`flex items-center space-x-2 px-6 py-2 rounded-md shadow-sm text-base font-medium ${isInWishlist ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill={isInWishlist ? 'currentColor' : 'none'}
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
-          />
-        </svg>
-        <span>{isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}</span>
       </button>
     </div>
   );
@@ -712,7 +721,12 @@ const HostelDetailPage: React.FC = () => {
           {/* Key details */}
           <KeyDetails 
             accommodation={accommodation} 
-            formatPrice={formatPrice} 
+            formatPrice={formatPrice}
+            isInWishlist={isInWishlist}
+            isLoggedIn={isAuthenticated}
+            onAddToWishlist={handleAddToWishlist}
+            onRemoveFromWishlist={handleRemoveFromWishlist}
+            navigate={navigate}
           />
           
           {/* Content sections */}

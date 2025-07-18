@@ -19,6 +19,7 @@ const Login: React.FC = () => {
     otp: ''
   });
   const [loading, setLoading] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
@@ -211,22 +212,33 @@ const Login: React.FC = () => {
         try {
           // Try to login with phone number and get user data
           // Pass basic user data as second parameter to handle new user registration
+          // Show signing in message
+          setSigningIn(true);
+          setError('');
+          
           const userData = {
             phone: phoneNumber,
-            // Add required fields for new user creation
-            name: 'New User',  // Temporary name, will be updated in profile page
+            // Leave name empty so user can fill it in profile page
+            name: '',
             email: ''  // Optional, will be filled in profile page
           };
           
           const loggedUser = await loginWithPhone(phoneNumber, userData);
 
-          // Always redirect to home page after successful login/registration
-          navigate('/');
+          // Check if this is a new user (no fullName) and redirect to profile page
+          if (!loggedUser.fullName) {
+            // New user - redirect to profile page to complete registration
+            navigate('/profile', { state: { newUser: true } });
+          } else {
+            // Existing user with profile - redirect to home page
+            navigate('/');
+          }
         } catch (loginErr) {
           console.error('Error logging in with phone:', loginErr);
           // Show error message instead of redirecting
           setError('Failed to log in. Please try again.');
           setLoading(false);
+          setSigningIn(false);
         }
       } else {
         setError('Incorrect OTP. Please try again.');
@@ -277,17 +289,31 @@ const Login: React.FC = () => {
             </div>
           </div>
 
+          {signingIn && (
+            <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 shadow-sm">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 mr-3">
+                  <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-blue-800">Please wait a moment while we sign you in...</p>
+              </div>
+            </div>
+          )}
+          
           {error && (
             <div className="p-4 rounded-xl bg-red-50 border border-red-100 shadow-sm">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-red-100 rounded-full p-2 mr-3">
-                <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
+              <div className="flex items-center">
+                <div className="flex-shrink-0 bg-red-100 rounded-full p-2 mr-3">
+                  <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-red-800">{error}</p>
               </div>
-              <p className="text-sm font-medium text-red-800">{error}</p>
             </div>
-          </div>
           )}
           
           <div className="space-y-6">

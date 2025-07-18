@@ -182,7 +182,7 @@ const Wishlist: React.FC = () => {
                     {/* Price */}
                     <div className="flex items-center mb-3">
                       <span className="text-gray-600 font-medium">
-                        ₹{parseFloat(accommodation.startingFrom || '0').toFixed(2)}/night
+                        Starting from ₹{parseFloat(accommodation.startingFrom || '0').toFixed(2)}
                       </span>
                     </div>
                     

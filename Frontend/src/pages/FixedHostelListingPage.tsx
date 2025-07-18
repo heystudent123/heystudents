@@ -27,6 +27,11 @@ interface Accommodation {
   type?: string;
   gender?: string; // For backward compatibility
   availableFor?: string; // Backend field
+  
+  // Food type fields
+  foodType?: string; // 'veg', 'non-veg', or undefined
+  messAvailable?: boolean;
+  vegOnly?: boolean;
 
   verified?: boolean;
 }
@@ -241,8 +246,13 @@ const FixedHostelListingPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [genderFilter, setGenderFilter] = useState('all');
-  const [priceFilter, setPriceFilter] = useState('all');
+  const [foodTypeFilter, setFoodTypeFilter] = useState('all');
   const [sortOption, setSortOption] = useState('default');
+  
+  // Roommate preference modal state
+  const [isRoommateModalOpen, setIsRoommateModalOpen] = useState(false);
+  const [roommatePreference, setRoommatePreference] = useState('');
+  const [showRoommateSuccess, setShowRoommateSuccess] = useState(false);
   
   // Fetch accommodations on component mount
   useEffect(() => {
@@ -268,7 +278,7 @@ const FixedHostelListingPage: React.FC = () => {
     fetchAccommodations();
   }, []);
 
-  // Filter accommodations based on gender and price filters
+  // Filter accommodations based on gender and food type filters
   const filteredAccommodations = useMemo(() => {
     return accommodations.filter(accom => {
       // Gender filter
@@ -282,39 +292,25 @@ const FixedHostelListingPage: React.FC = () => {
         }
       }
       
-      // Price filter
-      if (priceFilter !== 'all') {
-        // Extract numeric value from startingFrom field or use price field as fallback
-        let price = 0;
-        if (accom.startingFrom) {
-          // Extract numeric value from startingFrom string (e.g., "Starting from ₹8,000" -> 8000)
-          const match = accom.startingFrom.match(/[₹]?([0-9,]+)/);
-          if (match) {
-            price = parseInt(match[1].replace(/,/g, ''));
+      // Food type filter
+      if (foodTypeFilter !== 'all') {
+        // Check if accommodation has food type information
+        if (foodTypeFilter === 'veg') {
+          // For vegetarian, we need vegOnly to be true or foodType to be 'veg'
+          if (accom.vegOnly === false || (accom.foodType && accom.foodType.toLowerCase() !== 'veg')) {
+            return false;
           }
-        } else if (accom.price) {
-          price = accom.price;
-        }
-        
-        if (price > 0) {
-          switch (priceFilter) {
-            case 'under-5000':
-              return price < 5000;
-            case '5000-10000':
-              return price >= 5000 && price <= 10000;
-            case '10000-15000':
-              return price >= 10000 && price <= 15000;
-            case 'above-15000':
-              return price > 15000;
-            default:
-              return true;
+        } else if (foodTypeFilter === 'non-veg') {
+          // For non-vegetarian, we need vegOnly to be false or foodType to be 'non-veg'
+          if (accom.vegOnly === true || (accom.foodType && accom.foodType.toLowerCase() === 'veg')) {
+            return false;
           }
         }
       }
       
       return true;
     });
-  }, [accommodations, genderFilter, priceFilter]);
+  }, [accommodations, genderFilter, foodTypeFilter]);
 
   // Helper function to extract price from accommodation
   const extractPrice = (accom: Accommodation): number => {
@@ -343,8 +339,21 @@ const FixedHostelListingPage: React.FC = () => {
 
   const resetFilters = () => {
     setGenderFilter('all');
-    setPriceFilter('all');
+    setFoodTypeFilter('all');
     setSortOption('default');
+  };
+
+  // Handle roommate preference submission
+  const handleRoommatePreferenceSubmit = () => {
+    // This is frontend-only, so we just show a success message
+    setShowRoommateSuccess(true);
+    
+    // Hide success message after 3 seconds
+    setTimeout(() => {
+      setShowRoommateSuccess(false);
+      setIsRoommateModalOpen(false);
+      setRoommatePreference('');
+    }, 3000);
   };
 
   return (
@@ -372,19 +381,17 @@ const FixedHostelListingPage: React.FC = () => {
             </div>
           </div>
           
-          {/* Price Filter */}
+          {/* Food Type Filter */}
           <div className="w-full md:w-60">
             <div className="relative">
               <select
                 className="block appearance-none w-full pl-4 pr-10 py-3 text-base border border-neutral-200 rounded-xl focus:outline-none focus:ring-black focus:border-black sm:text-sm bg-[#fff9ed] transition-colors"
-                value={priceFilter}
-                onChange={(e) => setPriceFilter(e.target.value)}
+                value={foodTypeFilter}
+                onChange={(e) => setFoodTypeFilter(e.target.value)}
               >
-                <option value="all">All Prices</option>
-                <option value="under-5000">Under ₹5,000</option>
-                <option value="5000-10000">₹5,000 - ₹10,000</option>
-                <option value="10000-15000">₹10,000 - ₹15,000</option>
-                <option value="above-15000">Above ₹15,000</option>
+                <option value="all">All Food Types</option>
+                <option value="veg">Vegetarian Only</option>
+                <option value="non-veg">Non-Vegetarian</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -393,6 +400,8 @@ const FixedHostelListingPage: React.FC = () => {
               </div>
             </div>
           </div>
+          
+          {/* Price Filter removed as requested */}
           
           {/* Sort Dropdown */}
           <div className="w-full md:w-60">
@@ -413,12 +422,52 @@ const FixedHostelListingPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <button
-            onClick={resetFilters}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-          >
-            Reset Filters
-          </button>
+          
+          {/* Reset Filters and Roommate Preference Buttons */}
+          <div className="w-full md:w-auto flex space-x-3">
+            <button
+              onClick={resetFilters}
+              className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
+            >
+              Reset Filters
+            </button>
+            <button
+              onClick={() => setIsRoommateModalOpen(true)}
+              className="w-full md:w-auto px-4 py-2 text-sm font-medium text-white bg-black rounded-xl hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
+            >
+              Roommate Preference
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Tags */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          {genderFilter !== 'all' && (
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {genderFilter === 'boys' ? 'Boys Only' : 'Girls Only'}
+              <button
+                onClick={() => setGenderFilter('all')}
+                className="ml-1 focus:outline-none"
+              >
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          )}
+          {foodTypeFilter !== 'all' && (
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              {foodTypeFilter === 'veg' ? '🥗 Vegetarian Only' : '🍖 Non-Vegetarian'}
+              <button
+                onClick={() => setFoodTypeFilter('all')}
+                className="ml-1 focus:outline-none"
+              >
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
       </div>
       
@@ -447,7 +496,7 @@ const FixedHostelListingPage: React.FC = () => {
             </svg>
             <h3 className="mt-4 text-lg font-medium text-neutral-900">No accommodations found</h3>
             <p className="mt-2 text-neutral-500 max-w-md mx-auto">
-              {(genderFilter !== 'all' || priceFilter !== 'all') ? "No accommodations match your selected filters." : "There are no accommodations available at the moment."}
+              {genderFilter !== 'all' || foodTypeFilter !== 'all' ? "No accommodations match your selected filters." : "There are no accommodations available at the moment."}
             </p>
           </div>
         ) : (
@@ -468,6 +517,63 @@ const FixedHostelListingPage: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Roommate Preference Modal */}
+      {isRoommateModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Roommate Preference</h3>
+              <button 
+                onClick={() => setIsRoommateModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {showRoommateSuccess ? (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
+                <div className="flex items-center">
+                  <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p>Your roommate preference has been submitted successfully!</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-600 mb-4">
+                  Tell us what kind of roommate you're looking for, and we'll do our best to find you the perfect match.
+                </p>
+                <textarea
+                  value={roommatePreference}
+                  onChange={(e) => setRoommatePreference(e.target.value)}
+                  placeholder="Describe your ideal roommate (e.g., study habits, sleeping schedule, cleanliness preferences, etc.)"
+                  className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                />
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => setIsRoommateModalOpen(false)}
+                    className="mr-3 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRoommatePreferenceSubmit}
+                    disabled={!roommatePreference.trim()}
+                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${roommatePreference.trim() ? 'bg-black hover:bg-gray-800' : 'bg-gray-400 cursor-not-allowed'}`}
+                  >
+                    Submit
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
