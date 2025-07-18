@@ -56,7 +56,9 @@ app.get('/', (req, res) => {
 
 // 🔁 Keep-alive ping route (for GitHub Actions or uptime pingers)
 app.get('/ping', (req, res) => {
-  res.sendStatus(200); // Or: res.send('pong');
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  console.log(`[PING] ${new Date().toISOString()} - Ping received from ${ip}`);
+  res.sendStatus(200);
 });
 
 // Port
