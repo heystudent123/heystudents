@@ -30,6 +30,8 @@ const AdminAccommodationsPage: React.FC = () => {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [accommodationsPerPage] = useState(10);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -55,12 +57,17 @@ const AdminAccommodationsPage: React.FC = () => {
     // Fetch accommodations
     const fetchAccommodations = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/accommodations`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        console.log('Accommodation data:', response.data.data[0]);
-        setAccommodations(response.data.data);
+        // Import the accommodationsApi service
+        const { accommodationsApi } = await import('../services/api');
+        
+        // Use the updated API service with higher limit
+        const response = await accommodationsApi.getAll();
+        
+        // Handle different response formats
+        const accommodationsData = response.data || response;
+        console.log('Accommodation data:', accommodationsData);
+        
+        setAccommodations(Array.isArray(accommodationsData) ? accommodationsData : []);
         setLoading(false);
       } catch (err: any) {
         console.error('Error fetching accommodations:', err);
@@ -159,7 +166,10 @@ const AdminAccommodationsPage: React.FC = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {accommodations.length > 0 ? (
-                    accommodations.map((accommodation) => (
+                    // Get current accommodations for pagination
+                    accommodations
+                      .slice((currentPage - 1) * accommodationsPerPage, currentPage * accommodationsPerPage)
+                      .map((accommodation) => (
                       <tr key={accommodation._id}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
@@ -226,7 +236,9 @@ const AdminAccommodationsPage: React.FC = () => {
             <div className="md:hidden">
               {accommodations.length > 0 ? (
                 <div className="space-y-4 px-4 py-4">
-                  {accommodations.map((accommodation) => (
+                  {accommodations
+                    .slice((currentPage - 1) * accommodationsPerPage, currentPage * accommodationsPerPage)
+                    .map((accommodation) => (
                     <div key={accommodation._id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                       <div className="p-4">
                         <div className="text-lg font-medium text-gray-900 mb-2">
@@ -285,6 +297,35 @@ const AdminAccommodationsPage: React.FC = () => {
                 </div>
               )}
             </div>
+            
+            {/* Pagination Controls */}
+            {accommodations.length > 0 && (
+              <div className="px-4 py-5 sm:px-6 border-t border-gray-200">
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{Math.min((currentPage - 1) * accommodationsPerPage + 1, accommodations.length)}</span> to{' '}
+                    <span className="font-medium">{Math.min(currentPage * accommodationsPerPage, accommodations.length)}</span> of{' '}
+                    <span className="font-medium">{accommodations.length}</span> accommodations
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-1 border rounded-md text-sm ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(accommodations.length / accommodationsPerPage)))}
+                      disabled={currentPage >= Math.ceil(accommodations.length / accommodationsPerPage)}
+                      className={`px-3 py-1 border rounded-md text-sm ${currentPage >= Math.ceil(accommodations.length / accommodationsPerPage) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

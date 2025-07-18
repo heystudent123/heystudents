@@ -23,6 +23,7 @@ interface Accommodation {
     date: Date;
   }>;
   amenities?: string[];
+  features?: string[]; // Added features array for amenities/food preferences from admin panel
   images?: string[];
   type?: string;
   gender?: string; // For backward compatibility
@@ -32,6 +33,13 @@ interface Accommodation {
   foodType?: string; // 'veg', 'non-veg', or undefined
   messAvailable?: boolean;
   vegOnly?: boolean;
+  
+  // Food object from backend model
+  food?: {
+    available?: boolean;
+    vegOnly?: boolean;
+    mealTypes?: string[];
+  };
 
   verified?: boolean;
 }
@@ -249,6 +257,10 @@ const FixedHostelListingPage: React.FC = () => {
   const [foodTypeFilter, setFoodTypeFilter] = useState('all');
   const [sortOption, setSortOption] = useState('default');
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [accommodationsPerPage] = useState(10);
+  
   // Roommate preference modal state
   const [isRoommateModalOpen, setIsRoommateModalOpen] = useState(false);
   const [roommatePreference, setRoommatePreference] = useState('');
@@ -294,15 +306,65 @@ const FixedHostelListingPage: React.FC = () => {
       
       // Food type filter
       if (foodTypeFilter !== 'all') {
-        // Check if accommodation has food type information
+        // Check all possible places where food type information might be stored
+        const features = accom.features || [];
+        const amenitiesList = accom.amenities || [];
+        
+        // Check for "Veg" in features array (from admin panel)
+        const hasVegInFeatures = features.some(feature => 
+          feature === 'Veg' || feature.toLowerCase() === 'veg'
+        );
+        
+        // Check for "Non-veg" in features array (from admin panel)
+        const hasNonVegInFeatures = features.some(feature => 
+          feature === 'Non-veg' || feature.toLowerCase() === 'non-veg'
+        );
+        
+        // Check for veg-related terms in amenities
+        const hasVegInAmenities = amenitiesList.some(amenity => 
+          amenity.toLowerCase().includes('veg') && 
+          !amenity.toLowerCase().includes('non-veg')
+        );
+        
+        // Check for non-veg terms in amenities
+        const hasNonVegInAmenities = amenitiesList.some(amenity => 
+          amenity.toLowerCase().includes('non-veg')
+        );
+        
+        // Also check the food object if it exists
+        const foodInfo = accom.food || {};
+        const isVegOnly = foodInfo.vegOnly === true;
+        
+        // Check vegOnly property directly on accommodation
+        const directVegOnly = accom.vegOnly === true;
+        
+        // Debug logging to see what values we're working with
+        console.log('Accommodation food filter debug:', {
+          id: accom._id || accom.id,
+          name: accom.name,
+          features,
+          amenities: amenitiesList,
+          hasVegInFeatures,
+          hasNonVegInFeatures,
+          hasVegInAmenities,
+          hasNonVegInAmenities,
+          foodInfo,
+          isVegOnly,
+          directVegOnly
+        });
+        
         if (foodTypeFilter === 'veg') {
-          // For vegetarian, we need vegOnly to be true or foodType to be 'veg'
-          if (accom.vegOnly === false || (accom.foodType && accom.foodType.toLowerCase() !== 'veg')) {
+          // For vegetarian, check all possible indicators
+          if (!hasVegInFeatures && !hasVegInAmenities && !isVegOnly && !directVegOnly) {
             return false;
           }
         } else if (foodTypeFilter === 'non-veg') {
-          // For non-vegetarian, we need vegOnly to be false or foodType to be 'non-veg'
-          if (accom.vegOnly === true || (accom.foodType && accom.foodType.toLowerCase() === 'veg')) {
+          // For non-vegetarian, check all possible indicators
+          const isExplicitlyVegOnly = isVegOnly || directVegOnly;
+          const hasAnyNonVegIndicator = hasNonVegInFeatures || hasNonVegInAmenities;
+          
+          // If it's explicitly veg-only and has no non-veg indicators, filter it out
+          if (isExplicitlyVegOnly && !hasAnyNonVegIndicator) {
             return false;
           }
         }
@@ -507,13 +569,42 @@ const FixedHostelListingPage: React.FC = () => {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {sortedAccommodations.map((accommodation) => (
-                <HostelCard
-                  key={accommodation._id || accommodation.id}
-                  accommodation={accommodation}
-                />
-              ))}
+              {sortedAccommodations
+                .slice((currentPage - 1) * accommodationsPerPage, currentPage * accommodationsPerPage)
+                .map((accommodation) => (
+                  <HostelCard
+                    key={accommodation._id || accommodation.id}
+                    accommodation={accommodation}
+                  />
+                ))}
             </div>
+            
+            {/* Pagination Controls */}
+            {sortedAccommodations.length > accommodationsPerPage && (
+              <div className="mt-8 flex justify-center">
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-black border border-gray-300 hover:bg-gray-50'}`}
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="text-sm text-gray-700">
+                    <span className="font-medium">{Math.min((currentPage - 1) * accommodationsPerPage + 1, sortedAccommodations.length)}</span> - <span className="font-medium">{Math.min(currentPage * accommodationsPerPage, sortedAccommodations.length)}</span> of <span className="font-medium">{sortedAccommodations.length}</span>
+                  </div>
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(sortedAccommodations.length / accommodationsPerPage)))}
+                    disabled={currentPage >= Math.ceil(sortedAccommodations.length / accommodationsPerPage)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage >= Math.ceil(sortedAccommodations.length / accommodationsPerPage) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-black border border-gray-300 hover:bg-gray-50'}`}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

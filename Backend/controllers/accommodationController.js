@@ -146,9 +146,36 @@ exports.createAccommodation = async (req, res, next) => {
     }
     // Map incoming 'features' (from frontend) to 'amenities' field expected by schema
     if (req.body.features && !req.body.amenities) {
-      req.body.amenities = Array.isArray(req.body.features)
-        ? req.body.features
-        : [req.body.features];
+      // Make sure features is an array
+      const features = Array.isArray(req.body.features) ? req.body.features : [req.body.features];
+      
+      // Extract food preferences from features
+      const vegOnly = features.includes('Veg') && !features.includes('Non-veg');
+      const hasNonVeg = features.includes('Non-veg');
+      
+      // Set food object properties
+      if (!req.body.food) {
+        req.body.food = {};
+      }
+      
+      // If we have food preferences, set the food properties
+      if (features.includes('Veg') || features.includes('Non-veg')) {
+        req.body.food.available = true;
+        req.body.food.vegOnly = vegOnly;
+      }
+      
+      // Set amenities from features (excluding food preferences)
+      req.body.amenities = features;
+      
+      // Log what we're doing for debugging
+      console.log('Food preferences detected:', { 
+        vegOnly, 
+        hasNonVeg, 
+        features, 
+        amenities: req.body.amenities,
+        food: req.body.food
+      });
+      
       delete req.body.features;
     }
     
@@ -184,9 +211,36 @@ exports.updateAccommodation = async (req, res, next) => {
     
     // Map 'features' to 'amenities' for updates as well
     if (req.body.features && !req.body.amenities) {
-      req.body.amenities = Array.isArray(req.body.features)
-        ? req.body.features
-        : [req.body.features];
+      // Make sure features is an array
+      const features = Array.isArray(req.body.features) ? req.body.features : [req.body.features];
+      
+      // Extract food preferences from features
+      const vegOnly = features.includes('Veg') && !features.includes('Non-veg');
+      const hasNonVeg = features.includes('Non-veg');
+      
+      // Set food object properties
+      if (!req.body.food) {
+        req.body.food = {};
+      }
+      
+      // If we have food preferences, set the food properties
+      if (features.includes('Veg') || features.includes('Non-veg')) {
+        req.body.food.available = true;
+        req.body.food.vegOnly = vegOnly;
+      }
+      
+      // Set amenities from features (excluding food preferences)
+      req.body.amenities = features;
+      
+      // Log what we're doing for debugging
+      console.log('Food preferences detected in update:', { 
+        vegOnly, 
+        hasNonVeg, 
+        features, 
+        amenities: req.body.amenities,
+        food: req.body.food
+      });
+      
       delete req.body.features;
     }
     

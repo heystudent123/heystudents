@@ -31,7 +31,9 @@ api.interceptors.request.use(
 export const accommodationsApi = {
   getAll: async (filters = {}) => {
     try {
-      const response = await api.get('/accommodations', { params: filters });
+      // Request a high limit to get all accommodations
+      const params = { ...filters, limit: 100 };
+      const response = await api.get('/accommodations', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching accommodations:', error);
