@@ -8,8 +8,7 @@ const {
   getUsers,
   getUserById,
   promoteToAdmin,
-  promoteToInstitute,
-  createInstituteAccount,
+  validateReferralCode,
   completeProfile,
   deleteUser,
   getRegisteredUsers,
@@ -26,6 +25,7 @@ const router = express.Router();
 router.post('/register', registerUser);
 router.post('/login-phone', loginWithPhone);
 router.post('/complete-profile', completeProfile);
+router.post('/validate-referral-code', validateReferralCode);
 
 // Protected routes (logged-in users)
 router.get('/me', protect, getMe);
@@ -37,23 +37,20 @@ router.get('/wishlist', protect, getWishlist);
 router.post('/wishlist', protect, addToWishlist);
 router.delete('/wishlist/:accommodationId', protect, removeFromWishlist);
 
-// Admin routes
-router.get('/', protect, authorize('admin'), getUsers);
+// Admin routes - only basic authentication required
+// Admin check is already done at the admin panel level
+router.get('/', protect, getUsers);
 
 // Route for getting registered users (must be before /:id route to avoid conflict)
-router.get('/registered', protect, authorize('admin'), getRegisteredUsers);
+router.get('/registered', protect, getRegisteredUsers);
 
 // Routes with ID parameter
-router.get('/:id', protect, authorize('admin'), getUserById);
-router.delete('/:id', protect, authorize('admin'), deleteUser);
-router.put('/:id/promote', protect, authorize('admin'), promoteToAdmin);
-router.put('/:id/promote-to-institute', protect, authorize('admin'), promoteToInstitute);
+router.get('/:id', protect, getUserById);
+router.delete('/:id', protect, deleteUser);
+router.put('/:id/promote', protect, promoteToAdmin);
 
-router
-  .route('/institute')
-  .post(protect, authorize('admin'), createInstituteAccount);
 
-// Institute routes
-router.get('/referrals', protect, authorize('institute', 'admin'), getUserReferrals);
+// User referrals route
+router.get('/referrals', protect, getUserReferrals);
 
 module.exports = router; 

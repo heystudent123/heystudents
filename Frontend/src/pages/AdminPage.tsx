@@ -89,7 +89,7 @@ const AdminPage: React.FC = () => {
           <Link to="/admin/institutes" className="bg-white overflow-hidden shadow rounded-lg hover:ring-2 hover:ring-primary transition">
             <div className="px-4 py-5 sm:p-6 h-full">
               <h3 className="text-lg font-medium text-gray-900">Institute Management</h3>
-              <p className="mt-4 text-sm text-gray-500">Create and manage institute accounts and their referrals.</p>
+              <p className="mt-4 text-sm text-gray-500">View institutes and their referral statistics.</p>
               <span className="mt-5 inline-block px-4 py-2 text-sm font-medium text-white bg-primary rounded-md">Go</span>
             </div>
           </Link>

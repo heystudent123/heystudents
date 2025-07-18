@@ -152,6 +152,118 @@ exports.createAdmin = async (req, res, next) => {
   }
 };
 
+// @desc    Promote user to institute role
+// @route   PUT /api/admin/users/:id/promote-to-institute
+// @access  Private/Admin
+exports.promoteToInstitute = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
+    }
+    
+    if (user.role === 'admin') {
+      return next(new ErrorResponse('Admin users cannot be promoted to institute', 400));
+    }
+    
+    if (user.role === 'institute') {
+      return next(new ErrorResponse('User is already an institute', 400));
+    }
+    
+    // Generate a unique 6-digit alphanumeric referral code
+    let referralCode = '';
+    let isUnique = false;
+    
+    // Use custom referral code if provided, otherwise generate one
+    if (req.body.customReferralCode && req.body.customReferralCode.length >= 4) {
+      referralCode = req.body.customReferralCode.toUpperCase();
+      
+      // Check if custom code is already in use
+      const existingUser = await User.findOne({ referralCode });
+      if (existingUser) {
+        return next(new ErrorResponse('Custom referral code is already in use', 400));
+      }
+      
+      isUnique = true;
+    } else {
+      // Generate a random code until we find a unique one
+      while (!isUnique) {
+        // Generate a 6-character alphanumeric code (excluding ambiguous characters)
+        const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        referralCode = '';
+        for (let i = 0; i < 6; i++) {
+          referralCode += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        
+        // Check if code is unique
+        const existingUser = await User.findOne({ referralCode });
+        if (!existingUser) {
+          isUnique = true;
+        }
+      }
+    }
+    
+    // Update user to institute role with referral code
+    user.role = 'institute';
+    user.referralCode = referralCode;
+    await user.save();
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        referralCode: user.referralCode
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get all institutes with referral stats
+// @route   GET /api/admin/institutes
+// @access  Private/Admin
+exports.getInstitutes = async (req, res, next) => {
+  try {
+    // Find all users with institute role
+    const institutes = await User.find({ role: 'institute' })
+      .select('name email phone referralCode createdAt');
+    
+    // For each institute, count the number of students who used their referral code
+    const institutesWithStats = await Promise.all(
+      institutes.map(async (institute) => {
+        const referralCount = await User.countDocuments({ 
+          referrerCodeUsed: institute.referralCode,
+          role: 'student'
+        });
+        
+        return {
+          _id: institute._id,
+          name: institute.name,
+          email: institute.email,
+          phone: institute.phone,
+          referralCode: institute.referralCode,
+          createdAt: institute.createdAt,
+          referralCount
+        };
+      })
+    );
+    
+    res.status(200).json({
+      success: true,
+      count: institutesWithStats.length,
+      data: institutesWithStats
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Update accommodation verification status
 // @route   PUT /api/admin/accommodations/:id/verify
 // @access  Private/Admin

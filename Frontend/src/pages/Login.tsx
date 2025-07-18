@@ -210,18 +210,23 @@ const Login: React.FC = () => {
 
         try {
           // Try to login with phone number and get user data
-          const loggedUser = await loginWithPhone(phoneNumber);
+          // Pass basic user data as second parameter to handle new user registration
+          const userData = {
+            phone: phoneNumber,
+            // Add required fields for new user creation
+            name: 'New User',  // Temporary name, will be updated in profile page
+            email: ''  // Optional, will be filled in profile page
+          };
+          
+          const loggedUser = await loginWithPhone(phoneNumber, userData);
 
-          // If user already has profile information (e.g. name/fullName present) redirect to home, else to complete-profile
-          if (loggedUser && (loggedUser.fullName || loggedUser.name)) {
-            navigate('/');
-          } else {
-            navigate('/complete-profile', { state: { verifiedPhone: phoneNumber } });
-          }
+          // Always redirect to home page after successful login/registration
+          navigate('/');
         } catch (loginErr) {
           console.error('Error logging in with phone:', loginErr);
-          // Even if login fails, still redirect to complete profile
-          navigate('/complete-profile');
+          // Show error message instead of redirecting
+          setError('Failed to log in. Please try again.');
+          setLoading(false);
         }
       } else {
         setError('Incorrect OTP. Please try again.');

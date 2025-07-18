@@ -12,6 +12,7 @@ const accommodationRoutes = require('./routes/accommodationRoutes');
 const referralRoutes = require('./routes/referralRoutes');
 const validationRoutes = require('./routes/validationRoutes');
 
+
 // Load environment variables
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.use('/api/alumni', alumniRoutes);
 app.use('/api/accommodations', accommodationRoutes);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/validation', validationRoutes);
+
 
 // Root route
 app.get('/', (req, res) => {

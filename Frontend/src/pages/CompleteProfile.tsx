@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SharedNavbar from '../components/SharedNavbar';
-import Footer from '../components/Footer';
 import { authApi } from '../services/api';
 
-const CompleteProfile: React.FC = () => {
+const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, updateUserProfile } = useAuth();
   const location = useLocation();
@@ -21,15 +20,28 @@ const CompleteProfile: React.FC = () => {
     collegeYear: ''
   });
   
+  // State for referral code validation
+  const [referralStatus, setReferralStatus] = useState({
+    isValidating: false,
+    isValid: false,
+    referrerName: '',
+    referrerCollege: ''
+  });
+  
   // Split phone number into country code and number
   const [countryCode, setCountryCode] = useState('+91');
 
   useEffect(() => {
-    // Auto-fill phone number from auth if available
+    // Auto-fill user data from auth if available
     let phoneNumber = '';
+    let name = '';
     
-    if (user?.phone || user?.phoneNumber) {
+    if (user) {
+      // Get phone number
       phoneNumber = user.phone || user.phoneNumber || '';
+      
+      // Get name if available
+      name = user.fullName || user.name || '';
     } else {
       phoneNumber = (location.state as any)?.verifiedPhone || localStorage.getItem('verifiedPhone') || '';
     }
@@ -38,20 +50,22 @@ const CompleteProfile: React.FC = () => {
     if (phoneNumber.startsWith('+')) {
       // Find the first digit after the + sign
       const countryCodeEndIndex = phoneNumber.startsWith('+91') ? 3 : 
-                                 phoneNumber.startsWith('+1') ? 2 : 3;
+                                phoneNumber.startsWith('+1') ? 2 : 3;
       
       setCountryCode(phoneNumber.substring(0, countryCodeEndIndex));
       setFormData(prev => ({
         ...prev,
-        phone: phoneNumber.substring(countryCodeEndIndex)
+        phone: phoneNumber.substring(countryCodeEndIndex),
+        fullName: name
       }));
     } else {
       setFormData(prev => ({
         ...prev,
-        phone: phoneNumber
+        phone: phoneNumber,
+        fullName: name
       }));
     }
-  }, [user]);
+  }, [user, location.state]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -59,6 +73,68 @@ const CompleteProfile: React.FC = () => {
       ...prev,
       [name]: value
     }));
+    
+    // Clear referral error when user changes the referral code
+    if (name === 'referralCode') {
+      setReferralError('');
+      
+      // Reset validation status if field is cleared
+      if (!value) {
+        setReferralStatus({
+          isValidating: false,
+          isValid: false,
+          referrerName: '',
+          referrerCollege: ''
+        });
+        return;
+      }
+      
+      // Debounce validation to avoid too many API calls
+      const timeoutId = setTimeout(() => {
+        validateReferralCodeLive(value);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  };
+  
+  // Function to validate referral code as user types
+  const validateReferralCodeLive = async (code: string) => {
+    if (!code || code.trim() === '') return;
+    
+    setReferralStatus(prev => ({ ...prev, isValidating: true }));
+    
+    try {
+      const response = await authApi.validateReferral(code);
+      
+      if (response.valid || (response.data && response.data.valid)) {
+        const referrerData = response.referrer || (response.data && response.data.referrer) || {};
+        setReferralStatus({
+          isValidating: false,
+          isValid: true,
+          referrerName: referrerData.name || '',
+          referrerCollege: referrerData.college || ''
+        });
+        setReferralError('');
+      } else {
+        setReferralStatus({
+          isValidating: false,
+          isValid: false,
+          referrerName: '',
+          referrerCollege: ''
+        });
+        setReferralError('Invalid referral code');
+      }
+    } catch (err) {
+      console.error('Error validating referral code:', err);
+      setReferralStatus({
+        isValidating: false,
+        isValid: false,
+        referrerName: '',
+        referrerCollege: ''
+      });
+      setReferralError('Error validating referral code');
+    }
   };
 
   const validateReferralCode = async (code: string): Promise<boolean> => {
@@ -81,8 +157,15 @@ const CompleteProfile: React.FC = () => {
     setReferralError('');
 
     // Validate required fields
-    if (!formData.fullName) {
+    if (!formData.fullName || formData.fullName.trim() === '') {
       setError('Full name is required');
+      setLoading(false);
+      return;
+    }
+    
+    // Validate email format if provided
+    if (formData.email && !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(formData.email)) {
+      setError('Please provide a valid email address');
       setLoading(false);
       return;
     }
@@ -97,14 +180,18 @@ const CompleteProfile: React.FC = () => {
         }
       }
 
-      // Combine country code with phone number
-      const fullPhoneNumber = `${countryCode}${formData.phone.replace(/\D/g, '')}`;
+      // Extract only the 10-digit phone number without country code
+      // This is important because the backend expects exactly 10 digits
+      const phoneDigitsOnly = formData.phone.replace(/\D/g, '');
+      const last10Digits = phoneDigitsOnly.slice(-10);
+
+      console.log('Submitting profile with phone:', last10Digits);
 
       // Save user profile data to MongoDB
-      await authApi.completeProfile({
+      const response = await authApi.completeProfile({
         uid: user?._id || '',
         fullName: formData.fullName,
-        phone: fullPhoneNumber,
+        phone: last10Digits, // Send only the 10-digit phone number
         email: formData.email,
         referralCode: formData.referralCode,
         college: formData.college,
@@ -112,14 +199,9 @@ const CompleteProfile: React.FC = () => {
       });
 
       // Update local user profile state
-      await updateUserProfile({
-        displayName: formData.fullName,
-        college: formData.college,
-        collegeYear: formData.collegeYear
-      });
-
-      // Navigate to home page after successful profile completion
-      navigate('/');
+      updateUserProfile(response.data.data);
+      // Refresh the page to ensure context is reset
+      window.location.href = '/';
     } catch (err: any) {
       console.error('Error completing profile:', err);
       setError(err.response?.data?.message || 'Failed to complete profile. Please try again.');
@@ -134,9 +216,9 @@ const CompleteProfile: React.FC = () => {
       <div className="flex-grow flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg space-y-8">
           <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Complete Your Profile</h2>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Your Profile</h2>
             <p className="mt-2 text-center text-sm text-gray-600">
-              Please provide the following details to complete your registration
+              Update your profile information to enhance your experience
             </p>
           </div>
 
@@ -154,29 +236,24 @@ const CompleteProfile: React.FC = () => {
           )}
 
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-            <div className="rounded-md shadow-sm -space-y-px">
+            <div className="space-y-4">
               {/* Phone Number (auto-filled) */}
               <div className="mb-4">
                 <label htmlFor="phone" className="block text-sm font-medium text-neutral-dark mb-1">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
-                <div className="flex">
-                  <select
-                    name="countryCode"
-                    value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value)}
-                    className="px-3 py-3.5 border border-gray-300 rounded-l-xl focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200 bg-gray-50"
-                    disabled
-                  >
-                    <option value="+91">+91 (India)</option>
-                    <option value="+1">+1 (US)</option>
-                  </select>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </div>
                   <input
                     id="phone"
                     name="phone"
                     type="tel"
-                    className="w-full px-4 py-3.5 border border-gray-300 border-l-0 rounded-r-xl placeholder-gray-400 bg-gray-100 cursor-not-allowed focus:outline-none sm:text-sm"
-                    value={formData.phone}
+                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 bg-gray-100 cursor-not-allowed focus:outline-none sm:text-sm transition-all duration-200"
+                    value={`${countryCode} ${formData.phone}`}
                     readOnly
                     disabled
                   />
@@ -215,7 +292,7 @@ const CompleteProfile: React.FC = () => {
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 12H8m8 0l-8-8m8 8l-8 8" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                     </svg>
                   </div>
                   <input
@@ -245,14 +322,31 @@ const CompleteProfile: React.FC = () => {
                     id="referralCode"
                     name="referralCode"
                     type="text"
-                    className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                    className={`appearance-none block w-full pl-10 pr-3 py-3.5 border ${referralStatus.isValid ? 'border-green-500' : referralError ? 'border-red-500' : 'border-gray-300'} rounded-xl placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200`}
                     placeholder="Enter referral code if you have one"
                     value={formData.referralCode}
                     onChange={handleChange}
                   />
+                  {referralStatus.isValidating && (
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <svg className="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
+                  )}
                 </div>
                 {referralError && (
                   <p className="mt-1 text-sm text-red-600">{referralError}</p>
+                )}
+                {referralStatus.isValid && (
+                  <div className="mt-1 text-sm text-green-600 flex items-center">
+                    <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Valid code from {referralStatus.referrerName}
+                    {referralStatus.referrerCollege && ` (${referralStatus.referrerCollege})`}
+                  </div>
                 )}
               </div>
 
@@ -309,28 +403,30 @@ const CompleteProfile: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-8">
+            <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
                 disabled={loading}
+                className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
               >
                 {loading ? (
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
                 ) : (
-                  'Complete Registration'
+                  'Save Profile'
                 )}
               </button>
             </div>
           </form>
         </div>
       </div>
-      <Footer />
     </div>
   );
 };
 
-export default CompleteProfile;
+export default ProfilePage;

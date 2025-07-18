@@ -110,20 +110,17 @@ export interface AuthApi {
     collegeYear?: string;
   }) => Promise<any>;
   validateReferral: (referralCode: string) => Promise<any>;
-  createInstitute: (instituteData: {
-    name: string;
-    mobile: string;
-    email?: string;
-    password?: string;
-    address?: string;
-    customReferralCode?: string;
-  }) => Promise<any>;
+
+
   getRegisteredUsers: () => Promise<any>;
   promoteToAdmin: (userId: string) => Promise<any>;
-  promoteToInstitute: (userId: string, data?: { customReferralCode?: string }) => Promise<any>;
+
   deleteUser: (userId: string) => Promise<any>;
   getReferrals: () => Promise<any>;
   getUsers: (role?: string) => Promise<any>;
+  promoteToInstitute: (userId: string, customReferralCode?: string) => Promise<any>;
+  getInstitutes: () => Promise<any>;
+  validateReferralCode: (referralCode: string) => Promise<any>;
 }
 
 export const authApi: AuthApi = {
@@ -136,6 +133,8 @@ export const authApi: AuthApi = {
       throw error;
     }
   },
+  
+
   
   register: async (userData: {
     name: string;
@@ -217,23 +216,7 @@ export const authApi: AuthApi = {
   // This function is now updated to use the GET endpoint
   // The old POST endpoint is still available for backward compatibility
 
-  // Create institute account (admin only)
-  createInstitute: async (instituteData: {
-    name: string;
-    mobile: string;
-    email?: string;
-    password?: string;
-    address?: string;
-    customReferralCode?: string;
-  }) => {
-    try {
-      const response = await api.post('/users/institute', instituteData);
-      return response.data;
-    } catch (error) {
-      console.error('Create institute error:', error);
-      throw error;
-    }
-  },
+
   
   // Get all registered users (for mobile number selection)
   getRegisteredUsers: async () => {
@@ -257,16 +240,7 @@ export const authApi: AuthApi = {
     }
   },
 
-  // Promote user to institute role
-  promoteToInstitute: async (userId: string, data: { customReferralCode?: string } = {}) => {
-    try {
-      const response = await api.put(`/users/${userId}/promote-to-institute`, data);
-      return response.data;
-    } catch (error) {
-      console.error('Error promoting user to institute:', error);
-      throw error;
-    }
-  },
+
 
   // Delete user (admin only)
   deleteUser: async (userId: string) => {
@@ -299,6 +273,39 @@ export const authApi: AuthApi = {
       return response.data;
     } catch (error) {
       console.error('Get users error:', error);
+      throw error;
+    }
+  },
+
+  // Promote user to institute role
+  promoteToInstitute: async (userId: string, customReferralCode?: string) => {
+    try {
+      const response = await api.put(`/admin/users/${userId}/promote-to-institute`, { customReferralCode });
+      return response.data;
+    } catch (error) {
+      console.error('Error promoting user to institute:', error);
+      throw error;
+    }
+  },
+
+  // Get all institutes with referral stats
+  getInstitutes: async () => {
+    try {
+      const response = await api.get('/admin/institutes');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching institutes:', error);
+      throw error;
+    }
+  },
+
+  // Validate referral code
+  validateReferralCode: async (referralCode: string) => {
+    try {
+      const response = await api.post('/users/validate-referral-code', { referralCode });
+      return response.data;
+    } catch (error) {
+      console.error('Error validating referral code:', error);
       throw error;
     }
   },

@@ -11,7 +11,9 @@ interface User {
   college?: string;
   course?: string;
   year?: string;
-  referralCode: string;
+  referralCode?: string;
+  referrals?: string[];
+  referralsCount?: number;
   createdAt: string;
 }
 
@@ -19,9 +21,10 @@ const AdminUsersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showInstituteModal, setShowInstituteModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [showInstituteModal, setShowInstituteModal] = useState(false);
   const [customReferralCode, setCustomReferralCode] = useState('');
+  const [instituteModalError, setInstituteModalError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,12 +47,28 @@ const AdminUsersPage: React.FC = () => {
       return;
     }
 
-    // Fetch users
-    const fetchUsers = async () => {
+    // Function to fetch users with referral data
+    const fetchUsersWithReferrals = async () => {
       try {
         // Pass empty string to get all users regardless of role
         const response = await authApi.getUsers('');
-        setUsers(response.data);
+        let usersData = response.data;
+        
+        // Fetch referral data
+        try {
+          const referralsResponse = await authApi.getReferrals();
+          const referralsData = referralsResponse.data;
+          
+          // No special handling for referrals since institute functionality is removed
+          usersData = usersData.map((user: User) => {
+            return user;
+          });
+        } catch (referralErr) {
+          console.error('Error fetching referrals:', referralErr);
+          // Continue with users data even if referrals fetch fails
+        }
+        
+        setUsers(usersData);
         setLoading(false);
       } catch (err: any) {
         console.error('Error fetching users:', err);
@@ -58,20 +77,79 @@ const AdminUsersPage: React.FC = () => {
       }
     };
 
-    fetchUsers();
+    fetchUsersWithReferrals();
   }, [navigate]);
+
+  // Extract fetchUsersWithReferrals to be used in multiple places
+  const fetchUsersWithReferrals = async () => {
+    try {
+      // Pass empty string to get all users regardless of role
+      const response = await authApi.getUsers('');
+      let usersData = response.data;
+      
+      // Fetch referral data
+      try {
+        const referralsResponse = await authApi.getReferrals();
+        const referralsData = referralsResponse.data;
+        
+        // Map referrals to users
+        usersData = usersData.map((user: User) => {
+          // No special handling needed since institute functionality is removed
+          return user;
+        });
+      } catch (referralErr) {
+        console.error('Error fetching referrals:', referralErr);
+        // Continue with users data even if referrals fetch fails
+      }
+      
+      setUsers(usersData);
+      setLoading(false);
+    } catch (err: any) {
+      console.error('Error fetching users:', err);
+      setError(err.response?.data?.message || 'Failed to fetch users');
+      setLoading(false);
+    }
+  };
 
   const promoteToAdmin = async (userId: string) => {
     try {
       // Use authApi instead of direct axios call
       await authApi.promoteToAdmin(userId);
       
-      // Refresh user list - get all users regardless of role
-      const response = await authApi.getUsers('');
-      setUsers(response.data);
+      // Refresh user list with referral data
+      await fetchUsersWithReferrals();
     } catch (err: any) {
       console.error('Error promoting user:', err);
       alert(err.response?.data?.message || 'Failed to promote user');
+    }
+  };
+  
+  const openInstituteModal = (userId: string) => {
+    setSelectedUserId(userId);
+    setCustomReferralCode('');
+    setInstituteModalError('');
+    setShowInstituteModal(true);
+  };
+  
+  const closeInstituteModal = () => {
+    setShowInstituteModal(false);
+    setSelectedUserId('');
+    setCustomReferralCode('');
+    setInstituteModalError('');
+  };
+  
+  const promoteToInstitute = async () => {
+    try {
+      // Custom referral code is optional, pass it only if provided
+      const payload = customReferralCode ? { customReferralCode } : undefined;
+      await authApi.promoteToInstitute(selectedUserId, customReferralCode || undefined);
+      
+      // Close modal and refresh user list
+      closeInstituteModal();
+      await fetchUsersWithReferrals();
+    } catch (err: any) {
+      console.error('Error promoting to institute:', err);
+      setInstituteModalError(err.response?.data?.message || 'Failed to promote user to institute');
     }
   };
   
@@ -80,9 +158,8 @@ const AdminUsersPage: React.FC = () => {
       try {
         await authApi.deleteUser(userId);
         
-        // Refresh user list - get all users regardless of role
-        const response = await authApi.getUsers('');
-        setUsers(response.data);
+        // Refresh user list with referral data
+        await fetchUsersWithReferrals();
       } catch (err: any) {
         console.error('Error deleting user:', err);
         alert(err.response?.data?.message || 'Failed to delete user');
@@ -90,31 +167,7 @@ const AdminUsersPage: React.FC = () => {
     }
   };
 
-  const openInstituteModal = (userId: string) => {
-    setSelectedUserId(userId);
-    setCustomReferralCode('');
-    setShowInstituteModal(true);
-  };
 
-  const promoteToInstitute = async () => {
-    try {
-      await authApi.promoteToInstitute(selectedUserId, {
-        customReferralCode: customReferralCode || undefined
-      });
-      
-      // Refresh user list - get all users regardless of role
-      const response = await authApi.getUsers('');
-      setUsers(response.data);
-      
-      // Close modal
-      setShowInstituteModal(false);
-      setSelectedUserId('');
-      setCustomReferralCode('');
-    } catch (err: any) {
-      console.error('Error promoting user to institute:', err);
-      alert(err.response?.data?.message || 'Failed to promote user to institute');
-    }
-  };
 
   if (loading) {
     return (
@@ -170,6 +223,7 @@ const AdminUsersPage: React.FC = () => {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     College
                   </th>
+
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -198,6 +252,7 @@ const AdminUsersPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {user.college || '-'}
                       </td>
+
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex flex-col space-y-2">
                           {/* Only show promotion buttons for regular users */}
@@ -240,45 +295,62 @@ const AdminUsersPage: React.FC = () => {
           </div>
         </div>
       </div>
-
+      
       {/* Institute Promotion Modal */}
       {showInstituteModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
-          <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Promote to Institute</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              This will promote the user to an institute role. Institutes can have students use their referral code during registration.
-            </p>
-            
-            <div className="mb-4">
-              <label htmlFor="customReferralCode" className="block text-sm font-medium text-gray-700 mb-1">
-                Custom Referral Code (Optional)
-              </label>
-              <input
-                type="text"
-                id="customReferralCode"
-                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                placeholder="Enter custom referral code"
-                value={customReferralCode}
-                onChange={(e) => setCustomReferralCode(e.target.value)}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                If left blank, a random referral code will be generated.
-              </p>
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b">
+              <h3 className="text-lg font-medium text-gray-900">Promote to Institute</h3>
+              <button
+                onClick={closeInstituteModal}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-500"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
             
-            <div className="flex justify-end space-x-3">
+            <div className="px-6 py-4">
+              <p className="mb-4 text-sm text-gray-600">
+                This will promote the user to an institute role and generate a unique referral code. 
+                Students can use this referral code when signing up.
+              </p>
+              
+              {instituteModalError && (
+                <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
+                  <p className="text-red-700">{instituteModalError}</p>
+                </div>
+              )}
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Custom Referral Code (Optional)
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                  placeholder="Enter custom code (min 4 chars)"
+                  value={customReferralCode}
+                  onChange={(e) => setCustomReferralCode(e.target.value)}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Leave empty to auto-generate a 6-character code. Custom codes must be at least 4 characters.
+                </p>
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3">
               <button
-                type="button"
-                className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                onClick={() => setShowInstituteModal(false)}
+                onClick={closeInstituteModal}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
-                type="button"
-                className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 onClick={promoteToInstitute}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/80"
               >
                 Promote
               </button>
@@ -290,4 +362,4 @@ const AdminUsersPage: React.FC = () => {
   );
 };
 
-export default AdminUsersPage; 
+export default AdminUsersPage;

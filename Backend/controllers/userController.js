@@ -37,73 +37,7 @@ exports.registerUser = async (req, res, next) => {
   }
 };
 
-// @desc    Create institute account (admin only)
-// @route   POST /api/users/institute
-// @access  Private/Admin
-exports.createInstituteAccount = async (req, res, next) => {
-  try {
-    const { name, mobile, email, password, address, customReferralCode } = req.body;
 
-    // Validate required fields
-    if (!name || !mobile) {
-      return next(new ErrorResponse('Please provide name and mobile number', 400));
-    }
-
-    // Check if user already exists with this mobile number
-    let existingUser = await User.findOne({ phone: mobile });
-    if (existingUser) {
-      return next(new ErrorResponse('User already exists with that mobile number', 400));
-    }
-    
-    // Check if email exists and is unique if provided
-    if (email) {
-      existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return next(new ErrorResponse('User already exists with that email', 400));
-      }
-    }
-
-    // If custom referral code is provided, check if it's already in use
-    if (customReferralCode) {
-      const existingCode = await User.findOne({ referralCode: customReferralCode });
-      if (existingCode) {
-        return next(new ErrorResponse('Referral code already in use', 400));
-      }
-    }
-    
-    // Create new institute account
-    const institute = new User({
-      name,
-      phone: mobile,  // Set phone as the primary identifier
-      mobile,        // Keep mobile for backward compatibility
-      role: 'institute',
-      referralCode: customReferralCode // Will be auto-generated if not provided
-    });
-    
-    // Add optional fields if provided
-    if (email) institute.email = email;
-    if (password) institute.password = password;
-    if (address) institute.address = address;
-
-    // Save institute account
-    await institute.save();
-
-    res.status(201).json({
-      success: true,
-      data: {
-        _id: institute._id,
-        name: institute.name,
-        phone: institute.phone,
-        email: institute.email,
-        address: institute.address,
-        role: institute.role,
-        referralCode: institute.referralCode
-      }
-    });
-  } catch (err) {
-    next(err);
-  }
-};
 
 // @desc    Login user with phone number (OTP verified by Firebase on frontend)
 // @route   POST /api/users/login-phone
@@ -112,13 +46,9 @@ exports.loginWithPhone = async (req, res, next) => {
   try {
     const { phone } = req.body;
 
-    // Validate
-    if (!phone) {
-      return next(new ErrorResponse('Please provide a phone number', 400));
-    }
-
-    // Find user by phone
-    const user = await User.findOne({ phone });
+    // Clean phone number (remove spaces)
+    const cleanedPhone = phone.replace(/\s/g, '');
+    const user = await User.findOne({ phone: cleanedPhone });
 
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
@@ -263,12 +193,13 @@ exports.updateProfile = async (req, res, next) => {
 // @access  Private
 exports.getUserReferrals = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).populate('referrals');
+    const user = await User.findById(req.user.id);
     
+    // Since referrals functionality has been removed, return an empty array
     res.status(200).json({
       success: true,
-      count: user.referrals.length,
-      data: user.referrals
+      count: 0,
+      data: []
     });
   } catch (err) {
     next(err);
@@ -342,51 +273,6 @@ exports.promoteToAdmin = async (req, res, next) => {
   }
 };
 
-// @desc    Promote user to institute
-// @route   PUT /api/users/:id/promote-to-institute
-// @access  Private/Admin
-exports.promoteToInstitute = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.params.id);
-    
-    if (!user) {
-      return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
-    }
-    
-    // Only allow admin to promote users
-    if (req.user.role !== 'admin') {
-      return next(new ErrorResponse('Not authorized to promote users', 401));
-    }
-    
-    // Check if institute name is provided
-    const { instituteName } = req.body;
-    if (!instituteName) {
-      return next(new ErrorResponse('Please provide institute name', 400));
-    }
-    
-    // Update user role and institute name
-    user.role = 'institute';
-    user.instituteName = instituteName;
-    
-    // Generate a referral code if not exists
-    if (!user.referralCode) {
-      // Generate a unique referral code (e.g., first 3 chars of name + random 4 digits)
-      const namePrefix = user.name.substring(0, 3).toUpperCase();
-      const randomNum = Math.floor(1000 + Math.random() * 9000);
-      user.referralCode = `${namePrefix}${randomNum}`;
-    }
-    
-    await user.save();
-    
-    res.status(200).json({
-      success: true,
-      data: user
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 // @desc    Complete user profile after OTP verification
 // @route   POST /api/users/complete-profile
 // @access  Public
@@ -418,9 +304,12 @@ exports.completeProfile = async (req, res, next) => {
       });
     }
 
+    // Clean phone number (remove spaces)
+    const cleanedPhone = phone.replace(/\s/g, '');
+    
     // Update user profile
     user.name = fullName;
-    user.phone = phone;
+    user.phone = cleanedPhone;
     if (email) user.email = email;
     user.college = college || user.college;
     user.year = collegeYear || user.year;
@@ -430,6 +319,8 @@ exports.completeProfile = async (req, res, next) => {
       const referrer = await User.findOne({ referralCode });
       if (referrer) {
         user.referredBy = referrer._id;
+        // Save the referral code used by the student
+        user.referrerCodeUsed = referralCode;
         
         // Add this user to referrer's referrals array if not already there
         if (!referrer.referrals.includes(user._id)) {
@@ -447,6 +338,12 @@ exports.completeProfile = async (req, res, next) => {
       data: user
     });
   } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        error: err.message
+      });
+    }
     next(err);
   }
 };
@@ -462,8 +359,8 @@ exports.deleteUser = async (req, res, next) => {
       return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
     }
     
-    // Delete the user
-    await user.remove();
+    // Delete the user using findByIdAndDelete instead of deprecated remove()
+    await User.findByIdAndDelete(req.params.id);
     
     res.status(200).json({
       success: true,
@@ -577,6 +474,39 @@ exports.removeFromWishlist = async (req, res, next) => {
   } catch (error) {
     console.error('Error in removeFromWishlist:', error);
     next(error);
+  }
+};
+
+// @desc    Validate referral code
+// @route   POST /api/users/validate-referral-code
+// @access  Public
+exports.validateReferralCode = async (req, res, next) => {
+  try {
+    const { referralCode } = req.body;
+    
+    if (!referralCode) {
+      return next(new ErrorResponse('Please provide a referral code', 400));
+    }
+    
+    // Check if the referral code exists for any institute user
+    const institute = await User.findOne({
+      referralCode,
+      role: 'institute'
+    }).select('name');
+    
+    if (!institute) {
+      return next(new ErrorResponse('Invalid referral code', 404));
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        valid: true,
+        instituteName: institute.name
+      }
+    });
+  } catch (err) {
+    next(err);
   }
 };
 

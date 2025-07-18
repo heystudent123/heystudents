@@ -8,14 +8,15 @@ import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import CompleteProfile from './pages/CompleteProfile';
+import ProfilePage from './pages/CompleteProfile';
 import UserProfile from './pages/UserProfile';
 import Wishlist from './pages/Wishlist';
 import AdminPage from './pages/AdminPage';
 import AdminUsersPage from './pages/AdminUsersPage';
-import AdminAccommodationsPage from './pages/AdminAccommodationsPage';
 import AdminInstitutesPage from './pages/AdminInstitutesPage';
-import InstituteDashboardPage from './pages/InstituteDashboardPage';
+import AdminAccommodationsPage from './pages/AdminAccommodationsPage';
+
+
 import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
 import AccommodationListingPage from './pages/AccommodationPage';
 import AccommodationDetailPage from './pages/HostelDetailPage';
@@ -101,16 +102,17 @@ function AppContent() {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
-                <Route path="/complete-profile" element={<CompleteProfile />} />
-                <Route path="/profile" element={<UserProfile />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/user-profile" element={<UserProfile />} />
                 <Route path="/wishlist" element={<Wishlist />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/admin/users" element={<AdminUsersPage />} />
                 <Route path="/admin/institutes" element={<AdminInstitutesPage />} />
+
                 <Route path="/admin/accommodations" element={<AdminAccommodationsPage />} />
                 <Route path="/admin/accommodations/new" element={<AdminAccommodationEditPage />} />
                 <Route path="/admin/accommodations/edit/:id" element={<AdminAccommodationEditPage />} />
-                <Route path="/institute/dashboard" element={<InstituteDashboardPage />} />
+
                 <Route path="/accommodation" element={
                   <ProtectedRoute>
                     <AccommodationListingPage />

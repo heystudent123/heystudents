@@ -55,30 +55,29 @@ const UserSchema = new mongoose.Schema({
     enum: ['student', 'admin', 'institute'],
     default: 'student'
   },
+  // Referral code for institutes
   referralCode: {
     type: String,
-    unique: true
+    unique: true,
+    sparse: true,
+    trim: true
   },
+  // Referral code used by students during registration
+  referrerCodeUsed: {
+    type: String,
+    trim: true
+  },
+  // User who referred this user
   referredBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: false
+    ref: 'User'
   },
+  // Users referred by this user
   referrals: [{
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    name: String,
-    mobile: String,
-    college: String,
-    course: String,
-    year: String,
-    date: {
-      type: Date,
-      default: Date.now
-    }
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }],
+
   createdAt: {
     type: Date,
     default: Date.now
@@ -95,31 +94,8 @@ const UserSchema = new mongoose.Schema({
   }]
 });
 
-// Generate and hash referral code
-UserSchema.pre('save', async function(next) {
-  if (!this.referralCode) {
-    this.referralCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-    // Ensure referral code is unique
-    const existingUser = await this.constructor.findOne({ referralCode: this.referralCode });
-    if (existingUser) {
-      this.referralCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-    }
-  }
-  next();
-});
 
-// Add a user to referrals list with more details
-UserSchema.methods.addReferral = async function(referredUser) {
-  this.referrals.push({
-    user: referredUser._id,
-    name: referredUser.name,
-    mobile: referredUser.mobile,
-    college: referredUser.college,
-    course: referredUser.course,
-    year: referredUser.year
-  });
-  
-  await this.save();
-};
+
+
 
 module.exports = mongoose.model('User', UserSchema); 
