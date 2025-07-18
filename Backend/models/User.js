@@ -59,8 +59,7 @@ const UserSchema = new mongoose.Schema({
   // Referral code for institutes
   referralCode: {
     type: String,
-    unique: true,
-    sparse: true, // This ensures the unique index only applies to documents that have the field
+    // unique constraint removed to avoid duplicate key errors
     trim: true,
     default: undefined // Explicitly set default to undefined to avoid null values
   },
@@ -99,5 +98,24 @@ const UserSchema = new mongoose.Schema({
 
 
 
+
+// Add a pre-save hook to ensure referralCode is unique only when it's set
+UserSchema.pre('save', async function(next) {
+  // Only check uniqueness if referralCode is set and modified
+  if (this.referralCode && this.isModified('referralCode')) {
+    const existingUser = await this.constructor.findOne({ referralCode: this.referralCode });
+    if (existingUser && existingUser._id.toString() !== this._id.toString()) {
+      return next(new Error('Referral code already exists'));
+    }
+  }
+  next();
+});
+
+// Create a custom index for non-null referralCodes
+UserSchema.index({ referralCode: 1 }, { 
+  unique: true, 
+  sparse: true, 
+  partialFilterExpression: { referralCode: { $type: 'string' } } 
+});
 
 module.exports = mongoose.model('User', UserSchema); 
