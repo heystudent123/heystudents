@@ -9,17 +9,37 @@ const ErrorResponse = require('../utils/errorResponse');
 // @access  Public
 exports.registerUser = async (req, res, next) => {
   try {
-    const { name, phone } = req.body;
+    const { name, phone, email } = req.body;
 
-    // Validate
+    // Validate required fields
     if (!name || !phone) {
       return next(new ErrorResponse('Please provide name and phone', 400));
     }
 
-    // Create user
+    // Clean phone number (remove spaces and any non-digit characters)
+    const cleanedPhone = phone.replace(/\D/g, '');
+    // Get last 10 digits if longer
+    const normalizedPhone = cleanedPhone.slice(-10);
+    
+    console.log(`Attempting to register user with phone: ${normalizedPhone}`);
+    
+    // Check if user already exists with this phone number
+    const existingUser = await User.findOne({
+      $or: [
+        { phone: normalizedPhone },
+        { phone: cleanedPhone }
+      ]
+    });
+
+    if (existingUser) {
+      return next(new ErrorResponse(`User already exists with phone ${normalizedPhone}`, 400));
+    }
+
+    // Create user with normalized phone number
     const user = await User.create({
       name,
-      phone
+      phone: normalizedPhone,
+      email: email || ''
     });
 
     // Generate JWT token
@@ -33,6 +53,7 @@ exports.registerUser = async (req, res, next) => {
       data: user
     });
   } catch (err) {
+    console.error('Registration error:', err);
     next(err);
   }
 };
@@ -44,17 +65,40 @@ exports.registerUser = async (req, res, next) => {
 // @access  Public
 exports.loginWithPhone = async (req, res, next) => {
   try {
-    const { phone } = req.body;
+    const { phone, name } = req.body;
 
-    // Clean phone number (remove spaces)
-    const cleanedPhone = phone.replace(/\s/g, '');
-    const user = await User.findOne({ phone: cleanedPhone });
-
-    if (!user) {
-      return next(new ErrorResponse('User not found', 404));
+    if (!phone) {
+      return next(new ErrorResponse('Phone number is required', 400));
     }
 
-    // TODO: Check if user is verified
+    // Clean phone number (remove spaces and any non-digit characters)
+    const cleanedPhone = phone.replace(/\D/g, '');
+    // Get last 10 digits if longer
+    const normalizedPhone = cleanedPhone.slice(-10);
+    
+    console.log(`Attempting to find user with phone: ${normalizedPhone}`);
+    
+    // Try to find user with exact phone or with last 10 digits
+    let user = await User.findOne({
+      $or: [
+        { phone: normalizedPhone },
+        { phone: cleanedPhone }
+      ]
+    });
+
+    // If user doesn't exist, auto-register them
+    if (!user) {
+      console.log(`User not found with phone ${normalizedPhone}, auto-registering`);
+      
+      // Create a new user with the phone number
+      user = await User.create({
+        name: name || 'New User', // Use provided name or default
+        phone: normalizedPhone,
+        email: ''
+      });
+      
+      console.log(`Auto-registered new user with ID: ${user._id}`);
+    }
 
     // Generate JWT token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -64,9 +108,11 @@ exports.loginWithPhone = async (req, res, next) => {
     res.status(200).json({
       success: true,
       token,
-      data: user
+      data: user,
+      isNewUser: !name || name === 'New User' // Flag to indicate if this is a new user
     });
   } catch (err) {
+    console.error('Login with phone error:', err);
     next(err);
   }
 };
