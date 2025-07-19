@@ -4,14 +4,24 @@ const WhatsAppButton: React.FC = () => {
   const phoneNumber = "917355817125"; // Format without + for WhatsApp API
   const message = encodeURIComponent("Hey, i want to enquire about pg's");
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+  
+  // Function to handle WhatsApp button click with useCallback to ensure stability
+  const handleWhatsAppClick = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    // Using setTimeout to ensure the event is processed after the current execution context
+    setTimeout(() => {
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    }, 0);
+  }, [whatsappUrl]);
 
   return (
     <a 
       href={whatsappUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+      onClick={handleWhatsAppClick}
       className="fixed bottom-6 right-6 bg-[#25D366] text-white p-3 rounded-full shadow-lg hover:bg-[#128C7E] transition-all duration-300 z-50 flex items-center justify-center"
       aria-label="Chat on WhatsApp"
+      rel="noopener noreferrer"
+      target="_blank"
     >
       <div className="relative">
         {/* WhatsApp Icon */}

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { Link } from 'react-router-dom';
 
 const features = [
   {
@@ -53,10 +54,10 @@ const FeatureSection: React.FC = () => {
           {features
             .filter(feature => feature.position === 'top-left')
             .map(feature => (
-              <div 
+              <Link 
                 key={feature.name} 
-                className="group h-full p-8 rounded-3xl bg-[#5a684e] border border-transparent transition-all duration-300 cursor-pointer hover:shadow-lg"
-                onClick={() => window.location.href = '/accommodation'}
+                to="/accommodation"
+                className="group h-full p-8 rounded-3xl bg-[#5a684e] border border-transparent transition-all duration-300 cursor-pointer hover:shadow-lg block"
               >
                 <div className="relative">
                   {/* Icon */}
@@ -72,7 +73,7 @@ const FeatureSection: React.FC = () => {
                     {feature.description}
                   </p>
                 </div>
-              </div>
+              </Link>
           ))}
           
           {/* Food Options Card */}

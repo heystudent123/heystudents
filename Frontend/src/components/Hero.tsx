@@ -35,15 +35,15 @@ Your college life begins here – make it a smooth start.
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button 
-                onClick={() => navigate(user ? '/accommodation' : '/login')} 
+              <Link 
+                to={user ? '/accommodation' : '/login'}
                 className="bg-black text-white py-3 px-6 rounded-xl shadow-lg hover:bg-gray-900 transition-all duration-300 flex items-center justify-center btn-lg group"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M8 4a4 4 0 100 8a4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" />
                 </svg>
                 Find Your PG
-              </button>
+              </Link>
             </div>
             
             {/* Social proof */}

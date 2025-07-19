@@ -38,25 +38,12 @@ function App() {
 
 // Separate component to use hooks inside Router context
 function AppContent() {
-  const [showWelcome, setShowWelcome] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const prevPathRef = useRef<string>('');
   const pageEnterTimeRef = useRef<number>(Date.now());
 
-  useEffect(() => {
-    // Check if the welcome screen has been shown before
-    const hasShownWelcome = localStorage.getItem('hasShownWelcome');
-    if (!hasShownWelcome) {
-      setShowWelcome(true);
-      localStorage.setItem('hasShownWelcome', 'true');
-    }
-
-    // No cleanup needed
-    return () => {};
-  }, []);
-  
   // Track page views and time spent on each page
   useEffect(() => {
     const currentPath = location.pathname;
@@ -137,12 +124,6 @@ function AppContent() {
           <ToastContainer position="bottom-center" />
           <WhatsAppButton />
           <div className="flex flex-col min-h-screen">
-            {/* Modal will be rendered above everything else */}
-            {showWelcome && (
-              <div className="fixed inset-0 z-50 overflow-y-auto">
-                {/* <WelcomeForm onSubmit={handleWelcomeFormSubmit} /> */}
-              </div>
-            )}
             {/* Navbar removed from here and added to individual page components */}
             <main className="flex-grow">
               <Routes>
