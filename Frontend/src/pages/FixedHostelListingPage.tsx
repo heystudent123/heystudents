@@ -564,9 +564,7 @@ const FixedHostelListingPage: React.FC = () => {
         ) : (
           <>
             <div className="flex justify-between items-center mb-6">
-              <p className="text-neutral-600">
-                Showing <span className="font-medium">{sortedAccommodations.length}</span> {sortedAccommodations.length === 1 ? 'accommodation' : 'accommodations'}
-              </p>
+              {/* Showing count removed as requested */}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {sortedAccommodations
