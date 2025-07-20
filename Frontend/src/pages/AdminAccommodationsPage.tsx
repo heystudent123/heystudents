@@ -28,6 +28,8 @@ interface Accommodation {
 
 const AdminAccommodationsPage: React.FC = () => {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
+  const [filteredAccommodations, setFilteredAccommodations] = useState<Accommodation[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -67,7 +69,9 @@ const AdminAccommodationsPage: React.FC = () => {
         const accommodationsData = response.data || response;
         console.log('Accommodation data:', accommodationsData);
         
-        setAccommodations(Array.isArray(accommodationsData) ? accommodationsData : []);
+        const accommodationsArray = Array.isArray(accommodationsData) ? accommodationsData : [];
+        setAccommodations(accommodationsArray);
+        setFilteredAccommodations(accommodationsArray);
         setLoading(false);
       } catch (err: any) {
         console.error('Error fetching accommodations:', err);
@@ -91,11 +95,41 @@ const AdminAccommodationsPage: React.FC = () => {
       });
       
       // Remove from state
-      setAccommodations(accommodations.filter(acc => acc._id !== id));
+      const updatedAccommodations = accommodations.filter(acc => acc._id !== id);
+      setAccommodations(updatedAccommodations);
+      setFilteredAccommodations(updatedAccommodations.filter(acc => 
+        acc.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        acc.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        acc.uniqueCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        acc.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        acc.type?.toLowerCase().includes(searchQuery.toLowerCase())
+      ));
     } catch (err: any) {
       console.error('Error deleting accommodation:', err);
       alert(err.response?.data?.message || 'Failed to delete accommodation');
     }
+  };
+
+  // Handle search functionality
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to first page on search
+    
+    if (query.trim() === '') {
+      setFilteredAccommodations(accommodations);
+      return;
+    }
+    
+    const filtered = accommodations.filter(acc => 
+      acc.name?.toLowerCase().includes(query) || 
+      acc.title?.toLowerCase().includes(query) || 
+      acc.uniqueCode?.toLowerCase().includes(query) ||
+      acc.description?.toLowerCase().includes(query) ||
+      acc.type?.toLowerCase().includes(query)
+    );
+    
+    setFilteredAccommodations(filtered);
   };
 
   if (loading) {
@@ -135,10 +169,28 @@ const AdminAccommodationsPage: React.FC = () => {
 
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           <div className="px-4 py-5 sm:px-6">
-            <h2 className="text-lg leading-6 font-medium text-gray-900">Accommodations</h2>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              View and manage accommodation listings.
-            </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-lg leading-6 font-medium text-gray-900">Accommodations</h2>
+                <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                  View and manage accommodation listings.
+                </p>
+              </div>
+              <div className="relative w-full md:w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearch}
+                  placeholder="Search accommodations..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"
+                />
+              </div>
+            </div>
           </div>
           
           <div className="border-t border-gray-200">
@@ -165,9 +217,9 @@ const AdminAccommodationsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {accommodations.length > 0 ? (
+                  {filteredAccommodations.length > 0 ? (
                     // Get current accommodations for pagination
-                    accommodations
+                    filteredAccommodations
                       .slice((currentPage - 1) * accommodationsPerPage, currentPage * accommodationsPerPage)
                       .map((accommodation) => (
                       <tr key={accommodation._id}>
@@ -234,9 +286,9 @@ const AdminAccommodationsPage: React.FC = () => {
             
             {/* Mobile Card View */}
             <div className="md:hidden">
-              {accommodations.length > 0 ? (
+              {filteredAccommodations.length > 0 ? (
                 <div className="space-y-4 px-4 py-4">
-                  {accommodations
+                  {filteredAccommodations
                     .slice((currentPage - 1) * accommodationsPerPage, currentPage * accommodationsPerPage)
                     .map((accommodation) => (
                     <div key={accommodation._id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -299,13 +351,16 @@ const AdminAccommodationsPage: React.FC = () => {
             </div>
             
             {/* Pagination Controls */}
-            {accommodations.length > 0 && (
+            {filteredAccommodations.length > 0 && (
               <div className="px-4 py-5 sm:px-6 border-t border-gray-200">
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-gray-700">
-                    Showing <span className="font-medium">{Math.min((currentPage - 1) * accommodationsPerPage + 1, accommodations.length)}</span> to{' '}
-                    <span className="font-medium">{Math.min(currentPage * accommodationsPerPage, accommodations.length)}</span> of{' '}
-                    <span className="font-medium">{accommodations.length}</span> accommodations
+                    Showing <span className="font-medium">{Math.min((currentPage - 1) * accommodationsPerPage + 1, filteredAccommodations.length)}</span> to{' '}
+                    <span className="font-medium">{Math.min(currentPage * accommodationsPerPage, filteredAccommodations.length)}</span> of{' '}
+                    <span className="font-medium">{filteredAccommodations.length}</span> accommodations
+                    {searchQuery && filteredAccommodations.length !== accommodations.length && (
+                      <span className="ml-1 text-gray-500">(filtered from {accommodations.length} total)</span>
+                    )}
                   </div>
                   <div className="flex space-x-2">
                     <button
@@ -316,9 +371,9 @@ const AdminAccommodationsPage: React.FC = () => {
                       Previous
                     </button>
                     <button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(accommodations.length / accommodationsPerPage)))}
-                      disabled={currentPage >= Math.ceil(accommodations.length / accommodationsPerPage)}
-                      className={`px-3 py-1 border rounded-md text-sm ${currentPage >= Math.ceil(accommodations.length / accommodationsPerPage) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filteredAccommodations.length / accommodationsPerPage)))}
+                      disabled={currentPage >= Math.ceil(filteredAccommodations.length / accommodationsPerPage)}
+                      className={`px-3 py-1 border rounded-md text-sm ${currentPage >= Math.ceil(filteredAccommodations.length / accommodationsPerPage) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                     >
                       Next
                     </button>
