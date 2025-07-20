@@ -421,7 +421,16 @@ const Login: React.FC = () => {
         </div>
       </div>
 
-      <div id="recaptcha-container" style={{ position: 'fixed', bottom: '-100px', transform: 'scale(0)', pointerEvents: 'none' }}></div>
+      <div
+  id="recaptcha-container"
+  style={{
+    height: '1px',
+    width: '1px',
+    overflow: 'hidden',
+    position: 'absolute',
+    left: '-9999px'
+  }}
+></div>
     </div>
   );
 };
