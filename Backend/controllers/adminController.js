@@ -238,7 +238,7 @@ exports.getInstitutes = async (req, res, next) => {
     const institutesWithStats = await Promise.all(
       institutes.map(async (institute) => {
         const referralCount = await User.countDocuments({
-          referredBy: institute.referralCode
+          referrerCodeUsed: institute.referralCode
         });
 
         return {
@@ -309,7 +309,7 @@ exports.getUsersByReferralCode = async (req, res, next) => {
     }
     
     // Find all users who used this referral code
-    const users = await User.find({ referredBy: referralCode })
+    const users = await User.find({ referrerCodeUsed: referralCode })
       .select('name email phone college collegeYear createdAt');
     
     res.status(200).json({
