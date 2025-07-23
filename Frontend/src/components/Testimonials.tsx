@@ -106,7 +106,8 @@ const testimonialData: TestimonialProps[] = [
 ];
 
 const TestimonialCard: React.FC<TestimonialProps> = ({ name, role, company, content }) => {
-  const [isHovered, setIsHovered] = useState(false);
+  // We're using setIsHovered but not isHovered
+  const [, setIsHovered] = useState(false);
   
   return (
     <div 

@@ -163,6 +163,13 @@ const ProfilePage: React.FC = () => {
       return;
     }
     
+    // Validate college field (now required)
+    if (!formData.college || formData.college.trim() === '') {
+      setError('College is required');
+      setLoading(false);
+      return;
+    }
+    
     // Validate email format if provided
     if (formData.email && !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(formData.email)) {
       setError('Please provide a valid email address');
@@ -351,10 +358,10 @@ const ProfilePage: React.FC = () => {
                 )}
               </div>
 
-              {/* College - Optional */}
+              {/* College - Required */}
               <div className="mb-4">
                 <label htmlFor="college" className="block text-sm font-medium text-neutral-dark mb-1">
-                  College <span className="text-gray-500">(Optional)</span>
+                  College <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -362,15 +369,47 @@ const ProfilePage: React.FC = () => {
                       <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
                     </svg>
                   </div>
-                  <input
+                  <select
                     id="college"
                     name="college"
-                    type="text"
+                    required
                     className="appearance-none block w-full pl-10 pr-3 py-3.5 border border-[#ffd7be] rounded-xl placeholder-gray-400 focus:outline-none focus:ring-[#ffd7be] focus:border-[#ffd7be] sm:text-sm transition-all duration-200"
-                    placeholder="Your college name"
                     value={formData.college}
                     onChange={handleChange}
-                  />
+                  >
+                    <option value="">Select your college</option>
+                    <option value="Hindu College">Hindu College</option>
+                    <option value="Hansraj College">Hansraj College</option>
+                    <option value="Miranda House">Miranda House</option>
+                    <option value="Kirori Mal College">Kirori Mal College</option>
+                    <option value="Ramjas College">Ramjas College</option>
+                    <option value="Daulat Ram College">Daulat Ram College</option>
+                    <option value="St. Stephen's College">St. Stephen's College</option>
+                    <option value="Sri Ram College of Commerce (SRCC)">Sri Ram College of Commerce (SRCC)</option>
+                    <option value="Indraprastha College for Women">Indraprastha College for Women</option>
+                    <option value="SGTB Khalsa College">SGTB Khalsa College</option>
+                    <option value="Swami Shraddhanand College">Swami Shraddhanand College</option>
+                    <option value="Shaheed Sukhdev College of Business Studies">Shaheed Sukhdev College of Business Studies</option>
+                    <option value="Aditi Mahavidyalaya">Aditi Mahavidyalaya</option>
+                    <option value="Lady Shri Ram College for Women (LSR)">Lady Shri Ram College for Women (LSR)</option>
+                    <option value="Sri Venkateswara College">Sri Venkateswara College</option>
+                    <option value="Gargi College">Gargi College</option>
+                    <option value="Kamala Nehru College">Kamala Nehru College</option>
+                    <option value="Jesus and Mary College">Jesus and Mary College</option>
+                    <option value="Atma Ram Sanatan Dharma College (ARSD)">Atma Ram Sanatan Dharma College (ARSD)</option>
+                    <option value="Delhi College of Arts & Commerce (DCAC)">Delhi College of Arts & Commerce (DCAC)</option>
+                    <option value="Maitreyi College">Maitreyi College</option>
+                    <option value="Deshbandhu College">Deshbandhu College</option>
+                    <option value="Motilal Nehru College">Motilal Nehru College</option>
+                    <option value="Ram Lal Anand College">Ram Lal Anand College</option>
+                    <option value="Aryabhatta College">Aryabhatta College</option>
+                    <option value="Shaheed Bhagat Singh College">Shaheed Bhagat Singh College</option>
+                    <option value="Institute of Home Economics">Institute of Home Economics</option>
+                    <option value="College of Vocational Studies (CVS)">College of Vocational Studies (CVS)</option>
+                    <option value="Ramanujan College">Ramanujan College</option>
+                    <option value="PGDAV College">PGDAV College</option>
+                    <option value="Sri Aurobindo College">Sri Aurobindo College</option>
+                  </select>
                 </div>
               </div>
 

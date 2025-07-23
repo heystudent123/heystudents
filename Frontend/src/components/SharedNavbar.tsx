@@ -68,7 +68,7 @@ const SharedNavbar: React.FC = () => {
           zIndex: 9999,
           backgroundColor: '#fff9ed',
           color: 'black',
-          overflowX: 'hidden',
+          overflow: 'hidden', // Changed from overflowX to control both axes
           transition: 'top 0.3s',
         }}
       >

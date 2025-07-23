@@ -1,7 +1,9 @@
 import { 
-  PhoneAuthProvider, 
+  // PhoneAuthProvider and signInWithCredential are imported but not used
+  // Keeping them commented in case they're needed in the future
+  // PhoneAuthProvider, 
   RecaptchaVerifier, 
-  signInWithCredential, 
+  // signInWithCredential, 
   signInWithPhoneNumber 
 } from 'firebase/auth';
 import { auth } from './config';

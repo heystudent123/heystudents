@@ -8,6 +8,7 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ className }) => {
   const { user } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const navigate = useNavigate();
   return (
     <div className={`relative min-h-[70vh] overflow-hidden ${className}`}>

@@ -13,10 +13,24 @@ interface Institute {
   createdAt: string;
 }
 
+interface Student {
+  _id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  college?: string;
+  collegeYear?: string;
+  createdAt: string;
+}
+
 const AdminInstitutesPage: React.FC = () => {
   const [institutes, setInstitutes] = useState<Institute[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedInstitute, setSelectedInstitute] = useState<Institute | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,6 +68,30 @@ const AdminInstitutesPage: React.FC = () => {
 
     fetchInstitutes();
   }, [navigate]);
+  
+  // Function to fetch students by referral code
+  const fetchStudentsByReferralCode = async (institute: Institute) => {
+    setSelectedInstitute(institute);
+    setLoadingStudents(true);
+    setShowModal(true);
+    
+    try {
+      const response = await authApi.getUsersByReferralCode(institute.referralCode);
+      setStudents(response.data);
+      setLoadingStudents(false);
+    } catch (err: any) {
+      console.error('Error fetching students:', err);
+      setStudents([]);
+      setLoadingStudents(false);
+    }
+  };
+  
+  // Function to close the modal
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedInstitute(null);
+    setStudents([]);
+  };
 
   if (loading) {
     return (
@@ -124,7 +162,10 @@ const AdminInstitutesPage: React.FC = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {institutes.length > 0 ? (
                     institutes.map((institute) => (
-                      <tr key={institute._id}>
+                      <tr key={institute._id} 
+                          className="cursor-pointer hover:bg-gray-50"
+                          onClick={() => fetchStudentsByReferralCode(institute)}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{institute.name}</div>
                           {institute.email && (
@@ -165,7 +206,11 @@ const AdminInstitutesPage: React.FC = () => {
               {institutes.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {institutes.map((institute) => (
-                    <div key={institute._id} className="bg-white p-4 rounded-lg shadow">
+                    <div 
+                      key={institute._id} 
+                      className="bg-white p-4 rounded-lg shadow cursor-pointer hover:bg-gray-50"
+                      onClick={() => fetchStudentsByReferralCode(institute)}
+                    >
                       <div className="flex flex-col space-y-3">
                         <div>
                           <h3 className="text-sm font-medium text-gray-900">Name</h3>
@@ -209,6 +254,119 @@ const AdminInstitutesPage: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Modal for displaying students */}
+      {showModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
+              <h3 className="text-lg font-medium text-gray-900">
+                Students for {selectedInstitute?.name} ({selectedInstitute?.referralCode})
+              </h3>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-500 focus:outline-none"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Modal body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingStudents ? (
+                <div className="flex justify-center items-center h-40">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                </div>
+              ) : students.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Phone
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Email
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          College
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Year
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Joined
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {students.map((student) => (
+                        <tr key={student._id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {student.phone}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {student.email || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {student.college || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {student.collegeYear || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(student.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No students found</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    No students have signed up using this institute's referral code yet.
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {/* Modal footer */}
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end sticky bottom-0 bg-white">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

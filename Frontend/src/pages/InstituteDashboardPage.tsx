@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { authApi, PaginationParams } from '../services/api';
-import { Link } from 'react-router-dom';
+// Link import removed as it's not used
 import SharedNavbar from '../components/SharedNavbar';
 import Footer from '../components/Footer';
 

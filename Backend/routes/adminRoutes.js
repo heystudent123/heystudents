@@ -6,7 +6,8 @@ const {
   createAdmin,
   verifyAccommodation,
   promoteToInstitute,
-  getInstitutes
+  getInstitutes,
+  getUsersByReferralCode
 } = require('../controllers/adminController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -25,5 +26,6 @@ router.put('/accommodations/:id/verify', protect, authorize('admin'), verifyAcco
 // Institute management routes
 router.put('/users/:id/promote-to-institute', protect, authorize('admin'), promoteToInstitute);
 router.get('/institutes', protect, authorize('admin'), getInstitutes);
+router.get('/users-by-referral/:referralCode', protect, authorize('admin'), getUsersByReferralCode);
 
 module.exports = router; 

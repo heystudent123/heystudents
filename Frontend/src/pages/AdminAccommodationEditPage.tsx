@@ -65,6 +65,7 @@ const AdminAccommodationEditPage: React.FC = () => {
   });
 
   // Image link states
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [imageLinks, setImageLinks] = useState<string[]>([]);
   const [imageInputs, setImageInputs] = useState<string[]>(['', '', '', '', '', '']);
   
@@ -148,7 +149,7 @@ const AdminAccommodationEditPage: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [id, navigate]);
+  }, [id, navigate, imageInputs]);
 
   // Amenity helpers
 const toggleAmenity = (amenity: string) => {

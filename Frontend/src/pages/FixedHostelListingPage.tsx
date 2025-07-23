@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { accommodationsApi } from '../services/api';
 
 // Fallback image as data URI to avoid network requests
@@ -51,18 +51,18 @@ const getAverageRating = (accom: Accommodation): number | null => {
   return +(total / accom.reviews.length).toFixed(1);
 };
 
-// Filter options interface
-interface FilterOptions {
-  priceRange?: [number, number];
-  college?: string;
-  messType?: string;
-  maxDistanceToCollege?: number;
-  maxDistanceToMetro?: number;
-  amenities?: string[];
-  city?: string;
-  type?: string;
-  gender?: string;
-}
+// Filter options interface - removed as currently unused
+// interface FilterOptions {
+//   priceRange?: [number, number];
+//   college?: string;
+//   messType?: string;
+//   maxDistanceToCollege?: number;
+//   maxDistanceToMetro?: number;
+//   amenities?: string[];
+//   city?: string;
+//   type?: string;
+//   gender?: string;
+// }
 
 // Props for HostelCard component
 interface HostelCardProps {
@@ -133,7 +133,7 @@ const HostelCard = React.memo(({ accommodation }: HostelCardProps) => {
                   key={index}
                   className="flex-shrink-0 w-full h-full object-cover" 
                   src={imageUrl} 
-                  alt={`${accommodation.name} image ${index+1}`} 
+                  alt={`${accommodation.name} ${index+1}`} 
                   loading="lazy" 
                   onError={(e) => {
                     e.currentTarget.src = FALLBACK_IMAGE;
@@ -249,6 +249,7 @@ const HostelCard = React.memo(({ accommodation }: HostelCardProps) => {
 
 // Main component
 const FixedHostelListingPage: React.FC = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const navigate = useNavigate();
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

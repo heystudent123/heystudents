@@ -4,7 +4,7 @@ import HostelCarousel from '../components/HostelCarousel';
 import FeatureSection from '../components/FeatureSection';
 import Testimonials from '../components/Testimonials';
 import SharedNavbar from '../components/SharedNavbar';
-import { Link } from 'react-router-dom';
+// Link import removed as it's not used
 
 const HomePage: React.FC = () => {
   // Style for content to add padding for fixed navbar

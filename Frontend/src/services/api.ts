@@ -118,6 +118,7 @@ export interface AuthApi {
   getUsers: (role?: string) => Promise<any>;
   promoteToInstitute: (userId: string, customReferralCode?: string) => Promise<any>;
   getInstitutes: () => Promise<any>;
+  getUsersByReferralCode: (referralCode: string) => Promise<any>;
   validateReferralCode: (referralCode: string) => Promise<any>;
   getServerHealth: () => Promise<any>;
   getApiStats: () => Promise<any>;
@@ -298,7 +299,17 @@ export const authApi: AuthApi = {
       const response = await api.get('/server/api-stats');
       return response.data;
     } catch (error) {
-      console.error('Error fetching API stats:', error);
+      console.error('Error getting API stats:', error);
+      throw error;
+    }
+  },
+
+  getUsersByReferralCode: async (referralCode: string) => {
+    try {
+      const response = await api.get(`/admin/users-by-referral/${referralCode}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching users by referral code:', error);
       throw error;
     }
   },

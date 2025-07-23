@@ -230,30 +230,25 @@ exports.promoteToInstitute = async (req, res, next) => {
 // @access  Private/Admin
 exports.getInstitutes = async (req, res, next) => {
   try {
-    // Find all users with institute role
     const institutes = await User.find({ role: 'institute' })
-      .select('name email phone referralCode createdAt');
-    
-    // For each institute, count the number of students who used their referral code
+      .select('name email phone college referralCode')
+      .lean();
+
+    // Get referral counts for each institute
     const institutesWithStats = await Promise.all(
       institutes.map(async (institute) => {
-        const referralCount = await User.countDocuments({ 
-          referrerCodeUsed: institute.referralCode,
-          role: 'student'
+        const referralCount = await User.countDocuments({
+          referredBy: institute.referralCode
         });
-        
+
         return {
-          _id: institute._id,
-          name: institute.name,
-          email: institute.email,
-          phone: institute.phone,
-          referralCode: institute.referralCode,
-          createdAt: institute.createdAt,
-          referralCount
+          ...institute,
+          referralCount,
+          createdAt: institute._id.getTimestamp()
         };
       })
     );
-    
+
     res.status(200).json({
       success: true,
       count: institutesWithStats.length,
@@ -292,4 +287,38 @@ exports.verifyAccommodation = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-}; 
+};
+
+// @desc    Get users by referral code
+// @route   GET /api/admin/users-by-referral/:referralCode
+// @access  Private/Admin
+exports.getUsersByReferralCode = async (req, res, next) => {
+  try {
+    const { referralCode } = req.params;
+    
+    if (!referralCode) {
+      return next(new ErrorResponse('Referral code is required', 400));
+    }
+    
+    // Find the institute by referral code
+    const institute = await User.findOne({ referralCode, role: 'institute' })
+      .select('name email phone college referralCode');
+      
+    if (!institute) {
+      return next(new ErrorResponse('Institute not found with this referral code', 404));
+    }
+    
+    // Find all users who used this referral code
+    const users = await User.find({ referredBy: referralCode })
+      .select('name email phone college collegeYear createdAt');
+    
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      institute,
+      data: users
+    });
+  } catch (err) {
+    next(err);
+  }
+};
