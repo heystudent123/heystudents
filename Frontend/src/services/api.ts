@@ -85,6 +85,70 @@ export const alumniApi = {
   },
 };
 
+// =================== COURSES API ===================
+export const coursesApi = {
+  getAll: async (filters = {}) => {
+    try {
+      const params = { ...filters, limit: 100 };
+      const response = await api.get('/api/courses', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      throw error;
+    }
+  },
+
+  getById: async (id: string) => {
+    try {
+      const response = await api.get(`/api/courses/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching course ${id}:`, error);
+      throw error;
+    }
+  },
+
+  getByCategory: async (category: string) => {
+    try {
+      const response = await api.get(`/api/courses/category/${category}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching courses for category ${category}:`, error);
+      throw error;
+    }
+  },
+
+  addVideoLink: async (courseId: string, videoData: { title: string; videoUrl: string; description?: string }) => {
+    try {
+      const response = await api.post(`/api/courses/${courseId}/videos`, videoData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error adding video to course ${courseId}:`, error);
+      throw error;
+    }
+  },
+
+  addExternalLink: async (courseId: string, linkData: { title: string; externalUrl: string; description?: string }) => {
+    try {
+      const response = await api.post(`/api/courses/${courseId}/links`, linkData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error adding link to course ${courseId}:`, error);
+      throw error;
+    }
+  },
+
+  addNote: async (courseId: string, noteData: { title: string; noteContent: string; description?: string }) => {
+    try {
+      const response = await api.post(`/api/courses/${courseId}/notes`, noteData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error adding note to course ${courseId}:`, error);
+      throw error;
+    }
+  },
+};
+
 // =================== AUTH API ===================
 export interface AuthApi {
   syncUser: (userData: { clerkId: string; email: string; name: string; phone?: string }) => Promise<any>;

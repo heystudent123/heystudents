@@ -17,6 +17,7 @@ import AdminUsersPage from './pages/AdminUsersPage';
 import AdminInstitutesPage from './pages/AdminInstitutesPage';
 import AdminAccommodationsPage from './pages/AdminAccommodationsPage';
 import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
+import AdminCoursesPage from './pages/AdminCoursesPage';
 import InstituteDashboardPage from './pages/InstituteDashboardPage';
 import Footer from './components/Footer';
 import './App.css';
@@ -158,6 +159,11 @@ function AppContent() {
                 <Route path="/admin/accommodations/edit/:id" element={
                   <ProtectedRoute requiredRole="admin">
                     <AdminAccommodationEditPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/courses" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminCoursesPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/institute/dashboard" element={

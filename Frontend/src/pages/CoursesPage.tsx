@@ -1,7 +1,67 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import SharedNavbar from '../components/SharedNavbar';
+import { coursesApi } from '../services/api';
+
+interface Course {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  duration: string;
+  level: string;
+  instructor?: string;
+  image?: string;
+  materials?: CourseMaterial[];
+  isActive: boolean;
+}
+
+interface CourseMaterial {
+  _id: string;
+  title: string;
+  description?: string;
+  materialType: 'file' | 'video' | 'link' | 'note' | 'pdf' | 'module';
+  fileUrl?: string;
+  fileType?: string;
+  videoUrl?: string;
+  externalUrl?: string;
+  noteContent?: string;
+}
 
 const CoursesPage: React.FC = () => {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [materialFilter, setMaterialFilter] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const response = await coursesApi.getAll({ isActive: true });
+      setCourses(response.courses || []);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredMaterials = selectedCourse?.materials?.filter(material => 
+    materialFilter === 'all' || material.materialType === materialFilter
+  ) || [];
+
+  const getMaterialIcon = (type: string) => {
+    switch(type) {
+      case 'pdf': return '📕';
+      case 'module': return '📚';
+      case 'video': return '🎥';
+      case 'link': return '🔗';
+      case 'note': return '📝';
+      default: return '📄';
+    }
+  };
   return (
     <div className="min-h-screen bg-[#fff9ed]">
       <SharedNavbar />
