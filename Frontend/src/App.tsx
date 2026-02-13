@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import WhatsAppButton from './components/WhatsAppButton';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
+import CoursesPage from './pages/CoursesPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ProfilePage from './pages/CompleteProfile';
@@ -123,6 +124,7 @@ function AppContent() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/courses" element={<CoursesPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/profile" element={<ProfilePage />} />

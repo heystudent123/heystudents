@@ -94,6 +94,12 @@ const SharedNavbar: React.FC = () => {
                 >
                   About Us
                 </Link>
+                <Link 
+                  to="/courses" 
+                  className={`font-medium ${location.pathname === '/courses' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
+                >
+                  Courses
+                </Link>
               </div>
               
               <div className="flex items-center space-x-4">
@@ -180,6 +186,13 @@ const SharedNavbar: React.FC = () => {
                 onClick={handleLinkClick}
               >
                 About Us
+              </Link>
+              <Link 
+                to="/courses" 
+                className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/courses' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
+                onClick={handleLinkClick}
+              >
+                Courses
               </Link>
               
               {/* Divider */}
