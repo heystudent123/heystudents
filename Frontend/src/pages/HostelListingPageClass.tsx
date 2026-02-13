@@ -44,7 +44,7 @@ const FALLBACK_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/
 
 // Class component that doesn't use hooks at all
 class HostelListingPageClass extends Component<{}, State> {
-  listingRef: React.RefObject<HTMLDivElement | null>;
+  listingRef: React.RefObject<HTMLDivElement>;
   
   constructor(props: {}) {
     super(props);

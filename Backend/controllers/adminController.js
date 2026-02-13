@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const EmailUser = require('../models/EmailUser');
 const Alumni = require('../models/Alumni');
 const Accommodation = require('../models/Accommodation');
 const Referral = require('../models/Referral');
@@ -17,7 +17,7 @@ exports.adminLogin = async (req, res, next) => {
     }
 
     // Check for admin user
-    const admin = await User.findOne({ email, role: 'admin' }).select('+password');
+    const admin = await EmailUser.findOne({ email, role: 'admin' }).select('+password');
 
     if (!admin) {
       return next(new ErrorResponse('Invalid admin credentials', 401));
@@ -53,16 +53,16 @@ exports.adminLogin = async (req, res, next) => {
 // @access  Private/Admin
 exports.getDashboardStats = async (req, res, next) => {
   try {
-    const userCount = await User.countDocuments({ role: 'user' });
+    const userCount = await EmailUser.countDocuments({ role: 'student' });
     const alumniCount = await Alumni.countDocuments();
     const accommodationCount = await Accommodation.countDocuments();
     const referralCount = await Referral.countDocuments();
     
     // Get recent users (last 5)
-    const recentUsers = await User.find({ role: 'user' })
+    const recentUsers = await EmailUser.find({ role: 'student' })
       .sort({ createdAt: -1 })
       .limit(5)
-      .select('name email mobile createdAt');
+      .select('name email phone createdAt');
     
     // Get recent accommodations (last 5)
     const recentAccommodations = await Accommodation.find()
@@ -71,8 +71,8 @@ exports.getDashboardStats = async (req, res, next) => {
       .select('name type address.area rent createdAt');
     
     // Get referral statistics
-    const topReferrers = await User.aggregate([
-      { $match: { role: 'user' } },
+    const topReferrers = await EmailUser.aggregate([
+      { $match: { role: 'student' } },
       { $project: { name: 1, email: 1, referralCount: { $size: '$referrals' } } },
       { $sort: { referralCount: -1 } },
       { $limit: 5 }
@@ -124,17 +124,17 @@ exports.createAdmin = async (req, res, next) => {
     const { name, email, password, mobile } = req.body;
 
     // Check if user already exists
-    let admin = await User.findOne({ email });
+    let admin = await EmailUser.findOne({ email });
     if (admin) {
       return next(new ErrorResponse('User already exists with that email', 400));
     }
     
     // Create new admin user
-    admin = await User.create({
+    admin = await EmailUser.create({
       name,
       email,
       password,
-      mobile,
+      phone: mobile,
       role: 'admin'
     });
 
@@ -157,7 +157,7 @@ exports.createAdmin = async (req, res, next) => {
 // @access  Private/Admin
 exports.promoteToInstitute = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await EmailUser.findById(req.params.id);
     
     if (!user) {
       return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
@@ -180,7 +180,7 @@ exports.promoteToInstitute = async (req, res, next) => {
       referralCode = req.body.customReferralCode.toUpperCase();
       
       // Check if custom code is already in use
-      const existingUser = await User.findOne({ referralCode });
+      const existingUser = await EmailUser.findOne({ referralCode });
       if (existingUser) {
         return next(new ErrorResponse('Custom referral code is already in use', 400));
       }
@@ -197,7 +197,7 @@ exports.promoteToInstitute = async (req, res, next) => {
         }
         
         // Check if code is unique
-        const existingUser = await User.findOne({ referralCode });
+        const existingUser = await EmailUser.findOne({ referralCode });
         if (!existingUser) {
           isUnique = true;
         }
@@ -230,14 +230,14 @@ exports.promoteToInstitute = async (req, res, next) => {
 // @access  Private/Admin
 exports.getInstitutes = async (req, res, next) => {
   try {
-    const institutes = await User.find({ role: 'institute' })
+    const institutes = await EmailUser.find({ role: 'institute' })
       .select('name email phone college referralCode')
       .lean();
 
     // Get referral counts for each institute
     const institutesWithStats = await Promise.all(
       institutes.map(async (institute) => {
-        const referralCount = await User.countDocuments({
+        const referralCount = await EmailUser.countDocuments({
           referrerCodeUsed: institute.referralCode
         });
 
@@ -301,7 +301,7 @@ exports.getUsersByReferralCode = async (req, res, next) => {
     }
     
     // Find the institute by referral code
-    const institute = await User.findOne({ referralCode, role: 'institute' })
+    const institute = await EmailUser.findOne({ referralCode, role: 'institute' })
       .select('name email phone college referralCode');
       
     if (!institute) {
@@ -309,7 +309,7 @@ exports.getUsersByReferralCode = async (req, res, next) => {
     }
     
     // Find all users who used this referral code
-    const users = await User.find({ referrerCodeUsed: referralCode })
+    const users = await EmailUser.find({ referrerCodeUsed: referralCode })
       .select('name email phone college collegeYear createdAt');
     
     res.status(200).json({

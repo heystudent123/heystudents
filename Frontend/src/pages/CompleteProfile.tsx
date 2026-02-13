@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SharedNavbar from '../components/SharedNavbar';
 import { authApi } from '../services/api';
 
 const ProfilePage: React.FC = () => {
-  const navigate = useNavigate();
   const { user, updateUserProfile } = useAuth();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
@@ -38,7 +37,7 @@ const ProfilePage: React.FC = () => {
     
     if (user) {
       // Get phone number
-      phoneNumber = user.phone || user.phoneNumber || '';
+      phoneNumber = user.phone || '';
       
       // Get name if available
       name = user.fullName || user.name || '';
@@ -171,7 +170,7 @@ const ProfilePage: React.FC = () => {
     }
     
     // Validate email format if provided
-    if (formData.email && !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(formData.email)) {
+    if (formData.email && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.email)) {
       setError('Please provide a valid email address');
       setLoading(false);
       return;

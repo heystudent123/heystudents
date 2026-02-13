@@ -29,7 +29,7 @@ const UserProfile: React.FC = () => {
     if (user) {
       setFormData({
         fullName: user.fullName || user.name || '',
-        phone: user.phone || user.phoneNumber || '',
+        phone: user.phone || '',
         email: user.email || '',
         referralCode: user.referralCode || '',
         college: user.college || '',

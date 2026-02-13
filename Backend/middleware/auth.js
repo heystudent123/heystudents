@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { clerkClient } = require('@clerk/express');
+const EmailUser = require('../models/EmailUser');
 
-// Protect routes
+// Protect routes - Clerk JWT only
 exports.protect = async (req, res, next) => {
   let token;
 
@@ -10,7 +11,6 @@ exports.protect = async (req, res, next) => {
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
-    // Get token from Bearer token in header
     token = req.headers.authorization.split(' ')[1];
   } 
   // If not in header, check cookies (for web apps)
@@ -27,20 +27,53 @@ exports.protect = async (req, res, next) => {
   }
 
   try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Find user by id from the decoded token
-    req.user = await User.findById(decoded.id);
-
-    if (!req.user) {
+    // First, try to verify as a Clerk session token
+    try {
+      const verifiedToken = await clerkClient.verifyToken(token);
+      
+      if (verifiedToken && verifiedToken.sub) {
+        // Clerk token verified - find user by clerkId in EmailUser collection
+        req.user = await EmailUser.findOne({ clerkId: verifiedToken.sub });
+        
+        if (!req.user) {
+          // User exists in Clerk but not in our DB yet - auto-create
+          const clerkUser = await clerkClient.users.getUser(verifiedToken.sub);
+          const email = clerkUser.emailAddresses?.[0]?.emailAddress;
+          const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || 'New User';
+          
+          if (email) {
+            // Check if user exists by email in EmailUser collection
+            req.user = await EmailUser.findOne({ email });
+            if (req.user) {
+              // Link existing user to Clerk
+              req.user.clerkId = verifiedToken.sub;
+              await req.user.save();
+            } else {
+              // Create new EmailUser
+              req.user = await EmailUser.create({
+                clerkId: verifiedToken.sub,
+                name,
+                email,
+                phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || ''
+              });
+            }
+          } else {
+            return res.status(401).json({
+              success: false,
+              message: 'No email associated with Clerk account'
+            });
+          }
+        }
+        
+        return next();
+      }
+    } catch (clerkErr) {
+      // Not a valid Clerk token
       return res.status(401).json({
         success: false,
-        message: 'Not authorized to access this route'
+        message: 'Invalid authentication token'
       });
     }
-
-    next();
   } catch (err) {
     return res.status(401).json({
       success: false,

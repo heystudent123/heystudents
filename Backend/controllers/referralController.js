@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const EmailUser = require('../models/EmailUser');
 const Referral = require('../models/Referral');
 const ErrorResponse = require('../utils/errorResponse');
 
@@ -10,7 +10,7 @@ exports.validateReferralCode = async (req, res, next) => {
     const { code } = req.params;
     
     // Check if code exists
-    const referrer = await User.findOne({ referralCode: code });
+    const referrer = await EmailUser.findOne({ referralCode: code });
     
     if (!referrer) {
       return next(new ErrorResponse('Invalid referral code', 404));
@@ -36,7 +36,7 @@ exports.validateReferralCode = async (req, res, next) => {
 // @access  Private
 exports.getMyReferralCode = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await EmailUser.findById(req.user.id);
     
     res.status(200).json({
       success: true,
@@ -55,7 +55,7 @@ exports.getMyReferralCode = async (req, res, next) => {
 // @access  Private
 exports.getReferredUsers = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await EmailUser.findById(req.user.id);
     
     res.status(200).json({
       success: true,
@@ -72,7 +72,7 @@ exports.getReferredUsers = async (req, res, next) => {
 // @access  Private
 exports.getMyReferrer = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).populate('referredBy', 'name email college');
+    const user = await EmailUser.findById(req.user.id).populate('referredBy', 'name email college');
     
     if (!user.referredBy) {
       return res.status(200).json({
@@ -96,7 +96,7 @@ exports.getMyReferrer = async (req, res, next) => {
 // @access  Private
 exports.generateNewReferralCode = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await EmailUser.findById(req.user.id);
     
     // Generate new referral code
     const namePrefix = user.name.substring(0, 4).toUpperCase();
@@ -124,7 +124,7 @@ exports.verifyReferralCode = async (req, res, next) => {
     const { code } = req.params;
     
     // Check if code exists and belongs to an institute
-    const institute = await User.findOne({ 
+    const institute = await EmailUser.findOne({ 
       referralCode: code,
       role: 'institute'
     });

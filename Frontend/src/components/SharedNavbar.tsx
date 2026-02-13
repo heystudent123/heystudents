@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth as useClerkAuth, UserButton } from '@clerk/clerk-react';
 import { useAuth } from '../context/AuthContext';
-import logo from '../img/Logo (2).png';
 
 const SharedNavbar: React.FC = () => {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { isSignedIn, isLoaded } = useClerkAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showNavbar, setShowNavbar] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const navigate = useNavigate();
 
   // Handle window resize for responsive behavior
   useEffect(() => {
@@ -76,15 +76,7 @@ const SharedNavbar: React.FC = () => {
           <div className="flex justify-between h-16 items-center relative">
             {/* Logo */}
             <Link to="/" className="flex items-center" onClick={handleLinkClick}>
-              <img 
-                src={logo} 
-                alt="Hey Students Logo" 
-                style={{ 
-                  maxHeight: '200px',
-                  width: 'auto',
-                  objectFit: 'contain'
-                }} 
-              />
+              <div className="text-black text-xl font-bold">Hey Students</div>
             </Link>
             
             {/* Desktop Navigation */}
@@ -96,14 +88,6 @@ const SharedNavbar: React.FC = () => {
                 >
                   Home
                 </Link>
-                {user && (
-                  <Link 
-                    to="/accommodation" 
-                    className={`font-medium ${location.pathname === '/accommodation' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
-                  >
-                    Accommodation
-                  </Link>
-                )}
                 <Link 
                   to="/about" 
                   className={`font-medium ${location.pathname === '/about' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
@@ -113,14 +97,14 @@ const SharedNavbar: React.FC = () => {
               </div>
               
               <div className="flex items-center space-x-4">
-                {user ? (
+                {isLoaded && isSignedIn ? (
                   <>
-                    {user.role === 'admin' && (
+                    {user?.role === 'admin' && (
                       <Link to="/admin" className="font-medium text-blue-600 hover:text-blue-800">
                         Admin Panel
                       </Link>
                     )}
-                    {user.role === 'institute' && (
+                    {user?.role === 'institute' && (
                       <Link to="/institute/dashboard" className="font-medium text-blue-600 hover:text-blue-800">
                         Institute Dashboard
                       </Link>
@@ -145,32 +129,16 @@ const SharedNavbar: React.FC = () => {
                         />
                       </svg>
                     </Link>
-                    <button
-                      onClick={() => navigate('/profile')}
-                      className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-black"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={logout}
-                      className="font-medium text-red-500 hover:text-red-600"
-                    >
-                      Logout
-                    </button>
+                    <UserButton afterSignOutUrl="/" />
                   </>
-                ) : (
-                  <>
-                    <Link 
-                      to="/login" 
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-[#fff0d0]"
-                      onClick={handleLinkClick}
-                    >
-                      Sign In
-                    </Link>
-                  </>
-                )}
+                ) : isLoaded ? (
+                  <Link 
+                    to="/login"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-[#fff0d0]"
+                  >
+                    Sign In
+                  </Link>
+                ) : null}
               </div>
             </div>
             
@@ -206,15 +174,6 @@ const SharedNavbar: React.FC = () => {
               >
                 Home
               </Link>
-              {user && (
-                <Link 
-                  to="/accommodation" 
-                  className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/accommodation' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
-                  onClick={handleLinkClick}
-                >
-                  Accommodation
-                </Link>
-              )}
               <Link 
                 to="/about" 
                 className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/about' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
@@ -227,10 +186,10 @@ const SharedNavbar: React.FC = () => {
               <div className="border-t border-gray-200 my-2"></div>
               
               {/* User-specific links */}
-              {user ? (
+              {isLoaded && isSignedIn ? (
                 <>
                   {/* Role-specific links */}
-                  {user.role === 'admin' && (
+                  {user?.role === 'admin' && (
                     <Link 
                       to="/admin" 
                       className="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-[#ffe8b5]"
@@ -239,7 +198,7 @@ const SharedNavbar: React.FC = () => {
                       Admin Panel
                     </Link>
                   )}
-                  {user.role === 'institute' && (
+                  {user?.role === 'institute' && (
                     <Link 
                       to="/institute/dashboard" 
                       className="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-[#ffe8b5]"
@@ -274,42 +233,20 @@ const SharedNavbar: React.FC = () => {
                         My Wishlist
                       </div>
                     </Link>
-                    <Link
-                      to="/profile"
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-[#ffe8b5]"
-                      onClick={handleLinkClick}
-                    >
-                      <div className="flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                        </svg>
-                        My Profile
-                      </div>
-                    </Link>
-                    <button
-                      onClick={() => { logout(); handleLinkClick(); }}
-                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-[#ffe8b5]"
-                    >
-                      <div className="flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-                        </svg>
-                        Logout
-                      </div>
-                    </button>
+                    <div className="px-3 py-2">
+                      <UserButton afterSignOutUrl="/" />
+                    </div>
                   </div>
                 </>
-              ) : (
-                <>
-                  <Link 
-                    to="/login" 
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-[#ffe8b5]"
-                    onClick={handleLinkClick}
-                  >
-                    Sign In
-                  </Link>
-                </>
-              )}
+              ) : isLoaded ? (
+                <Link 
+                  to="/login"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-[#ffe8b5]"
+                  onClick={handleLinkClick}
+                >
+                  Sign In
+                </Link>
+              ) : null}
             </div>
           </div>
         )}

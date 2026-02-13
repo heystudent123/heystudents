@@ -4,45 +4,82 @@ const Referral = require('../models/Referral');
 const Accommodation = require('../models/Accommodation');
 const ErrorResponse = require('../utils/errorResponse');
 
+// @desc    Sync user from Clerk (create or update local user after Clerk sign-in)
+// @route   POST /api/users/sync
+// @access  Private (requires Clerk token)
+exports.syncUser = async (req, res, next) => {
+  try {
+    const { clerkId, email, name, phone } = req.body;
+
+    if (!clerkId || !email) {
+      return next(new ErrorResponse('clerkId and email are required', 400));
+    }
+
+    // Try to find user by clerkId first, then by email
+    let user = await User.findOne({ clerkId });
+    
+    if (!user) {
+      user = await User.findOne({ email });
+    }
+
+    if (user) {
+      // Update existing user with Clerk ID if not set
+      if (!user.clerkId) {
+        user.clerkId = clerkId;
+      }
+      if (name && !user.name) user.name = name;
+      if (phone) user.phone = phone;
+      await user.save();
+    } else {
+      // Create new user
+      user = await User.create({
+        clerkId,
+        email,
+        name: name || 'New User',
+        phone: phone || ''
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+      isNewUser: !user.college // Flag: user hasn't completed profile yet
+    });
+  } catch (err) {
+    console.error('Sync user error:', err);
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Duplicate key error. Please contact support.'
+      });
+    }
+    next(err);
+  }
+};
+
 // @desc    Register user
 // @route   POST /api/users/register
 // @access  Public
 exports.registerUser = async (req, res, next) => {
   try {
-    const { name, phone, email } = req.body;
+    const { name, email, phone, clerkId } = req.body;
 
-    // Validate required fields
-    if (!name || !phone) {
-      return next(new ErrorResponse('Please provide name and phone', 400));
+    if (!name || !email) {
+      return next(new ErrorResponse('Please provide name and email', 400));
     }
 
-    // Clean phone number (remove spaces and any non-digit characters)
-    const cleanedPhone = phone.replace(/\D/g, '');
-    // Get last 10 digits if longer
-    const normalizedPhone = cleanedPhone.slice(-10);
-    
-    console.log(`Attempting to register user with phone: ${normalizedPhone}`);
-    
-    // Check if user already exists with this phone number
-    const existingUser = await User.findOne({
-      $or: [
-        { phone: normalizedPhone },
-        { phone: cleanedPhone }
-      ]
-    });
-
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return next(new ErrorResponse(`User already exists with phone ${normalizedPhone}`, 400));
+      return next(new ErrorResponse(`User already exists with email ${email}`, 400));
     }
 
-    // Create user with normalized phone number
     const user = await User.create({
       name,
-      phone: normalizedPhone,
-      email: email || ''
+      email,
+      phone: phone || '',
+      clerkId: clerkId || undefined
     });
 
-    // Generate JWT token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRE || '30d'
     });
@@ -58,27 +95,20 @@ exports.registerUser = async (req, res, next) => {
   }
 };
 
-
-
-// @desc    Login user with phone number (OTP verified by Firebase on frontend)
+// @desc    Login user with phone number (legacy - kept for backward compatibility)
 // @route   POST /api/users/login-phone
 // @access  Public
 exports.loginWithPhone = async (req, res, next) => {
   try {
-    const { phone, name } = req.body;
+    const { phone } = req.body;
 
     if (!phone) {
       return next(new ErrorResponse('Phone number is required', 400));
     }
 
-    // Clean phone number (remove spaces and any non-digit characters)
     const cleanedPhone = phone.replace(/\D/g, '');
-    // Get last 10 digits if longer
     const normalizedPhone = cleanedPhone.slice(-10);
-    
-    console.log(`Attempting to find user with phone: ${normalizedPhone}`);
-    
-    // Try to find user with exact phone or with last 10 digits
+
     let user = await User.findOne({
       $or: [
         { phone: normalizedPhone },
@@ -86,26 +116,13 @@ exports.loginWithPhone = async (req, res, next) => {
       ]
     });
 
-    // If user doesn't exist, auto-register them
     if (!user) {
-      console.log(`User not found with phone ${normalizedPhone}, auto-registering`);
-      
-      // Create a new user with the phone number
-      // Explicitly omit referralCode to avoid MongoDB unique constraint errors
-      const newUserData = {
-        name: name || 'New User', // Use provided name or default
-        phone: normalizedPhone,
-        email: '',
-        // Don't set referralCode at all for regular users
-        // This avoids the unique constraint error with null values
-      };
-      
-      user = await User.create(newUserData);
-      
-      console.log(`Auto-registered new user with ID: ${user._id}`);
+      return res.status(404).json({
+        success: false,
+        error: 'User not found. Please sign up with email first.'
+      });
     }
 
-    // Generate JWT token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRE || '30d'
     });
@@ -113,22 +130,10 @@ exports.loginWithPhone = async (req, res, next) => {
     res.status(200).json({
       success: true,
       token,
-      data: user,
-      isNewUser: !name || name === 'New User' // Flag to indicate if this is a new user
+      data: user
     });
   } catch (err) {
     console.error('Login with phone error:', err);
-    console.error('Error details:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
-    
-    // Send a more specific error message to the client
-    if (err.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        error: 'Duplicate key error. Please contact support.'
-      });
-    }
-    
-    // For other errors, use the error middleware
     next(err);
   }
 };
@@ -391,64 +396,58 @@ exports.promoteToAdmin = async (req, res, next) => {
   }
 };
 
-// @desc    Complete user profile after OTP verification
+// @desc    Complete user profile (with referral)
 // @route   POST /api/users/complete-profile
-// @access  Public
+// @access  Private
 exports.completeProfile = async (req, res, next) => {
   try {
-    const { uid, fullName, phone, email, referralCode, college, collegeYear } = req.body;
+    const {
+      name,
+      phone,
+      college,
+      course,
+      year,
+      address,
+      referralCode
+    } = req.body;
 
-    // Validate required fields
-    if (!fullName || !phone) {
-      return next(new ErrorResponse('Please provide fullName and phone', 400));
-    }
-
-    let user = null;
-
-    if (uid) {
-      user = await User.findById(uid);
-    }
-
-    if (!user) {
-      // Check if a user with this phone already exists to avoid duplicate key error
-      user = await User.findOne({ phone });
-    }
+    const user = await User.findById(req.user.id);
 
     if (!user) {
-      // create new user if still not found
-      user = new User({
-        name: fullName,
-        phone
-      });
+      return next(new ErrorResponse('User not found', 404));
     }
 
-    // Clean phone number (remove spaces)
-    const cleanedPhone = phone.replace(/\s/g, '');
-    
-    // Update user profile
-    user.name = fullName;
-    user.phone = cleanedPhone;
-    if (email) user.email = email;
-    user.college = college || user.college;
-    user.year = collegeYear || user.year;
+    // Update profile fields
+    user.name = name || user.name;
+    user.phone = phone || user.phone;
+    user.college = college;
+    user.course = course;
+    user.year = year;
+    user.address = address || user.address;
+    user.profileCompleted = true;
 
-    // Handle referral code if provided
+    // Handle referral code
     if (referralCode) {
       const referrer = await User.findOne({ referralCode });
+      
       if (referrer) {
-        user.referredBy = referrer._id;
-        // Save the referral code used by the student
         user.referrerCodeUsed = referralCode;
+        user.referredBy = referrer._id;
         
-        // Add this user to referrer's referrals array if not already there
-        if (!referrer.referrals.includes(user._id)) {
-          referrer.referrals.push(user._id);
-          await referrer.save();
-        }
+        // Add this user to referrer's referrals list
+        referrer.referrals.push(user._id);
+        await referrer.save();
+        
+        // Create referral record
+        await Referral.create({
+          referrer: referrer._id,
+          referred: user._id,
+          code: referralCode,
+          status: 'completed'
+        });
       }
     }
 
-    // Save user
     await user.save();
 
     res.status(200).json({
@@ -456,12 +455,6 @@ exports.completeProfile = async (req, res, next) => {
       data: user
     });
   } catch (err) {
-    if (err.name === 'ValidationError') {
-      return res.status(400).json({
-        success: false,
-        error: err.message
-      });
-    }
     next(err);
   }
 };

@@ -1,5 +1,6 @@
 const express = require('express');
 const {
+  syncUser,
   registerUser,
   loginWithPhone,
   getMe,
@@ -21,11 +22,15 @@ const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Clerk sync route (protected - requires Clerk token)
+router.post('/sync', protect, syncUser);
+
 // Public routes
 router.post('/register', registerUser);
-router.post('/login-phone', loginWithPhone);
-router.post('/complete-profile', completeProfile);
 router.post('/validate-referral-code', validateReferralCode);
+
+// Protected routes
+router.post('/complete-profile', protect, completeProfile);
 
 // Protected routes (logged-in users)
 router.get('/me', protect, getMe);

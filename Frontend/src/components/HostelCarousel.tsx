@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 
-// Import local images
+// Using placeholder image URLs instead of local imports
 const hostelImageImports = {
-  img2978: require('../img/IMG_2978.JPG'),
-  img2989: require('../img/IMG_2989.JPG'),
-  img2991: require('../img/IMG_2991.JPG'),
-  img2992: require('../img/IMG_2992.JPG'),
-  img2997: require('../img/IMG_2997.JPG'),
-  img2998: require('../img/IMG_2998.JPG'),
-  img3004: require('../img/IMG_3004.JPG'),
-  img5557: require('../img/IMG_5557.JPG'),
-  img7289: require('../img/IMG_7289.JPG'),
-  img7296: require('../img/IMG_7296.JPG'),
-  img7579: require('../img/IMG_7579.JPG'),
-  img7580: require('../img/IMG_7580.JPG')
+  img2978: 'https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Hostel+1',
+  img2989: 'https://via.placeholder.com/400x300/10B981/FFFFFF?text=Hostel+2',
+  img2991: 'https://via.placeholder.com/400x300/F59E0B/FFFFFF?text=Hostel+3',
+  img2992: 'https://via.placeholder.com/400x300/EF4444/FFFFFF?text=Hostel+4',
+  img2997: 'https://via.placeholder.com/400x300/8B5CF6/FFFFFF?text=Hostel+5',
+  img2998: 'https://via.placeholder.com/400x300/EC4899/FFFFFF?text=Hostel+6',
+  img3004: 'https://via.placeholder.com/400x300/14B8A6/FFFFFF?text=Hostel+7',
+  img5557: 'https://via.placeholder.com/400x300/F97316/FFFFFF?text=Hostel+8',
+  img7289: 'https://via.placeholder.com/400x300/06B6D4/FFFFFF?text=Hostel+9',
+  img7296: 'https://via.placeholder.com/400x300/84CC16/FFFFFF?text=Hostel+10',
+  img7579: 'https://via.placeholder.com/400x300/A855F7/FFFFFF?text=Hostel+11',
+  img7580: 'https://via.placeholder.com/400x300/0EA5E9/FFFFFF?text=Hostel+12'
 };
 
 interface HostelCarouselProps {

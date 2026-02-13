@@ -199,7 +199,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, fallbackImage = FAL
               <div className="aspect-w-16 aspect-h-10" style={{ height: '400px' }}>
                 <img 
                   src={images[modalActiveIndex] || fallbackImage} 
-                  alt="Accommodation image" 
+                  alt="Accommodation" 
                   className="w-full h-full object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage }}
                 />
@@ -554,17 +554,16 @@ const HostelDetailPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isInWishlist, setIsInWishlist] = useState<boolean>(false);
-  const [checkingWishlist, setCheckingWishlist] = useState<boolean>(false);
   
   useEffect(() => {
     const fetchAccommodation = async () => {
-      setLoading(true);
+      if (!id) {
+        setError('Accommodation ID is required');
+        setLoading(false);
+        return;
+      }
       
       try {
-        if (!id) {
-          throw new Error('Accommodation ID is required');
-        }
-        
         const response = await accommodationsApi.getById(id);
         setAccommodation(response.data);
       } catch (err) {
@@ -583,7 +582,6 @@ const HostelDetailPage: React.FC = () => {
     const checkWishlist = async () => {
       if (!isAuthenticated || !id) return;
       
-      setCheckingWishlist(true);
       try {
         const response = await wishlistService.getWishlist();
         const wishlistItems = response.data;
@@ -597,8 +595,6 @@ const HostelDetailPage: React.FC = () => {
         setIsInWishlist(found);
       } catch (err) {
         console.error('Error checking wishlist status:', err);
-      } finally {
-        setCheckingWishlist(false);
       }
     };
     
@@ -628,8 +624,6 @@ const HostelDetailPage: React.FC = () => {
     const priceWithType = acc.priceType ? `${formattedPrice} / ${acc.priceType}` : formattedPrice;
     return `Starting from ${priceWithType}`;
   };
-  
-
   
   const formatDistance = (distance?: number, unit: string = 'km'): string => {
     if (distance === undefined) return 'Unknown distance';

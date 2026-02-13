@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { trackPageView, trackTiming } from './firebase/config';
 import ProtectedRoute from './components/ProtectedRoute';
 import WhatsAppButton from './components/WhatsAppButton';
 import HomePage from './pages/HomePage';
@@ -18,8 +17,6 @@ import AdminInstitutesPage from './pages/AdminInstitutesPage';
 import AdminAccommodationsPage from './pages/AdminAccommodationsPage';
 import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
 import InstituteDashboardPage from './pages/InstituteDashboardPage';
-import AccommodationListingPage from './pages/AccommodationPage';
-import AccommodationDetailPage from './pages/HostelDetailPage';
 import Footer from './components/Footer';
 import './App.css';
 import { ToastContainer } from 'react-toastify';
@@ -56,14 +53,12 @@ function AppContent() {
     else if (currentPath === '/login') pageName = 'Login';
     else if (currentPath === '/profile') pageName = 'Profile';
     else if (currentPath === '/user-profile') pageName = 'User Profile';
-    else if (currentPath.startsWith('/accommodation')) {
-      pageName = currentPath.includes('/accommodation/') ? 'Accommodation Detail' : 'Accommodation Listing';
-    } else if (currentPath.startsWith('/admin')) {
+    else if (currentPath.startsWith('/admin')) {
       pageName = 'Admin - ' + currentPath.split('/').pop() || 'Dashboard';
     }
     
     // Track page view
-    trackPageView(pageName);
+    console.log(`Page view: ${pageName}`);
     
     // Calculate time spent on previous page if applicable
     if (prevPathRef.current && prevPathRef.current !== currentPath) {
@@ -72,7 +67,6 @@ function AppContent() {
         prevPathRef.current.charAt(1).toUpperCase() + prevPathRef.current.slice(2).replace('/', ' ');
       
       // Track time spent on previous page
-      trackTiming('Page Engagement', `Time on ${prevPageName}`, timeSpent);
       console.log(`Time spent on ${prevPageName}: ${timeSpent}ms`);
     }
     
@@ -83,7 +77,7 @@ function AppContent() {
     // Track time spent when component unmounts or before unload
     const handleBeforeUnload = () => {
       const finalTimeSpent = Date.now() - pageEnterTimeRef.current;
-      trackTiming('Page Engagement', `Time on ${pageName}`, finalTimeSpent);
+      console.log(`Final time on ${pageName}: ${finalTimeSpent}ms`);
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -134,26 +128,39 @@ function AppContent() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/user-profile" element={<UserProfile />} />
                 <Route path="/wishlist" element={<Wishlist />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/admin/users" element={<AdminUsersPage />} />
-                <Route path="/admin/institutes" element={<AdminInstitutesPage />} />
-                <Route path="/admin/accommodations" element={<AdminAccommodationsPage />} />
+                <Route path="/admin" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminUsersPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/institutes" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminInstitutesPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/accommodations" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminAccommodationsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/accommodations/new" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminAccommodationEditPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/accommodations/edit/:id" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminAccommodationEditPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/institute/dashboard" element={
                   <ProtectedRoute>
                     <InstituteDashboardPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/accommodations/new" element={<AdminAccommodationEditPage />} />
-                <Route path="/admin/accommodations/edit/:id" element={<AdminAccommodationEditPage />} />
-
-                <Route path="/accommodation" element={
-                  <ProtectedRoute>
-                    <AccommodationListingPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/accommodation/:id" element={
-                  <ProtectedRoute>
-                    <AccommodationDetailPage />
                   </ProtectedRoute>
                 } />
               </Routes>

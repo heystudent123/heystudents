@@ -1,6 +1,6 @@
 import React from 'react';
 import Hero from '../components/Hero';
-import HostelCarousel from '../components/HostelCarousel';
+// import HostelCarousel from '../components/HostelCarousel';
 import FeatureSection from '../components/FeatureSection';
 import Testimonials from '../components/Testimonials';
 import SharedNavbar from '../components/SharedNavbar';
@@ -17,7 +17,7 @@ const HomePage: React.FC = () => {
       <SharedNavbar />
       <div style={contentStyle}>
         <Hero className="relative min-h-[70vh] overflow-hidden" />
-        <HostelCarousel />
+        {/* <HostelCarousel /> */}
         <FeatureSection />
         <Testimonials />
         

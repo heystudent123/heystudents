@@ -87,12 +87,13 @@ export const alumniApi = {
 
 // =================== AUTH API ===================
 export interface AuthApi {
+  syncUser: (userData: { clerkId: string; email: string; name: string; phone?: string }) => Promise<any>;
   login: (email: string, password: string) => Promise<any>;
   register: (userData: {
     name: string;
     email: string;
-    password: string;
-    phone: string;
+    phone?: string;
+    clerkId?: string;
     college?: string;
     course?: string;
     year?: string;
@@ -105,7 +106,7 @@ export interface AuthApi {
   completeProfile: (profileData: {
     uid: string;
     fullName: string;
-    phone: string;
+    phone?: string;
     email?: string;
     referralCode?: string;
     college?: string;
@@ -132,6 +133,16 @@ export interface PaginationParams {
 }
 
 export const authApi: AuthApi = {
+  syncUser: async (userData) => {
+    try {
+      const response = await api.post('/email-users/sync', userData);
+      return response.data;
+    } catch (error) {
+      console.error('Sync user error:', error);
+      throw error;
+    }
+  },
+
   login: async (email: string, password: string) => {
     try {
       const response = await api.post('/users/login', { email, password });
@@ -185,7 +196,7 @@ export const authApi: AuthApi = {
 
   updateProfile: async (_userId: string, profileData: any) => {
     try {
-      const response = await api.put('/users/me', profileData);
+      const response = await api.put('/email-users/profile', profileData);
       return response.data;
     } catch (error) {
       console.error('Update profile error:', error);
@@ -195,7 +206,7 @@ export const authApi: AuthApi = {
 
   completeProfile: async (profileData) => {
     try {
-      const response = await api.post('/users/complete-profile', profileData);
+      const response = await api.post('/email-users/complete-profile', profileData);
       return response.data;
     } catch (error) {
       console.error('Complete profile error:', error);

@@ -1,35 +1,35 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
+  // Clerk user ID for authentication
+  clerkId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
   name: {
     type: String,
     required: [true, 'Please add a name'],
     trim: true,
     maxlength: [50, 'Name cannot be more than 50 characters']
   },
-  // Primary phone number (required)
-  phone: {
-    type: String,
-    required: [true, 'Please provide a phone number'],
-    // Allow more flexible phone number formats
-    match: [/^[0-9]{8,15}$/, 'Please provide a valid phone number (8-15 digits)'],
-    unique: true
-  },
-  // Legacy mobile field kept for backward compatibility (will mirror `phone`)
-  mobile: {
-    type: String,
-    required: false
-  },
-  // Optional email address
+  // Email address (primary identifier)
   email: {
     type: String,
-    required: false,
+    required: [true, 'Please provide an email address'],
+    unique: true,
     lowercase: true,
     trim: true,
     match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
       'Please provide a valid email'
     ]
+  },
+  // Optional phone number
+  phone: {
+    type: String,
+    required: false,
+    trim: true
   },
   college: {
     type: String,

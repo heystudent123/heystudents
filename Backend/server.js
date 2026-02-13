@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 
 // Import routes
-const userRoutes = require('./routes/userRoutes');
+const emailUserRoutes = require('./routes/emailUserRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const alumniRoutes = require('./routes/alumniRoutes');
 const accommodationRoutes = require('./routes/accommodationRoutes');
@@ -41,7 +41,7 @@ mongoose.connect(mongoURI)
   });
 
 // Routes
-app.use('/api/users', userRoutes);
+app.use('/api/email-users', emailUserRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/alumni', alumniRoutes);
 app.use('/api/accommodations', accommodationRoutes);

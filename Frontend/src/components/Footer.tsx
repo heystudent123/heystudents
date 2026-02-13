@@ -1,14 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import logo from '../img/Logo (2).png';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
     platform: [
-      { name: 'Home', href: '/' },
-      { name: 'Find Accommodation', href: '/accommodation' }
+      { name: 'Home', href: '/' }
     ],
     support: [
       { name: 'Contact Us', href: '/contact' },
@@ -40,16 +38,7 @@ const Footer: React.FC = () => {
       <div className="container-custom section-padding">
         {/* Logo Section */}
         <div className="flex justify-center mb-12">
-          <img 
-            src={logo} 
-            alt="Hey Students Logo" 
-            style={{ 
-              height: '200px',
-              width: 'auto',
-              objectFit: 'contain',
-              filter: 'brightness(0) invert(1)' // Makes the logo white
-            }} 
-          />
+          <div className="text-white text-2xl font-bold">Hey Students</div>
         </div>
 
         {/* Main footer content */}

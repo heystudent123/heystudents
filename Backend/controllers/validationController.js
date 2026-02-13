@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const EmailUser = require('../models/EmailUser');
 const ErrorResponse = require('../utils/errorResponse');
 
 // @desc    Validate referral code
@@ -22,7 +22,7 @@ exports.validateReferralCode = async (req, res, next) => {
     }
 
     // Check if referral code is valid
-    const user = await User.findOne({ referralCode });
+    const user = await EmailUser.findOne({ referralCode });
 
     if (!user) {
       return res.status(200).json({
