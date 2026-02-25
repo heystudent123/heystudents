@@ -4,6 +4,11 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
+// Load env FIRST so Clerk picks up the secret key
+dotenv.config();
+
+const { clerkMiddleware } = require('@clerk/express');
+
 // Import routes
 const emailUserRoutes = require('./routes/emailUserRoutes');
 const adminRoutes = require('./routes/adminRoutes');
@@ -13,15 +18,17 @@ const courseRoutes = require('./routes/courseRoutes');
 const referralRoutes = require('./routes/referralRoutes');
 const validationRoutes = require('./routes/validationRoutes');
 const serverRoutes = require('./routes/serverRoutes');
-
-// Load environment variables
-dotenv.config();
+const videoRoutes = require('./routes/videoRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const enrollmentRoutes = require('./routes/enrollmentRoutes');
+const postRoutes = require('./routes/postRoutes');
 
 // Initialize Express app
 const app = express();
 
 // Middleware
 app.use(cors());
+app.use(clerkMiddleware());   // must be before any routes that use getAuth()
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -50,6 +57,10 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/validation', validationRoutes);
 app.use('/api/server', serverRoutes);
+app.use('/api/videos', videoRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api/posts', postRoutes);
 
 // Root route
 app.get('/', (req, res) => {

@@ -109,7 +109,14 @@ const AdminPage: React.FC = () => {
               <span className="mt-5 inline-block px-4 py-2 text-sm font-medium text-white bg-primary rounded-md self-start">Go</span>
             </div>
           </Link>
-          
+
+          <Link to="/admin/posts" className="bg-white overflow-hidden shadow rounded-lg hover:ring-2 hover:ring-primary transition">
+            <div className="px-4 py-5 sm:p-6 h-full flex flex-col">
+              <h3 className="text-lg font-medium text-gray-900">Posts Management</h3>
+              <p className="mt-4 text-sm text-gray-500 flex-grow">Create and manage posts with videos, images, and documents for the student dashboard.</p>
+              <span className="mt-5 inline-block px-4 py-2 text-sm font-medium text-white bg-primary rounded-md self-start">Go</span>
+            </div>
+          </Link>
 
         </div>
       </div>

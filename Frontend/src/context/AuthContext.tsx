@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
-import { authApi } from '../services/api';
+import { authApi, setTokenGetter } from '../services/api';
 
 interface User {
   _id: string;
@@ -28,6 +28,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { getToken } = useClerkAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Wire Clerk's getToken into the axios interceptor so every request gets a fresh JWT
+  useEffect(() => {
+    setTokenGetter(getToken);
+  }, [getToken]);
 
   // Sync Clerk user with backend
   const syncUserWithBackend = useCallback(async () => {

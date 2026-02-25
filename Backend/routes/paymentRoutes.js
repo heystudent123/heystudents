@@ -1,0 +1,51 @@
+const express = require('express');
+const {
+  createOrder,
+  verifyPayment,
+  handleWebhook,
+  getMyPayments,
+  getPaymentById,
+  getAllPayments,
+  getPaymentStats,
+  initiateRefund,
+  getRazorpayDetails,
+} = require('../controllers/paymentController');
+
+const { protect, authorize } = require('../middleware/auth');
+
+const router = express.Router();
+
+// ─── Webhook (raw body — NO JSON parsing; must come before express.json middleware) ─
+// We attach the raw body in server.js using a verify callback, then handle here.
+router.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  (req, res, next) => {
+    // Make rawBody available for HMAC verification
+    req.rawBody = req.body;
+    // Parse JSON for the controller to use req.body as object
+    try {
+      req.body = JSON.parse(req.body.toString('utf8'));
+    } catch {
+      return res.status(400).json({ success: false, message: 'Invalid JSON body' });
+    }
+    next();
+  },
+  handleWebhook
+);
+
+// ─── Admin static routes (before :id) ────────────────────────────────────────
+router.get('/admin/all', protect, authorize('admin'), getAllPayments);
+router.get('/admin/stats', protect, authorize('admin'), getPaymentStats);
+
+// ─── Authenticated user routes ────────────────────────────────────────────────
+router.get('/my', protect, getMyPayments);
+router.post('/create-order', protect, createOrder);
+router.post('/verify', protect, verifyPayment);
+
+// ─── Dynamic :id routes ───────────────────────────────────────────────────────
+router.get('/:id', protect, getPaymentById);
+router.post('/:id/refund', protect, authorize('admin'), initiateRefund);
+router.get('/:id/razorpay-details', protect, authorize('admin'), getRazorpayDetails);
+
+module.exports = router;

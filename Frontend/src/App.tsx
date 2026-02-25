@@ -11,13 +11,16 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ProfilePage from './pages/CompleteProfile';
 import UserProfile from './pages/UserProfile';
-import Wishlist from './pages/Wishlist';
 import AdminPage from './pages/AdminPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminInstitutesPage from './pages/AdminInstitutesPage';
 import AdminAccommodationsPage from './pages/AdminAccommodationsPage';
 import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
 import AdminCoursesPage from './pages/AdminCoursesPage';
+import AdminVideosPage from './pages/AdminVideosPage';
+import VideosPage from './pages/VideosPage';
+import AdminPostsPage from './pages/AdminPostsPage';
+import StudentDashboardPage from './pages/StudentDashboardPage';
 import InstituteDashboardPage from './pages/InstituteDashboardPage';
 import Footer from './components/Footer';
 import './App.css';
@@ -130,7 +133,6 @@ function AppContent() {
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/user-profile" element={<UserProfile />} />
-                <Route path="/wishlist" element={<Wishlist />} />
                 <Route path="/admin" element={
                   <ProtectedRoute requiredRole="admin">
                     <AdminPage />
@@ -164,6 +166,22 @@ function AppContent() {
                 <Route path="/admin/courses" element={
                   <ProtectedRoute requiredRole="admin">
                     <AdminCoursesPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/videos" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminVideosPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/videos" element={<VideosPage />} />
+                <Route path="/admin/posts" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminPostsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/student/dashboard" element={
+                  <ProtectedRoute>
+                    <StudentDashboardPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/institute/dashboard" element={

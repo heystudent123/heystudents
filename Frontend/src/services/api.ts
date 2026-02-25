@@ -15,11 +15,25 @@ const api = axios.create({
   },
 });
 
-// ✅ Add token to requests if available
+// ✅ Token getter — wired up by AuthContext so every request gets a fresh Clerk JWT
+let _tokenGetter: (() => Promise<string | null>) | null = null;
+export function setTokenGetter(fn: () => Promise<string | null>) {
+  _tokenGetter = fn;
+}
+
+// ✅ Add token to requests — tries fresh Clerk token first, falls back to localStorage
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
+  async (config) => {
+    let token: string | null = null;
+    if (_tokenGetter) {
+      try { token = await _tokenGetter(); } catch {}
+    }
+    if (!token) {
+      token = localStorage.getItem('token');
+    }
     if (token) {
+      // Always keep localStorage in sync with the latest token
+      localStorage.setItem('token', token);
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -385,6 +399,242 @@ export const authApi: AuthApi = {
       return response.data;
     } catch (error) {
       console.error('Error fetching users by referral code:', error);
+      throw error;
+    }
+  },
+};
+
+// =================== VIDEOS API ===================
+export const videosApi = {
+  // Public
+  getVideos: async (params: Record<string, string> = {}) => {
+    try {
+      const response = await api.get('/videos', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      throw error;
+    }
+  },
+
+  getVideo: async (id: string) => {
+    try {
+      const response = await api.get(`/videos/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching video ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Admin
+  getAdminVideos: async () => {
+    try {
+      const response = await api.get('/videos/admin/all');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching admin videos:', error);
+      throw error;
+    }
+  },
+
+  getUploadUrl: async (maxDurationSeconds = 3600) => {
+    try {
+      const response = await api.post('/videos/upload-url', { maxDurationSeconds });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting upload URL:', error);
+      throw error;
+    }
+  },
+
+  createVideo: async (data: {
+    title: string;
+    description: string;
+    category: string;
+    tags: string;
+    cloudflareVideoId: string;
+  }) => {
+    try {
+      const response = await api.post('/videos', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating video:', error);
+      throw error;
+    }
+  },
+
+  updateVideo: async (id: string, data: Record<string, any>) => {
+    try {
+      const response = await api.put(`/videos/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating video ${id}:`, error);
+      throw error;
+    }
+  },
+
+  deleteVideo: async (id: string) => {
+    try {
+      const response = await api.delete(`/videos/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting video ${id}:`, error);
+      throw error;
+    }
+  },
+
+  checkVideoStatus: async (id: string) => {
+    try {
+      const response = await api.get(`/videos/${id}/status`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error checking video status ${id}:`, error);
+      throw error;
+    }
+  },
+};
+
+// =================== PAYMENTS API ===================
+export const paymentsApi = {
+  createOrder: async (data: {
+    amount: number;
+    purpose: string;
+    courseSlug?: string;
+    purposeId?: string;
+    purposeModel?: string;
+    notes?: Record<string, string>;
+  }) => {
+    try {
+      const response = await api.post('/payments/create-order', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating payment order:', error);
+      throw error;
+    }
+  },
+
+  verifyPayment: async (data: {
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+  }) => {
+    try {
+      const response = await api.post('/payments/verify', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      throw error;
+    }
+  },
+
+  getMyPayments: async () => {
+    try {
+      const response = await api.get('/payments/my');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching my payments:', error);
+      throw error;
+    }
+  },
+};
+
+// =================== ENROLLMENTS API ===================
+export const enrollmentsApi = {
+  checkEnrollment: async (courseSlug: string) => {
+    try {
+      const response = await api.get(`/enrollments/check/${courseSlug}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error checking enrollment:', error);
+      throw error;
+    }
+  },
+
+  getMyEnrollments: async () => {
+    try {
+      const response = await api.get('/enrollments/my');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching enrollments:', error);
+      throw error;
+    }
+  },
+};
+
+// =================== POSTS API ===================
+export const postsApi = {
+  getPostsForCourse: async (courseSlug: string) => {
+    try {
+      const response = await api.get(`/posts/${courseSlug}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      throw error;
+    }
+  },
+
+  // Admin
+  getAdminPosts: async (courseSlug?: string) => {
+    try {
+      const params = courseSlug ? { courseSlug } : {};
+      const response = await api.get('/posts/admin/all', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching admin posts:', error);
+      throw error;
+    }
+  },
+
+  createPost: async (data: {
+    title: string;
+    content: string;
+    courseSlug?: string;
+    tag?: string;
+    isPinned?: boolean;
+    isPublished?: boolean;
+    coverImage?: string;
+    attachments?: { label: string; url: string }[];
+  }) => {
+    try {
+      const response = await api.post('/posts', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating post:', error);
+      throw error;
+    }
+  },
+
+  updatePost: async (id: string, data: Record<string, any>) => {
+    try {
+      const response = await api.put(`/posts/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating post:', error);
+      throw error;
+    }
+  },
+
+  deletePost: async (id: string) => {
+    try {
+      const response = await api.delete(`/posts/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      throw error;
+    }
+  },
+
+  uploadAttachment: async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.post('/posts/upload-attachment', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading attachment:', error);
       throw error;
     }
   },

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SharedNavbar from '../components/SharedNavbar';
-import { authApi } from '../services/api';
+import { authApi, enrollmentsApi } from '../services/api';
 
 const UserProfile: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +15,8 @@ const UserProfile: React.FC = () => {
   const [error, setError] = useState('');
   const [referralError, setReferralError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const COURSE_SLUG = 'du-campus-advantage';
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -36,6 +38,15 @@ const UserProfile: React.FC = () => {
         collegeYear: user.collegeYear || ''
       });
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    enrollmentsApi
+      .checkEnrollment(COURSE_SLUG)
+      .then((res) => setIsEnrolled(res.isEnrolled))
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -128,6 +139,29 @@ const UserProfile: React.FC = () => {
               Update your personal information below
             </p>
           </div>
+
+          {/* Active Plan Banner */}
+          {isEnrolled && (
+            <div className="mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-amber-800">DU Campus Advantage</p>
+                  <p className="text-xs text-amber-600">Plan active · Full access</p>
+                </div>
+              </div>
+              <Link
+                to="/student/dashboard"
+                className="flex-shrink-0 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Go to Dashboard →
+              </Link>
+            </div>
+          )}
           
           {/* New user notification */}
           {isNewUser && (
