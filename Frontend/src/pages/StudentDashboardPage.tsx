@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, ReactNode } from 'reac
 import { useNavigate } from 'react-router-dom';
 import { useAuth as useClerkAuth } from '@clerk/clerk-react';
 import SharedNavbar from '../components/SharedNavbar';
-import { enrollmentsApi, postsApi, authApi } from '../services/api';
+import { enrollmentsApi, postsApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 /* ─── Font helpers ────────────────────────────────────────────────────────── */
@@ -75,39 +75,6 @@ const FadeUp: React.FC<{ children: ReactNode; delay?: number; className?: string
   );
 };
 
-/** Fades in from left */
-const FadeLeft: React.FC<{ children: ReactNode; delay?: number; className?: string }> = ({
-  children, delay = 0, className = '',
-}) => {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          el.style.transitionDelay = `${delay}ms`;
-          el.style.opacity = '1';
-          el.style.transform = 'translateX(0)';
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.08 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [delay]);
-  return (
-    <div
-      ref={ref}
-      className={className}
-      style={{ opacity: 0, transform: 'translateX(-24px)', transition: 'opacity 0.6s cubic-bezier(.22,1,.36,1), transform 0.6s cubic-bezier(.22,1,.36,1)' }}
-    >
-      {children}
-    </div>
-  );
-};
-
 // Keep backward compat alias
 const FadeIn = FadeUp;
 
@@ -121,7 +88,7 @@ const StudentDashboardPage: React.FC = () => {
 
   const [enrollmentChecked, setEnrollmentChecked] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
-  const [courseSlug, setCourseSlug] = useState('');
+  const [, setCourseSlug] = useState('');
   const [courseName, setCourseName] = useState('');
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);

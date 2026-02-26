@@ -37,11 +37,6 @@ const TAG_CONFIG: Record<string, { bg: string; text: string; border: string; lab
   general:      { bg: 'bg-stone-100',  text: 'text-stone-600',   border: 'border-stone-200',  label: 'General'      },
 };
 
-/* ─── Divider ───────────────────────────────────────────────────────────── */
-const Divider = () => (
-  <hr style={{ border: 'none', borderTop: '1px solid #EDE8DE', margin: '0' }} />
-);
-
 /* ─── Section heading ───────────────────────────────────────────────────── */
 const SectionHeading: React.FC<{ icon: string; children: React.ReactNode }> = ({ icon, children }) => (
   <div className="flex items-center gap-2 mb-5">
