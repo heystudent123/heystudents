@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
 const dotenv = require('dotenv');
 const path = require('path');
 
@@ -8,6 +9,7 @@ const path = require('path');
 dotenv.config();
 
 const { clerkMiddleware } = require('@clerk/express');
+const { globalLimiter } = require('./middleware/rateLimiter');
 
 // Import routes
 const emailUserRoutes = require('./routes/emailUserRoutes');
@@ -26,11 +28,40 @@ const postRoutes = require('./routes/postRoutes');
 // Initialize Express app
 const app = express();
 
-// Middleware
-app.use(cors());
+// ── Security headers ──────────────────────────────────────────────────────────
+app.use(helmet());
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+// Always allow localhost in development
+if (process.env.NODE_ENV !== 'production') {
+  ALLOWED_ORIGINS.push('http://localhost:3000', 'http://localhost:3001');
+}
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+}));
+
 app.use(clerkMiddleware());   // must be before any routes that use getAuth()
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// ── Body parsing — cap at 5 MB to prevent payload attacks ────────────────────
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// ── Global rate limit — 200 requests / 15 min per IP ─────────────────────────
+app.use('/api', globalLimiter);
 
 // Set JWT Secret if not in env
 if (!process.env.JWT_SECRET) {

@@ -8,11 +8,14 @@ interface User {
   fullName?: string;
   email?: string;
   phone?: string;
+  city?: string;
+  whatsapp?: string;
   role: string;
   referralCode?: string;
   college?: string;
   collegeYear?: string;
   clerkId?: string;
+  profileCompleted?: boolean;
 }
 
 interface AuthContextType {

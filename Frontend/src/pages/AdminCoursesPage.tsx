@@ -14,6 +14,7 @@ interface Course {
   instructor?: string;
   price: number;
   originalPrice?: number;
+  referralPrice?: number;
   isPaid: boolean;
   features?: string[];
   enrollmentLink?: string;
@@ -76,6 +77,7 @@ const AdminCoursesPage: React.FC = () => {
     level: 'All Levels',
     price: '',
     originalPrice: '',
+    referralPrice: '',
     isPaid: false,
     features: '',
     isActive: true
@@ -156,6 +158,7 @@ const AdminCoursesPage: React.FC = () => {
         category: formData.category,
         price: parseFloat(formData.price as string) || 0,
         originalPrice: parseFloat(formData.originalPrice as string) || 0,
+        referralPrice: parseFloat(formData.referralPrice as string) || 0,
         features: formData.features
           ? formData.features.split('\n').map((f: string) => f.trim()).filter(Boolean)
           : []
@@ -177,6 +180,7 @@ const AdminCoursesPage: React.FC = () => {
         level: 'All Levels',
         price: '',
         originalPrice: '',
+        referralPrice: '',
         isPaid: false,
         features: '',
         isActive: true
@@ -201,6 +205,7 @@ const AdminCoursesPage: React.FC = () => {
       level: course.level,
       price: course.price?.toString() ?? '',
       originalPrice: course.originalPrice?.toString() ?? '',
+      referralPrice: course.referralPrice?.toString() ?? '',
       isPaid: course.isPaid,
       features: (course.features || []).join('\n'),
       isActive: course.isActive
@@ -234,6 +239,7 @@ const AdminCoursesPage: React.FC = () => {
       level: 'All Levels',
       price: '',
       originalPrice: '',
+      referralPrice: '',
       isPaid: false,
       features: '',
       isActive: true
@@ -515,7 +521,21 @@ const AdminCoursesPage: React.FC = () => {
                       className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
-                  
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Referral Price (₹) <span className="text-neutral-400 font-normal">(price when a valid institute referral code is applied)</span>
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      name="referralPrice"
+                      value={formData.referralPrice}
+                      onChange={handleInputChange}
+                      placeholder="e.g. 1999"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
+                    />
+                  </div>
                 </div>
                 
                 <div>

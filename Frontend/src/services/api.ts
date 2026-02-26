@@ -221,6 +221,7 @@ export interface AuthApi {
   promoteToAdmin: (userId: string) => Promise<any>;
   deleteUser: (userId: string) => Promise<any>;
   getReferrals: (params?: PaginationParams) => Promise<any>;
+  getReferredUsers: (params?: PaginationParams) => Promise<any>;
   getUsers: (role?: string) => Promise<any>;
   promoteToInstitute: (userId: string, customReferralCode?: string) => Promise<any>;
   getInstitutes: () => Promise<any>;
@@ -228,6 +229,7 @@ export interface AuthApi {
   validateReferralCode: (referralCode: string) => Promise<any>;
   getServerHealth: () => Promise<any>;
   getApiStats: () => Promise<any>;
+  getPaidUsers: () => Promise<any>;
 }
 
 // Interface for pagination parameters
@@ -331,7 +333,7 @@ export const authApi: AuthApi = {
 
   promoteToAdmin: async (userId: string) => {
     try {
-      const response = await api.put(`/users/${userId}/promote`, {});
+      const response = await api.put(`/admin/email-users/${userId}/promote-to-admin`, {});
       return response.data;
     } catch (error) {
       console.error('Error promoting user to admin:', error);
@@ -341,7 +343,7 @@ export const authApi: AuthApi = {
 
   deleteUser: async (userId: string) => {
     try {
-      const response = await api.delete(`/users/${userId}`);
+      const response = await api.delete(`/admin/email-users/${userId}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -351,7 +353,7 @@ export const authApi: AuthApi = {
 
   getReferrals: async (params?: PaginationParams) => {
     try {
-      const response = await api.get('/users/referrals', { params });
+      const response = await api.get('/referrals', { params });
       return response.data;
     } catch (error) {
       console.error('Get referrals error:', error);
@@ -359,10 +361,20 @@ export const authApi: AuthApi = {
     }
   },
 
-  getUsers: async (role: string = 'user') => {
+  getReferredUsers: async (params?: PaginationParams) => {
+    try {
+      const response = await api.get('/referrals/referred-users', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Get referred users error:', error);
+      throw error;
+    }
+  },
+
+  getUsers: async (role: string = '') => {
     try {
       const params = role ? { role } : {};
-      const response = await api.get('/users', { params });
+      const response = await api.get('/admin/email-users', { params });
       return response.data;
     } catch (error) {
       console.error('Get users error:', error);
@@ -426,6 +438,16 @@ export const authApi: AuthApi = {
       return response.data;
     } catch (error) {
       console.error('Error fetching users by referral code:', error);
+      throw error;
+    }
+  },
+
+  getPaidUsers: async () => {
+    try {
+      const response = await api.get('/admin/paid-users');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching paid users:', error);
       throw error;
     }
   },
@@ -540,6 +562,7 @@ export const paymentsApi = {
     courseSlug?: string;
     purposeId?: string;
     purposeModel?: string;
+    referralCode?: string;
     notes?: Record<string, string>;
   }) => {
     try {

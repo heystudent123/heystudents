@@ -12,6 +12,7 @@ const {
 } = require('../controllers/paymentController');
 
 const { protect, authorize } = require('../middleware/auth');
+const { paymentLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -40,7 +41,7 @@ router.get('/admin/stats', protect, authorize('admin'), getPaymentStats);
 
 // ─── Authenticated user routes ────────────────────────────────────────────────
 router.get('/my', protect, getMyPayments);
-router.post('/create-order', protect, createOrder);
+router.post('/create-order', protect, paymentLimiter, createOrder);
 router.post('/verify', protect, verifyPayment);
 
 // ─── Dynamic :id routes ───────────────────────────────────────────────────────

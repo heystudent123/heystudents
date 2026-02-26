@@ -52,15 +52,53 @@ exports.getMyReferralCode = async (req, res, next) => {
 
 // @desc    Get users who used my referral code
 // @route   GET /api/referrals/referred-users
-// @access  Private
+// @access  Private (institute)
 exports.getReferredUsers = async (req, res, next) => {
   try {
-    const user = await EmailUser.findById(req.user.id);
-    
+    const me = await EmailUser.findById(req.user.id);
+
+    if (!me || !me.referralCode) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        pagination: {},
+        data: []
+      });
+    }
+
+    const { phone, page = 1, limit = 10 } = req.query;
+    const pageNum  = parseInt(page,  10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const skip = (pageNum - 1) * limitNum;
+
+    const filter = { referrerCodeUsed: me.referralCode };
+    if (phone) {
+      filter.phone = { $regex: phone, $options: 'i' };
+    }
+
+    const [total, users] = await Promise.all([
+      EmailUser.countDocuments(filter),
+      EmailUser.find(filter)
+        .select('name phone email college year createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean()
+    ]);
+
+    const pagination = {};
+    if (skip + limitNum < total) {
+      pagination.next = { page: pageNum + 1, limit: limitNum };
+    }
+    if (pageNum > 1) {
+      pagination.prev = { page: pageNum - 1, limit: limitNum };
+    }
+
     res.status(200).json({
       success: true,
-      count: user.referrals.length,
-      data: user.referrals
+      count: total,
+      pagination,
+      data: users
     });
   } catch (err) {
     next(err);

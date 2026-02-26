@@ -7,15 +7,20 @@ const {
   verifyAccommodation,
   promoteToInstitute,
   getInstitutes,
-  getUsersByReferralCode
+  getUsersByReferralCode,
+  getEmailUsers,
+  promoteEmailUserToAdmin,
+  deleteEmailUser,
+  getPaidUsers
 } = require('../controllers/adminController');
 
 const { protect, authorize } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
 // Public routes
-router.post('/login', adminLogin);
+router.post('/login', authLimiter, adminLogin);
 
 // Protected admin routes
 router.get('/dashboard', protect, authorize('admin'), getDashboardStats);
@@ -27,5 +32,13 @@ router.put('/accommodations/:id/verify', protect, authorize('admin'), verifyAcco
 router.put('/users/:id/promote-to-institute', protect, authorize('admin'), promoteToInstitute);
 router.get('/institutes', protect, authorize('admin'), getInstitutes);
 router.get('/users-by-referral/:referralCode', protect, authorize('admin'), getUsersByReferralCode);
+
+// Email-user admin routes (new schema)
+router.get('/email-users', protect, authorize('admin'), getEmailUsers);
+router.put('/email-users/:id/promote-to-admin', protect, authorize('admin'), promoteEmailUserToAdmin);
+router.delete('/email-users/:id', protect, authorize('admin'), deleteEmailUser);
+
+// Paid users
+router.get('/paid-users', protect, authorize('admin'), getPaidUsers);
 
 module.exports = router; 

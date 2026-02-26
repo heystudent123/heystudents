@@ -105,7 +105,7 @@ const AnimatedTestimonials = ({
           </AnimatePresence>
 
           {/* dot indicators */}
-          <div className="flex gap-1.5 mt-8">
+          <div className="flex justify-center gap-1.5 mt-8">
             {testimonials.map((_, i) => (
               <button
                 key={i}
@@ -119,7 +119,7 @@ const AnimatedTestimonials = ({
           </div>
 
           {/* arrow controls */}
-          <div className="flex gap-3 mt-6">
+          <div className="flex justify-center gap-3 mt-6">
             <button
               onClick={handlePrev}
               aria-label="Previous"

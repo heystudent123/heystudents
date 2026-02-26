@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth as useClerkAuth } from '@clerk/clerk-react';
 import SharedNavbar from '../components/SharedNavbar';
-import { coursesApi, paymentsApi, enrollmentsApi } from '../services/api';
+import { coursesApi, paymentsApi, enrollmentsApi, authApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 declare global {
@@ -19,6 +20,7 @@ interface Course {
   instructor?: string;
   price: number;
   originalPrice?: number;
+  referralPrice?: number;
   isPaid: boolean;
   features?: string[];
   image?: string;
@@ -51,6 +53,7 @@ const loadRazorpayScript = (): Promise<boolean> =>
 
 const CoursesPage: React.FC = () => {
   const { user: clerkUser } = useAuth();
+  const { isSignedIn: isClerkSignedIn } = useClerkAuth();
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +68,16 @@ const CoursesPage: React.FC = () => {
   // Premium course state
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [purchased, setPurchased] = useState(false);
+
+  // Referral modal state
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [pendingCourse, setPendingCourse] = useState<Course | null>(null);
+  const [referralCodeInput, setReferralCodeInput] = useState('');
+  const [appliedReferralCode, setAppliedReferralCode] = useState<string | null>(null);
+  const [referralInfo, setReferralInfo] = useState<{ name: string; _id: string } | null>(null);
+  const [validatingReferral, setValidatingReferral] = useState(false);
+  const [referralError, setReferralError] = useState('');
+  const [referralDiscountedPrice, setReferralDiscountedPrice] = useState<number | null>(null);
 
   // Derive the featured paid course from what the backend returns
   const premiumCourse = courses.find(c => c.isPaid) || null;
@@ -98,11 +111,11 @@ const CoursesPage: React.FC = () => {
     }
   };
 
-  const handleEnroll = async (targetCourse: Course) => {
+  const handleEnroll = async (targetCourse: Course, referralCode?: string) => {
     if (!targetCourse) return;
 
-    // 1. Must be logged in
-    if (!user) {
+    // 1. Must be logged in (use Clerk state to avoid false negatives from backend sync delays)
+    if (!(isClerkSignedIn || user)) {
       sessionStorage.setItem('postLoginRedirect', '/courses');
       navigate('/login');
       return;
@@ -123,14 +136,21 @@ const CoursesPage: React.FC = () => {
       }
 
       // 4. Create order on backend
+      const effectivePrice = referralCode && targetCourse.referralPrice && targetCourse.referralPrice > 0
+        ? targetCourse.referralPrice
+        : targetCourse.price;
+
       const orderRes = await paymentsApi.createOrder({
-        amount: targetCourse.price,
+        amount: effectivePrice,
         purpose: 'course_enrollment',
         courseSlug: targetCourse._id,
+        referralCode: referralCode || undefined,
       });
       const { orderId, amount, currency, keyId } = orderRes.data;
 
       // 5. Open Razorpay checkout
+      // user may be null if backend sync is delayed — fall back to clerkUser fields
+      const prefillUser = user || clerkUser;
       await new Promise<void>((resolve, reject) => {
         const options = {
           key: keyId || process.env.REACT_APP_RAZORPAY_KEY_ID,
@@ -140,9 +160,9 @@ const CoursesPage: React.FC = () => {
           description: targetCourse.title,
           order_id: orderId,
           prefill: {
-            name: user.name,
-            email: user.email || '',
-            contact: user.phone || '',
+            name: (prefillUser as any)?.name || (prefillUser as any)?.fullName || '',
+            email: (prefillUser as any)?.email || (prefillUser as any)?.primaryEmailAddress?.emailAddress || '',
+            contact: (prefillUser as any)?.phone || '',
           },
           theme: { color: '#f59e0b' },
           modal: {
@@ -181,6 +201,71 @@ const CoursesPage: React.FC = () => {
     }
   };
 
+  // Open referral modal before purchase
+  const handleEnrollClick = (course: Course) => {
+    // Use Clerk sign-in state as the source of truth so a failed backend
+    // sync never redirects an already-signed-in user to /login
+    const isLoggedIn = !!(isClerkSignedIn || user);
+    if (!isLoggedIn) {
+      sessionStorage.setItem('postLoginRedirect', '/courses');
+      navigate('/login');
+      return;
+    }
+    if (isEnrolled) {
+      navigate('/student/dashboard');
+      return;
+    }
+    // Reset referral state
+    setReferralCodeInput('');
+    setAppliedReferralCode(null);
+    setReferralInfo(null);
+    setReferralError('');
+    setReferralDiscountedPrice(null);
+    setPendingCourse(course);
+    setShowReferralModal(true);
+  };
+
+  const handleApplyReferralCode = async () => {
+    if (!referralCodeInput.trim()) {
+      setReferralError('Please enter a referral code.');
+      return;
+    }
+    setValidatingReferral(true);
+    setReferralError('');
+    try {
+      const res = await authApi.verifyReferralCode(referralCodeInput.trim().toUpperCase());
+      if (res?.data?.valid && res?.data?.institute) {
+        setAppliedReferralCode(referralCodeInput.trim().toUpperCase());
+        setReferralInfo(res.data.institute);
+        // Apply referral price if the course has one
+        if (pendingCourse?.referralPrice && pendingCourse.referralPrice > 0) {
+          setReferralDiscountedPrice(pendingCourse.referralPrice);
+        } else {
+          setReferralDiscountedPrice(null);
+        }
+        setReferralError('');
+      } else {
+        setReferralError('Invalid referral code. Please check and try again.');
+      }
+    } catch {
+      setReferralError('Invalid referral code. Please check and try again.');
+    } finally {
+      setValidatingReferral(false);
+    }
+  };
+
+  const handleProceedWithReferral = async () => {
+    if (!pendingCourse) return;
+    setShowReferralModal(false);
+    await handleEnroll(pendingCourse, appliedReferralCode || undefined);
+  };
+
+  const handleSkipReferral = async () => {
+    if (!pendingCourse) return;
+    setShowReferralModal(false);
+    await handleEnroll(pendingCourse);
+  };
+
   return (
     <div className="min-h-screen bg-[#fff9ed]">
       <SharedNavbar />
@@ -202,6 +287,90 @@ const CoursesPage: React.FC = () => {
             >
               Go to Dashboard →
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Referral Code Modal */}
+      {showReferralModal && pendingCourse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
+            <h2 className="text-2xl font-extrabold text-black mb-1">Have a Referral Code?</h2>
+            <p className="text-neutral-500 text-sm mb-6">
+              Enter your institute's referral code to unlock a special price. You can skip this step if you don't have one.
+            </p>
+
+            {/* Price preview */}
+            <div className="bg-neutral-50 rounded-2xl p-4 mb-6 flex items-center justify-between">
+              <div>
+                <div className="text-xs text-neutral-400 mb-0.5">Course Price</div>
+                <div className="text-2xl font-extrabold text-black">
+                  ₹{appliedReferralCode && referralDiscountedPrice ? referralDiscountedPrice : pendingCourse.price}
+                </div>
+                {appliedReferralCode && referralDiscountedPrice && referralDiscountedPrice < pendingCourse.price && (
+                  <div className="text-sm text-neutral-400 line-through">₹{pendingCourse.price}</div>
+                )}
+              </div>
+              {appliedReferralCode && referralInfo && (
+                <div className="text-right">
+                  <div className="text-xs text-green-600 font-semibold">Referral Applied ✓</div>
+                  <div className="text-xs text-neutral-500">{referralInfo.name}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Code input */}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={referralCodeInput}
+                onChange={e => {
+                  setReferralCodeInput(e.target.value.toUpperCase());
+                  setReferralError('');
+                  if (!e.target.value) {
+                    setAppliedReferralCode(null);
+                    setReferralInfo(null);
+                    setReferralDiscountedPrice(null);
+                  }
+                }}
+                placeholder="e.g. INST1234"
+                className="flex-1 px-4 py-2.5 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-mono uppercase"
+              />
+              <button
+                onClick={handleApplyReferralCode}
+                disabled={validatingReferral || !referralCodeInput.trim()}
+                className="px-4 py-2.5 bg-black text-white rounded-xl text-sm font-semibold hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {validatingReferral ? '...' : 'Apply'}
+              </button>
+            </div>
+
+            {referralError && (
+              <p className="text-red-500 text-xs mb-4">{referralError}</p>
+            )}
+            {appliedReferralCode && referralInfo && (
+              <p className="text-green-600 text-xs mb-4">
+                Code from <span className="font-semibold">{referralInfo.name}</span> applied successfully.
+                {referralDiscountedPrice && referralDiscountedPrice < pendingCourse.price
+                  ? ` You save ₹${pendingCourse.price - referralDiscountedPrice}!`
+                  : ''}
+              </p>
+            )}
+
+            <div className="flex flex-col gap-3 mt-2">
+              <button
+                onClick={handleProceedWithReferral}
+                className="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 rounded-xl transition-colors"
+              >
+                {appliedReferralCode ? `Pay ₹${referralDiscountedPrice || pendingCourse.price} →` : `Pay ₹${pendingCourse.price} →`}
+              </button>
+              <button
+                onClick={handleSkipReferral}
+                className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 font-medium py-2.5 rounded-xl transition-colors text-sm"
+              >
+                Skip — Continue without referral code
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -292,7 +461,7 @@ const CoursesPage: React.FC = () => {
                             </>
                           )}
                           <button
-                            onClick={() => handleEnroll(course)}
+                            onClick={() => handleEnrollClick(course)}
                             className="mt-2 w-full text-center bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 rounded-xl transition-colors text-sm"
                           >
                             {isEnrolled ? 'Go to Dashboard →' : 'Enroll Now →'}
@@ -322,7 +491,7 @@ const CoursesPage: React.FC = () => {
               Join thousands of students already enhancing their skills with our curated courses.
             </p>
             <button
-              onClick={() => { const c = premiumCourse || courses[0]; if (c) handleEnroll(c); }}
+              onClick={() => { const c = premiumCourse || courses[0]; if (c) handleEnrollClick(c); }}
               className="inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-base font-medium rounded-xl text-black bg-white hover:bg-neutral-100 transition-colors focus:outline-none"
             >
               {isEnrolled ? 'Go to Dashboard →' : 'Explore Premium Course'}

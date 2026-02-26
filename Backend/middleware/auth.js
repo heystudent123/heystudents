@@ -34,10 +34,22 @@ exports.protect = async (req, res, next) => {
           req.user.clerkId = userId;
           await req.user.save();
         } else {
-          req.user = await EmailUser.create({
-            clerkId: userId, name, email,
-            phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || ''
-          });
+          try {
+            req.user = await EmailUser.create({
+              clerkId: userId, name, email,
+              phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || ''
+            });
+          } catch (createErr) {
+            // If validation fails (e.g. unusual email format), store without strict validation
+            if (createErr.name === 'ValidationError') {
+              const doc = new EmailUser({ clerkId: userId, name, phone: '' });
+              doc.email = email; // bypass setter validation
+              await doc.save({ validateBeforeSave: false });
+              req.user = doc;
+            } else {
+              throw createErr;
+            }
+          }
         }
       }
 

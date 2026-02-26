@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth as useClerkAuth, useClerk } from '@clerk/clerk-react';
 import { useAuth } from '../context/AuthContext';
+import { enrollmentsApi } from '../services/api';
 
 const SharedNavbar: React.FC = () => {
   const location = useLocation();
@@ -12,6 +13,16 @@ const SharedNavbar: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [showNavbar, setShowNavbar] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+
+  // Check enrollment once user is signed in
+  useEffect(() => {
+    if (!isSignedIn) { setIsEnrolled(false); return; }
+    enrollmentsApi.getMyEnrollments()
+      .then(res => setIsEnrolled((res.data || []).length > 0))
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]);
 
   // Handle window resize for responsive behavior
   useEffect(() => {
@@ -95,12 +106,21 @@ const SharedNavbar: React.FC = () => {
                 >
                   About Us
                 </Link>
-                <Link 
-                  to="/courses" 
-                  className={`font-medium ${location.pathname === '/courses' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
-                >
-                  Courses
-                </Link>
+                {isEnrolled ? (
+                  <Link
+                    to="/student/dashboard"
+                    className={`font-medium ${location.pathname === '/student/dashboard' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
+                  >
+                    Student Dashboard
+                  </Link>
+                ) : (
+                  <Link 
+                    to="/courses" 
+                    className={`font-medium ${location.pathname === '/courses' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
+                  >
+                    Courses
+                  </Link>
+                )}
               </div>
               
               <div className="flex items-center space-x-4">
@@ -173,13 +193,23 @@ const SharedNavbar: React.FC = () => {
               >
                 About Us
               </Link>
-              <Link 
-                to="/courses" 
-                className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/courses' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
-                onClick={handleLinkClick}
-              >
-                Courses
-              </Link>
+              {isEnrolled ? (
+                <Link
+                  to="/student/dashboard"
+                  className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/student/dashboard' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
+                  onClick={handleLinkClick}
+                >
+                  Student Dashboard
+                </Link>
+              ) : (
+                <Link 
+                  to="/courses" 
+                  className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/courses' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
+                  onClick={handleLinkClick}
+                >
+                  Courses
+                </Link>
+              )}
               
               {/* Divider */}
               <div className="border-t border-gray-200 my-2"></div>

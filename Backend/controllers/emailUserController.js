@@ -79,7 +79,9 @@ exports.updateProfile = async (req, res, next) => {
       college,
       course,
       year,
-      address
+      address,
+      city,
+      whatsapp
     } = req.body;
 
     const user = await EmailUser.findById(req.user.id);
@@ -95,9 +97,11 @@ exports.updateProfile = async (req, res, next) => {
     if (course) user.course = course;
     if (year) user.year = year;
     if (address) user.address = address;
+    if (city) user.city = city;
+    if (whatsapp) user.whatsapp = whatsapp;
 
     // Mark profile as completed if key fields are filled
-    if (user.college && user.course && user.year) {
+    if (user.name && user.city && user.whatsapp) {
       user.profileCompleted = true;
     }
 

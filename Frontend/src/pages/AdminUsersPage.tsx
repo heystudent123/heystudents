@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 
 interface User {
   _id: string;
+  clerkId?: string;
   name: string;
   email: string;
   role: string;
@@ -12,9 +13,11 @@ interface User {
   college?: string;
   course?: string;
   year?: string;
-  referralCode?: string;
+  referralCode?: string;       // user's own institute referral code
+  referrerCodeUsed?: string;   // referral code they signed up with
   referrals?: string[];
   referralsCount?: number;
+  profileCompleted?: boolean;
   createdAt: string;
 }
 
@@ -54,19 +57,8 @@ const AdminUsersPage: React.FC = () => {
     // Function to fetch users with referral data
     const fetchUsersWithReferrals = async () => {
       try {
-        // Pass empty string to get all users regardless of role
         const response = await authApi.getUsers('');
-        let usersData = response.data;
-        
-        // Fetch referral data
-        try {
-          await authApi.getReferrals();
-        } catch (referralErr) {
-          console.error('Error fetching referrals:', referralErr);
-          // Continue with users data even if referrals fetch fails
-        }
-        
-        setUsers(usersData);
+        setUsers(response.data);
         setLoading(false);
       } catch (err: any) {
         console.error('Error fetching users:', err);
@@ -81,19 +73,8 @@ const AdminUsersPage: React.FC = () => {
   // Extract fetchUsersWithReferrals to be used in multiple places
   const fetchUsersWithReferrals = async () => {
     try {
-      // Pass empty string to get all users regardless of role
       const response = await authApi.getUsers('');
-      let usersData = response.data;
-      
-      // Fetch referral data
-      try {
-        await authApi.getReferrals();
-      } catch (referralErr) {
-        console.error('Error fetching referrals:', referralErr);
-        // Continue with users data even if referrals fetch fails
-      }
-      
-      setUsers(usersData);
+      setUsers(response.data);
       setLoading(false);
     } catch (err: any) {
       console.error('Error fetching users:', err);
@@ -164,7 +145,9 @@ const AdminUsersPage: React.FC = () => {
     const query = searchQuery.toLowerCase().trim();
     return users.filter(user => 
       (user.name && user.name.toLowerCase().includes(query)) || 
-      (user.phone && user.phone.includes(query))
+      (user.email && user.email.toLowerCase().includes(query)) ||
+      (user.phone && user.phone.includes(query)) ||
+      (user.college && user.college.toLowerCase().includes(query))
     );
   }, [users, searchQuery]);
   
@@ -193,8 +176,9 @@ const AdminUsersPage: React.FC = () => {
       'College': user.college || '',
       'Course': user.course || '',
       'Year': user.year || '',
-      'Referral Code': user.referralCode || 'None',
-      'Using Referral': user.referralCode ? 'Yes' : 'No',
+      'Profile Complete': user.profileCompleted ? 'Yes' : 'No',
+      'Own Referral Code (Institute)': user.referralCode || '',
+      'Signed Up via Referral Code': user.referrerCodeUsed || '',
       'Referrals Count': user.referralsCount || 0,
       'Created At': new Date(user.createdAt).toLocaleString()
     }));
@@ -237,7 +221,7 @@ const AdminUsersPage: React.FC = () => {
             <input
               type="text"
               className="block w-full pr-10 sm:text-sm border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-              placeholder="Search by name or phone number"
+              placeholder="Search by name, email, phone or college"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -282,13 +266,13 @@ const AdminUsersPage: React.FC = () => {
                       Role
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Mobile
+                      Phone
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       College
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Referral Code
+                      Referral
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -301,30 +285,47 @@ const AdminUsersPage: React.FC = () => {
                       <tr key={user._id}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          {user.profileCompleted === false && (
+                            <div className="text-xs text-amber-600 mt-0.5">Profile incomplete</div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500">{user.email}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            user.role === 'admin' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            user.role === 'admin' ? 'bg-green-100 text-green-800' :
+                            user.role === 'institute' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
                           }`}>
                             {user.role}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.phone}
+                          {user.phone || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {user.college || '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.referralCode ? (
-                            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-                              {user.referralCode}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">Not using referral</span>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          {user.referralCode && (
+                            <div className="mb-1">
+                              <span className="text-xs text-gray-400">Own code: </span>
+                              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-mono">
+                                {user.referralCode}
+                              </span>
+                            </div>
+                          )}
+                          {user.referrerCodeUsed && (
+                            <div>
+                              <span className="text-xs text-gray-400">Signed up via: </span>
+                              <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full text-xs font-mono">
+                                {user.referrerCodeUsed}
+                              </span>
+                            </div>
+                          )}
+                          {!user.referralCode && !user.referrerCodeUsed && (
+                            <span className="text-gray-400">—</span>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -376,9 +377,16 @@ const AdminUsersPage: React.FC = () => {
                     <div key={user._id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                       <div className="p-4">
                         <div className="flex justify-between items-start">
-                          <div className="text-lg font-medium text-gray-900">{user.name}</div>
+                          <div>
+                            <div className="text-lg font-medium text-gray-900">{user.name}</div>
+                            {user.profileCompleted === false && (
+                              <div className="text-xs text-amber-600 mt-0.5">Profile incomplete</div>
+                            )}
+                          </div>
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            user.role === 'admin' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            user.role === 'admin' ? 'bg-green-100 text-green-800' :
+                            user.role === 'institute' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
                           }`}>
                             {user.role}
                           </span>
@@ -394,9 +402,18 @@ const AdminUsersPage: React.FC = () => {
                           <div className="text-sm text-gray-500">
                             <span className="font-medium">College:</span> {user.college || '-'}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            <span className="font-medium">Referral Code:</span> {user.referralCode || 'Not using referral'}
-                          </div>
+                          {user.referralCode && (
+                            <div className="text-sm text-gray-500">
+                              <span className="font-medium">Own Referral Code:</span>{' '}
+                              <span className="font-mono text-blue-700">{user.referralCode}</span>
+                            </div>
+                          )}
+                          {user.referrerCodeUsed && (
+                            <div className="text-sm text-gray-500">
+                              <span className="font-medium">Signed Up via:</span>{' '}
+                              <span className="font-mono text-amber-700">{user.referrerCodeUsed}</span>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="mt-4 flex flex-wrap gap-2">
@@ -512,17 +529,8 @@ const AdminUsersPage: React.FC = () => {
         </div>
       </div>
       
-      {/* Search and Export */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="w-64">
-          <input
-            type="text"
-            placeholder="Search users..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      {/* Export */}
+      <div className="flex justify-end mt-4 mb-6">
         <button
           onClick={exportToExcel}
           className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"

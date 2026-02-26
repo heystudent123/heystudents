@@ -118,6 +118,14 @@ const AdminPage: React.FC = () => {
             </div>
           </Link>
 
+          <Link to="/admin/paid-users" className="bg-white overflow-hidden shadow rounded-lg hover:ring-2 hover:ring-green-500 transition">
+            <div className="px-4 py-5 sm:p-6 h-full flex flex-col">
+              <h3 className="text-lg font-medium text-gray-900">Paid Users</h3>
+              <p className="mt-4 text-sm text-gray-500 flex-grow">View all users who have completed a payment, with totals, city, WhatsApp, and referral info.</p>
+              <span className="mt-5 inline-block px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md self-start">Go</span>
+            </div>
+          </Link>
+
         </div>
       </div>
     </div>

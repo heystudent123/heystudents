@@ -3,6 +3,7 @@ const Alumni = require('../models/Alumni');
 const Accommodation = require('../models/Accommodation');
 const Referral = require('../models/Referral');
 const ErrorResponse = require('../utils/errorResponse');
+const { sanitizeStr, isValidEmail, isNonEmpty } = require('../middleware/validate');
 
 // @desc    Admin login
 // @route   POST /api/admin/login
@@ -11,20 +12,34 @@ exports.adminLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Validate email & password
+    // Validate presence
     if (!email || !password) {
       return next(new ErrorResponse('Please provide an email and password', 400));
     }
 
+    // Sanitize inputs
+    const cleanEmail = sanitizeStr(email).toLowerCase();
+    const cleanPassword = sanitizeStr(password);
+
+    // Validate email format
+    if (!isValidEmail(cleanEmail)) {
+      return next(new ErrorResponse('Please provide a valid email address', 400));
+    }
+
+    // Validate password is non-empty after sanitisation
+    if (!isNonEmpty(cleanPassword)) {
+      return next(new ErrorResponse('Please provide a password', 400));
+    }
+
     // Check for admin user
-    const admin = await EmailUser.findOne({ email, role: 'admin' }).select('+password');
+    const admin = await EmailUser.findOne({ email: cleanEmail, role: 'admin' }).select('+password');
 
     if (!admin) {
       return next(new ErrorResponse('Invalid admin credentials', 401));
     }
 
     // Check if password matches
-    const isMatch = await admin.matchPassword(password);
+    const isMatch = await admin.matchPassword(cleanPassword);
 
     if (!isMatch) {
       return next(new ErrorResponse('Invalid credentials', 401));
@@ -317,6 +332,133 @@ exports.getUsersByReferralCode = async (req, res, next) => {
       count: users.length,
       institute,
       data: users
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get all paid users (users with at least one successful payment)
+// @route   GET /api/admin/paid-users
+// @access  Private/Admin
+exports.getPaidUsers = async (req, res, next) => {
+  try {
+    const Payment = require('../models/Payment');
+
+    const payments = await Payment.find({ status: 'paid' })
+      .populate('userId', 'name email phone college city whatsapp referralCode referrerCodeUsed profileCompleted createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Build a user-centric map (multiple payments per user → sum totals)
+    const userMap = new Map();
+    for (const payment of payments) {
+      if (!payment.userId) continue;
+      const uid = payment.userId._id.toString();
+      if (!userMap.has(uid)) {
+        userMap.set(uid, {
+          ...payment.userId,
+          payments: [],
+          totalPaid: 0,
+          lastPaymentDate: null
+        });
+      }
+      const entry = userMap.get(uid);
+      entry.payments.push({
+        _id: payment._id,
+        razorpayPaymentId: payment.razorpayPaymentId,
+        amountInRupees: payment.amountInRupees,
+        purpose: payment.purpose,
+        paidAt: payment.paidAt,
+        notes: payment.notes ? Object.fromEntries(payment.notes) : {},
+      });
+      entry.totalPaid += payment.amountInRupees || 0;
+      if (!entry.lastPaymentDate || new Date(payment.paidAt) > new Date(entry.lastPaymentDate)) {
+        entry.lastPaymentDate = payment.paidAt;
+      }
+    }
+
+    const data = Array.from(userMap.values());
+
+    res.status(200).json({ success: true, count: data.length, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get all email users (admin)
+// @route   GET /api/admin/email-users
+// @access  Private/Admin
+exports.getEmailUsers = async (req, res, next) => {
+  try {
+    const { role } = req.query;
+    const filter = role ? { role } : {};
+
+    const users = await EmailUser.find(filter)
+      .select('-password -verificationToken -verificationExpire')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Attach a referralsCount convenience field
+    const usersWithCount = users.map(u => ({
+      ...u,
+      referralsCount: Array.isArray(u.referrals) ? u.referrals.length : 0
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: usersWithCount.length,
+      data: usersWithCount
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Promote email user to admin
+// @route   PUT /api/admin/email-users/:id/promote-to-admin
+// @access  Private/Admin
+exports.promoteEmailUserToAdmin = async (req, res, next) => {
+  try {
+    const user = await EmailUser.findById(req.params.id);
+
+    if (!user) {
+      return next(new ErrorResponse(`User not found with id ${req.params.id}`, 404));
+    }
+
+    user.role = 'admin';
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Delete email user
+// @route   DELETE /api/admin/email-users/:id
+// @access  Private/Admin
+exports.deleteEmailUser = async (req, res, next) => {
+  try {
+    const user = await EmailUser.findById(req.params.id);
+
+    if (!user) {
+      return next(new ErrorResponse(`User not found with id ${req.params.id}`, 404));
+    }
+
+    await user.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      data: {}
     });
   } catch (err) {
     next(err);

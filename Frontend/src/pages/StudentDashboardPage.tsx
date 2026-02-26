@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth as useClerkAuth } from '@clerk/clerk-react';
 import SharedNavbar from '../components/SharedNavbar';
-import { enrollmentsApi, postsApi } from '../services/api';
+import { enrollmentsApi, postsApi, authApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 /* ─── Font helpers ────────────────────────────────────────────────────────── */
@@ -38,60 +39,6 @@ const TAG_COLORS: Record<string, string> = {
   assignment:   'bg-violet-50 text-violet-700 border border-violet-200',
   update:       'bg-emerald-50 text-emerald-700 border border-emerald-200',
   general:      'bg-stone-100 text-stone-600 border border-stone-200',
-};
-
-/* ─── Static data ─────────────────────────────────────────────────────────── */
-const RESOURCES = [
-  {
-    step: '01',
-    title: 'Live Strategy Sessions',
-    desc: 'Weekly live classes by AIR 19 & AIR 63 rankers — real exam strategy, not textbook theory. Every session recorded for replay.',
-    tag: 'Live Classes',
-  },
-  {
-    step: '02',
-    title: '20+ Full-Length Mocks',
-    desc: 'CUET-pattern mock tests with subject-wise performance breakdowns, percentile tracking, and PYQ analysis after every test.',
-    tag: 'Mock Tests',
-  },
-  {
-    step: '03',
-    title: 'Weekly Doubt Clearing',
-    desc: 'Ask anything — live Q&A every week with your actual ranker teacher. No bots, no ticket queue, no waiting.',
-    tag: 'Doubt Sessions',
-  },
-  {
-    step: '04',
-    title: 'Rank Tracker & Community',
-    desc: 'See your percentile after every mock, know exactly which topics to fix, and stay accountable in a focused private student group.',
-    tag: 'Rank Tracker',
-  },
-];
-
-const FACULTY = [
-  {
-    name: 'Moksh Jindal',
-    rank: 'AIR 19',
-    subject: 'Commerce',
-    detail: '99.8 percentile · Accountancy, Economics, Business Studies',
-    college: 'SRCC, Delhi University',
-  },
-  {
-    name: 'Naman Kumar',
-    rank: 'AIR 63',
-    subject: 'Humanities',
-    detail: '99.5 percentile · History, Political Science, Sociology',
-    college: 'Hindu College, Delhi University',
-  },
-];
-
-/* ─── Days until CUET ────────────────────────────────────────────────────── */
-const getDaysUntilCUET = (): number => {
-  const cuetDate = new Date('2026-05-20T00:00:00');
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diff = cuetDate.getTime() - today.getTime();
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 };
 
 /* ─── Animation helpers ───────────────────────────────────────────────────── */
@@ -168,7 +115,8 @@ const FadeIn = FadeUp;
    STUDENT DASHBOARD
 ══════════════════════════════════════════════════════════════════════════ */
 const StudentDashboardPage: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, updateUserProfile } = useAuth();
+  const { isSignedIn } = useClerkAuth();
   const navigate = useNavigate();
 
   const [enrollmentChecked, setEnrollmentChecked] = useState(false);
@@ -178,10 +126,17 @@ const StudentDashboardPage: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Profile completion modal
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileCity, setProfileCity] = useState('');
+  const [profileWhatsapp, setProfileWhatsapp] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState('');
   const [activeTag, setActiveTag] = useState<string>('all');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
-  const daysUntilCuet = getDaysUntilCUET();
 
   const checkEnrollmentAndFetch = useCallback(async () => {
     let slug = '';
@@ -219,13 +174,43 @@ const StudentDashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
+    // Use Clerk sign-in state so a backend sync failure never sends a paying user to /login
+    if (!user && !isSignedIn) {
       sessionStorage.setItem('postLoginRedirect', '/student/dashboard');
       navigate('/login');
       return;
     }
     checkEnrollmentAndFetch();
-  }, [authLoading, user, checkEnrollmentAndFetch, navigate]);
+  }, [authLoading, user, isSignedIn, checkEnrollmentAndFetch, navigate]);
+
+  // Show profile modal once enrollment confirmed and profile is incomplete
+  useEffect(() => {
+    if (!enrollmentChecked || !isEnrolled || !user) return;
+    const needsProfile = !user.name || user.name === 'New User' || !user.city || !user.whatsapp;
+    if (needsProfile) {
+      setProfileName(user.name && user.name !== 'New User' ? user.name : '');
+      setProfileCity(user.city || '');
+      setProfileWhatsapp(user.whatsapp || '');
+      setShowProfileModal(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enrollmentChecked, isEnrolled, user?.name, user?.city, user?.whatsapp]);
+
+  const handleSaveProfile = async () => {
+    if (!profileName.trim()) { setProfileError('Please enter your full name.'); return; }
+    if (!profileCity.trim()) { setProfileError('Please enter your city.'); return; }
+    if (!profileWhatsapp.trim()) { setProfileError('Please enter your WhatsApp number.'); return; }
+    setProfileSaving(true);
+    setProfileError('');
+    try {
+      await updateUserProfile({ name: profileName.trim(), city: profileCity.trim(), whatsapp: profileWhatsapp.trim() });
+      setShowProfileModal(false);
+    } catch {
+      setProfileError('Failed to save. Please try again.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const tags = ['all', ...Array.from(new Set(posts.map((p) => p.tag)))];
   const pinnedPosts = posts.filter((p) => p.isPinned);
@@ -249,11 +234,63 @@ const StudentDashboardPage: React.FC = () => {
 
   if (!isEnrolled) return null;
 
-  const firstName = user?.name?.split(' ')[0] || 'Student';
+  const firstName = user?.name && user.name !== 'New User' ? user.name.split(' ')[0] : 'Student';
 
   /* ── Page ──────────────────────────────────────────────────────────────── */
   return (
     <div className="min-h-screen" style={{ background: '#fff9ed' }}>
+
+      {/* ── Profile Completion Modal (blocking) ─────────────────────────── */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
+            <h2 className="text-2xl font-extrabold text-black mb-1">Complete Your Profile</h2>
+            <p className="text-neutral-500 text-sm mb-6">
+              Welcome! Please fill in a few quick details so we can personalise your experience.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  value={profileName}
+                  onChange={e => setProfileName(e.target.value)}
+                  placeholder="Your full name"
+                  className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">City *</label>
+                <input
+                  type="text"
+                  value={profileCity}
+                  onChange={e => setProfileCity(e.target.value)}
+                  placeholder="e.g. Delhi, Mumbai"
+                  className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">WhatsApp Number *</label>
+                <input
+                  type="tel"
+                  value={profileWhatsapp}
+                  onChange={e => setProfileWhatsapp(e.target.value)}
+                  placeholder="10-digit mobile number"
+                  className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+              {profileError && <p className="text-red-500 text-sm">{profileError}</p>}
+            </div>
+            <button
+              onClick={handleSaveProfile}
+              disabled={profileSaving}
+              className="mt-6 w-full bg-amber-400 hover:bg-amber-300 disabled:bg-amber-200 text-black font-bold py-3 rounded-xl transition-colors"
+            >
+              {profileSaving ? 'Saving…' : 'Save & Continue →'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hero keyframes */}
       <style>{`
@@ -290,10 +327,10 @@ const StudentDashboardPage: React.FC = () => {
         className="pt-24 pb-16 px-4"
         style={{ background: 'linear-gradient(135deg,#fff9ed 0%,#fff3d4 60%,#ffe8b5 100%)' }}
       >
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto text-center">
 
           {/* Animated status badges */}
-          <div className="h-badge flex items-center gap-2 mb-6 flex-wrap">
+          <div className="h-badge flex items-center gap-2 mb-6 flex-wrap justify-center">
             <span
               className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full border border-green-200"
               style={label}
@@ -318,28 +355,15 @@ const StudentDashboardPage: React.FC = () => {
           <h1 className="h-line2 text-4xl md:text-5xl font-extrabold leading-tight mb-5" style={serif}>
             {firstName}.
           </h1>
-          <p className="h-sub text-[#888] text-base mb-10" style={{ ...body, maxWidth: 480, lineHeight: 1.75 }}>
+          <p className="h-sub text-[#888] text-base mb-10 mx-auto" style={{ ...body, maxWidth: 480, lineHeight: 1.75 }}>
             Your student dashboard — all updates, resources, and announcements in one place.
           </p>
 
           {/* Quick-stat cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-            {/* Countdown */}
-            <div className="h-card-0 bg-white rounded-2xl p-6 border border-amber-100" style={{ boxShadow:'0 4px 24px rgba(245,166,35,0.10)' }}>
-              <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3" style={label}>Days Until CUET</p>
-              <p className="text-6xl font-extrabold text-[#1a1a1a] leading-none tabular-nums" style={serif}>{daysUntilCuet}</p>
-              <p className="text-[#aaa] text-xs mt-2 uppercase tracking-widest" style={label}>days remaining</p>
-              <div className="mt-4 h-1 bg-amber-100 rounded-full overflow-hidden">
-                <div
-                  className="bar-grow h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full"
-                  style={{ width:`${Math.max(4,Math.min(100,((365-daysUntilCuet)/365)*100))}%` }}
-                />
-              </div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
             {/* Posts count */}
-            <div className="h-card-1 bg-white rounded-2xl p-6 border border-gray-100" style={{ boxShadow:'0 4px 24px rgba(0,0,0,0.05)' }}>
+            <div className="h-card-0 bg-white rounded-2xl p-6 border border-gray-100" style={{ boxShadow:'0 4px 24px rgba(0,0,0,0.05)' }}>
               <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3" style={label}>Posts & Resources</p>
               <p className="text-6xl font-extrabold text-[#1a1a1a] leading-none tabular-nums" style={serif}>{posts.length}</p>
               <p className="text-[#aaa] text-xs mt-2 uppercase tracking-widest" style={label}>items available</p>
@@ -357,10 +381,10 @@ const StudentDashboardPage: React.FC = () => {
             </div>
 
             {/* Batch card */}
-            <div className="h-card-2 bg-[#1a1a1a] rounded-2xl p-6" style={{ boxShadow:'0 4px 24px rgba(0,0,0,0.18)' }}>
+            <div className="h-card-1 bg-[#1a1a1a] rounded-2xl p-6" style={{ boxShadow:'0 4px 24px rgba(0,0,0,0.18)' }}>
               <p className="text-xs font-bold tracking-widest uppercase text-amber-400 mb-3" style={label}>Your Batch</p>
-              <p className="text-sm font-semibold text-white leading-snug break-all" style={{ fontFamily:'monospace', opacity:0.75 }}>
-                {courseName || 'exam-decoders'}
+              <p className="text-sm font-semibold text-white leading-snug" style={{ ...body, opacity:0.9 }}>
+                {courseName && !/^[a-f0-9]{24}$/i.test(courseName) ? courseName : 'Exam Decoders'}
               </p>
               <p className="text-neutral-500 text-xs mt-2 uppercase tracking-widest" style={label}>CUET 2026</p>
               <div className="mt-4 inline-flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/25 text-amber-400 text-xs font-bold px-2.5 py-1 rounded-full" style={label}>
@@ -375,27 +399,6 @@ const StudentDashboardPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ── MOTIVATIONAL STRIP ───────────────────────────────────────────── */}
-      <FadeIn>
-        <section className="bg-[#0d0d0d] py-5 px-4">
-          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-3 flex-wrap justify-center sm:justify-start">
-              <span className="inline-block bg-amber-400/10 border border-amber-400/30 text-amber-400 text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full whitespace-nowrap" style={label}>
-                Exam Decoders Batch
-              </span>
-              <p className="text-white font-semibold text-base sm:text-lg text-center sm:text-left" style={body}>
-                Your rank is shaped by what you do today.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-neutral-400 text-sm whitespace-nowrap" style={body}>
-              <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-              </svg>
-              {daysUntilCuet} days left
-            </div>
-          </div>
-        </section>
-      </FadeIn>
 
       {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
       <div className="max-w-5xl mx-auto px-4 py-12">
@@ -415,10 +418,10 @@ const StudentDashboardPage: React.FC = () => {
 
         {/* ── ANNOUNCEMENTS & POSTS ────────────────────────────────────── */}
         <FadeIn>
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+          <div className="flex flex-col gap-4 mb-6">
             <div>
-              <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-1" style={label}>Latest Updates</p>
-              <h2 className="text-2xl font-extrabold text-[#1a1a1a]" style={serif}>Announcements & Posts</h2>
+              <p className="text-sm font-bold tracking-widest uppercase text-amber-600 mb-1" style={label}>Latest Updates</p>
+              <h2 className="text-4xl font-extrabold text-[#1a1a1a]" style={serif}>Announcements & Posts</h2>
             </div>
             {posts.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
@@ -499,81 +502,11 @@ const StudentDashboardPage: React.FC = () => {
           </FadeIn>
         )}
 
-        {/* ── YOUR RESOURCES ───────────────────────────────────────────── */}
-        <FadeIn className="mt-20">
-          <div className="text-center mb-10">
-            <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-2" style={label}>Your Resources</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-[#1a1a1a]" style={serif}>Everything you need to rank.</h2>
-            <p className="text-[#888] mt-3 max-w-md mx-auto text-base" style={body}>
-              Your complete toolkit — live, on-demand, and always available.
-            </p>
-          </div>
+        {/* ── YOUR RESOURCES & FACULTY removed ── */}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {RESOURCES.map((item, idx) => (
-              <FadeUp key={item.step} delay={idx * 80}>
-                <div className="flex gap-4 bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200" style={{ boxShadow:'0 2px 12px rgba(0,0,0,0.04)' }}>
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-                    <span className="text-amber-400 text-xs font-extrabold" style={label}>{item.step}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-xs font-bold tracking-wide uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100" style={label}>
-                        {item.tag}
-                      </span>
-                    </div>
-                    <h3 className="text-base font-extrabold text-[#1a1a1a] mb-1" style={serif}>{item.title}</h3>
-                    <p className="text-[#888] text-sm leading-relaxed" style={body}>{item.desc}</p>
-                  </div>
-                </div>
-              </FadeUp>
-            ))}
-          </div>
-        </FadeIn>
-
-        {/* ── FACULTY QUICK VIEW ───────────────────────────────────────── */}
-        <FadeIn className="mt-16">
-          <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-1" style={label}>Your Teachers</p>
-          <h2 className="text-2xl font-extrabold text-[#1a1a1a] mb-6" style={serif}>Taught by students who ranked.</h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {FACULTY.map((f, idx) => (
-              <FadeUp key={f.name} delay={idx * 120}>
-                <div className="bg-[#0d0d0d] rounded-2xl p-6 flex items-start gap-4 border border-white/5 hover:border-amber-400/20 transition-colors duration-300">
-                  <div className="flex-shrink-0 w-11 h-11 rounded-full bg-amber-400 flex items-center justify-center">
-                    <span className="text-black font-extrabold text-sm" style={serif}>{f.name.charAt(0)}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-white font-bold text-base" style={serif}>{f.name}</span>
-                      <span className="text-xs bg-amber-400/10 border border-amber-400/30 text-amber-400 font-bold px-2 py-0.5 rounded-full" style={label}>
-                        {f.rank}
-                      </span>
-                    </div>
-                    <p className="text-neutral-400 text-xs font-semibold mb-0.5" style={label}>{f.subject}</p>
-                    <p className="text-neutral-500 text-xs" style={body}>{f.detail}</p>
-                    <p className="text-neutral-600 text-xs mt-0.5" style={body}>{f.college}</p>
-                  </div>
-                </div>
-              </FadeUp>
-            ))}
-          </div>
-        </FadeIn>
       </div>
 
-      {/* ── FOOTER ───────────────────────────────────────────────────────── */}
-      <footer className="bg-[#0d0d0d] border-t border-white/10 py-6 px-4 mt-8">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-neutral-600 text-xs">
-            © 2025 HeyStudent · Built by CUET rankers, for CUET aspirants
-          </p>
-          <div className="flex items-center gap-3">
-            <span className="text-neutral-700 text-xs">AIR 19 · Commerce</span>
-            <span className="text-neutral-800 text-xs">·</span>
-            <span className="text-neutral-700 text-xs">AIR 63 · Humanities</span>
-          </div>
-        </div>
-      </footer>
+
     </div>
   );
 };

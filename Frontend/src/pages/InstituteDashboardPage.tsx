@@ -40,7 +40,7 @@ const InstituteDashboardPage: React.FC = () => {
   const fetchReferrals = async (params: PaginationParams = {}) => {
     try {
       setLoading(true);
-      const response = await authApi.getReferrals(params);
+      const response = await authApi.getReferredUsers(params);
       setReferredUsers(response.data);
       setTotalUsers(response.count);
       setPagination(response.pagination);

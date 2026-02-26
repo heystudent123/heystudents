@@ -57,19 +57,19 @@ const FadeIn: React.FC<{ children: ReactNode; delay?: number; className?: string
 const FACULTY: AnimatedTestimonialItem[] = [
   {
     name: 'Moksh Jindal',
-    designation: 'AIR 19 · CUET 2023 · SRCC, Delhi University',
+    designation: 'AIR 19 · CUET 2023 · Hansraj College, Delhi University',
     badge: 'AIR 19 · Commerce',
-    src: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80',
+    src: '/Moksh.jpg',
     quote:
-      'Scored 99.8 percentile across 5 subjects — Accountancy, Economics and Business Studies. I build exam-day strategy and time management frameworks that Commerce students can apply from their very first mock.',
+      '100 Percentile in English & Economics. BA (Hons) Economics at Hansraj College, DU. My preparation strategy is built around concept clarity with exam precision — understanding what actually gets asked, what can be skipped, and how to maximise marks in minimum time.',
   },
   {
     name: 'Naman Kumar',
-    designation: 'AIR 63 · CUET 2023 · Hindu College, Delhi University',
-    badge: 'AIR 63 · Humanities',
-    src: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+    designation: 'AIR 63 · CUET · Hindu College, Delhi University',
+    badge: 'AIR 63 · Commerce',
+    src: '/Naman.jpeg',
     quote:
-      'Scored 99.5 percentile in Humanities — History, Political Science and Sociology. Known for distilling complex topics into clean, memorable frameworks that stick under exam conditions.',
+      '99.2 Percentile in Accountancy. 98.9 Percentile in Business Studies. B.Com (Hons) at Hindu College, DU. I teach smart Accountancy solving frameworks, Business Studies scoring strategy, and structured revision systems — not theory, execution.',
   },
 ];
 
@@ -102,42 +102,96 @@ const HomePage: React.FC = () => {
       <div style={contentStyle}>
         <Hero className="relative min-h-[70vh] overflow-hidden" />
 
+        {/* ── WHY HEY STUDENT ──────────────────────────────────────── */}
+        <FadeIn>
+          <section className="py-20 md:py-28 px-4" style={{ background: '#fff9ed' }}>
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-14">
+                <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3">Why Hey Student?</p>
+                <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">Because your preparation deserves<br />more than random YouTube videos.</h2>
+                <p className="text-neutral-500 max-w-xl mx-auto text-base leading-relaxed">
+                  Hey Student is built by All India Rankers, students currently studying in SRCC, Hindu &amp; Hansraj, and a team that has analysed 3 years of CUET trends.
+                </p>
+              </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Left: What we teach */}
+                <div className="bg-black rounded-3xl p-8">
+                  <p className="text-xs font-bold tracking-widest uppercase text-amber-400 mb-4">What We Teach</p>
+                  <h3 className="text-xl font-bold text-white mb-6">We don't teach chapters.</h3>
+                  <ul className="space-y-4">
+                    {[
+                      { icon: '🎯', text: 'What actually gets asked' },
+                      { icon: '⏭️', text: 'What can be skipped' },
+                      { icon: '⚡', text: 'What gives maximum marks in minimum time' },
+                      { icon: '🧠', text: 'How to structure preparation strategically' },
+                    ].map(({ icon, text }) => (
+                      <li key={text} className="flex items-start gap-3 text-neutral-300 text-sm">
+                        <span className="text-lg leading-none mt-0.5">{icon}</span>
+                        <span>{text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {/* Right: What makes us different */}
+                <div className="bg-amber-400 rounded-3xl p-8">
+                  <p className="text-xs font-bold tracking-widest uppercase text-black/60 mb-4">What Makes Us Different</p>
+                  <h3 className="text-xl font-bold text-black mb-2">While others teach everything,<br />we decode what matters.</h3>
+                  <p className="text-black/70 text-sm mb-6">That edge is the difference between a good score and SRCC.</p>
+                  <ul className="space-y-3">
+                    {[
+                      { icon: '🔍', text: 'Analyse previous year papers deeply' },
+                      { icon: '📊', text: 'Identify high-probability patterns' },
+                      { icon: '🎯', text: 'Predict high-probability areas' },
+                      { icon: '🧠', text: 'Train you for smart attempt strategy' },
+                    ].map(({ icon, text }) => (
+                      <li key={text} className="flex items-start gap-3 text-black text-sm font-medium">
+                        <span className="text-lg leading-none mt-0.5">{icon}</span>
+                        <span>{text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+        </FadeIn>
+
         {/* ── WHAT'S INCLUDED ──────────────────────────────────────── */}
         <FadeIn>
           <FeatureSteps
-            title="Everything you need to rank."
+            title="Everything included in one batch."
             autoPlayInterval={4500}
             className="bg-[#fff9ed]"
             features={[
               {
                 step: 'Live Classes',
-                title: 'Live Strategy Sessions',
+                title: 'Live Interactive Classes',
                 content:
-                  'Weekly live classes by AIR 19 & AIR 63 rankers — real exam strategy, not textbook theory. Every session recorded for replay anytime.',
+                  'Complete syllabus covered live by AIR rankers. We solve Previous Year Questions in real-time and decode exactly what you can expect this year — recorded for replay anytime.',
                 image:
                   'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1171&q=80',
               },
               {
-                step: 'Mock Tests',
-                title: '20+ Full-Length Mocks',
+                step: 'Trend Analysis',
+                title: 'Deep CUET Trend Analysis',
                 content:
-                  'CUET-pattern mock tests with subject-wise performance breakdowns, percentile tracking, and detailed PYQ analysis after every test.',
+                  '3 years of CUET trends broken down. We identify high-probability topics, repeated patterns, and subject-wise scoring behaviour so you never study the wrong things.',
                 image:
                   'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=1170&q=80',
               },
               {
-                step: 'Doubt Sessions',
-                title: 'Weekly Doubt Clearing',
+                step: 'Mentorship',
+                title: 'Personal Mentorship from DU Students',
                 content:
-                  'Ask anything — live Q&A every week with your actual ranker teacher. No bot support, no ticket queue, no waiting.',
+                  'Direct guidance from students at SRCC, Hindu and Hansraj — college preference strategy, cut-off navigation, and real exam-day mindset from people who lived it.',
                 image:
                   'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1170&q=80',
               },
               {
-                step: 'Track Your Rank',
-                title: 'Rank Tracker & Community',
+                step: 'Strategy Sessions',
+                title: 'Exclusive Ranker Strategy Sessions',
                 content:
-                  'See your percentile after every mock, know exactly which topics to fix, and stay accountable in a focused private student group.',
+                  'All India Rankers share their real exam-day approaches — how to attempt smartly under pressure, manage time, and convert preparation into percentile.',
                 image:
                   'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=1170&q=80',
               },
@@ -151,9 +205,10 @@ const HomePage: React.FC = () => {
             <FadeIn>
               <div className="text-center mb-14">
                 <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3">Pricing</p>
-                <h2 className="text-3xl md:text-4xl font-bold text-black">One plan. Everything included.</h2>
-                <p className="text-neutral-500 mt-3 max-w-md mx-auto">
-                  No upsells, no hidden modules. A single flat price for the complete batch.
+                <h2 className="text-3xl md:text-4xl font-bold text-black">Exam Decoders Batch</h2>
+                <p className="text-neutral-500 mt-3 max-w-lg mx-auto">
+                  Decode the Pattern. Master the Strategy. Dominate the Exam.<br/>
+                  <span className="text-sm">3 years of CUET trend analysis in one structured system.</span>
                 </p>
               </div>
             </FadeIn>
@@ -229,10 +284,10 @@ const HomePage: React.FC = () => {
           <div className="max-w-4xl mx-auto">
             <FadeIn>
               <div className="text-center mb-6">
-                <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3">Faculty</p>
-                <h2 className="text-3xl md:text-4xl font-bold text-black">Taught by students who ranked.</h2>
-                <p className="text-neutral-500 mt-3 max-w-md mx-auto">
-                  Not career educators. Students who sat the same exam, scored in the national top 100, and came back to show you exactly how.
+                <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3">Meet The Founding Team</p>
+                <h2 className="text-3xl md:text-4xl font-bold text-black">You are not learning from someone<br/>who "heard about CUET."</h2>
+                <p className="text-neutral-500 mt-3 max-w-lg mx-auto">
+                  You are learning from those who lived it, cracked it, and analysed it — and came back to build a system around it.
                 </p>
               </div>
             </FadeIn>
@@ -249,28 +304,28 @@ const HomePage: React.FC = () => {
         <FadeIn>
           <section className="py-20 md:py-28 px-4 bg-black">
             <div className="max-w-2xl mx-auto text-center">
+              <p className="text-xs font-bold tracking-widest uppercase text-amber-400 mb-4">The Reality</p>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Your rank is decided by the choices you make today.
+                Every year, lakhs prepare.<br />Very few understand the pattern.
               </h2>
-              <p className="text-neutral-400 mb-10 text-lg leading-relaxed">
-                Join the only CUET batch taught by students who actually ranked in the national top 100.
+              <p className="text-neutral-400 mb-3 text-base leading-relaxed">
+                Most students realise what they should have done — after results.
+              </p>
+              <p className="text-neutral-300 mb-10 text-lg font-medium">
+                We don't want that to be you.
               </p>
               <Link
                 to="/courses"
                 className="inline-block bg-amber-400 hover:bg-amber-300 text-black font-bold px-10 py-4 rounded-2xl text-base transition-colors"
               >
-                Enroll in Exam Decoders Batch
+                Explore
               </Link>
-              <p className="text-neutral-600 text-sm mt-4">One-time ₹{premiumCourse?.price ?? 2500} &middot; Instant access &middot; No subscription</p>
+              <p className="text-neutral-600 text-sm mt-4">Not theory. Not guesswork. Just strategy + execution.</p>
             </div>
           </section>
         </FadeIn>
 
-        <div className="py-6 bg-black border-t border-white/10">
-          <p className="text-center text-neutral-600 text-xs">
-            © 2025 HeyStudent &middot; Built by CUET rankers, for CUET aspirants
-          </p>
-        </div>
+
       </div>
     </div>
   );

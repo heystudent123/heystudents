@@ -3,6 +3,9 @@ const getRazorpay = require('../utils/razorpay');
 const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const ErrorResponse = require('../utils/errorResponse');
+const EmailUser = require('../models/EmailUser');
+const Course = require('../models/Course');
+const { sanitizeStr, isPositiveNumber, isNonEmpty } = require('../middleware/validate');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,28 +61,58 @@ exports.createOrder = async (req, res, next) => {
       purposeId,        // ObjectId of the related resource
       purposeModel,     // e.g. 'Course'
       courseSlug,       // slug for enrollment lookup
+      referralCode,     // optional institute referral code
       notes = {},       // extra key-value pairs forwarded to Razorpay
     } = req.body;
 
-    if (!amount || amount <= 0) {
-      return next(new ErrorResponse('A valid amount is required', 400));
+    // ── Input validation ──────────────────────────────────────────────────────
+    if (!isPositiveNumber(amount)) {
+      return next(new ErrorResponse('A valid positive amount is required', 400));
     }
-    if (!purpose) {
+    if (!purpose || !isNonEmpty(sanitizeStr(String(purpose)))) {
       return next(new ErrorResponse('Payment purpose is required', 400));
     }
+    // Currency must be a 3-letter ISO code
+    const cleanCurrency = sanitizeStr(String(currency)).toUpperCase();
+    if (!/^[A-Z]{3}$/.test(cleanCurrency)) {
+      return next(new ErrorResponse('Invalid currency code', 400));
+    }
+    const cleanPurpose = sanitizeStr(String(purpose));
+    const cleanCourseSlug = courseSlug ? sanitizeStr(String(courseSlug)) : undefined;
+    const cleanReferralCode = referralCode ? sanitizeStr(String(referralCode)) : undefined;
+    // ─────────────────────────────────────────────────────────────────────────
 
-    const amountInPaise = Math.round(amount * 100);
-    const receipt = generateReceipt(purpose);
+    // ── Referral code: validate and apply referral price if available ──
+    let finalAmount = amount;
+    let appliedReferralCode = null;
+    if (cleanReferralCode && cleanPurpose === 'course_enrollment') {
+      const institute = await EmailUser.findOne({ referralCode: cleanReferralCode, role: 'institute' });
+      if (institute) {
+        // Look up the course's referralPrice
+        const courseQuery = purposeId
+          ? { _id: purposeId }
+          : { _id: cleanCourseSlug };
+        const course = await Course.findOne(courseQuery);
+        if (course && course.referralPrice && course.referralPrice > 0) {
+          finalAmount = course.referralPrice;
+        }
+        appliedReferralCode = cleanReferralCode;
+      }
+    }
+
+    const amountInPaise = Math.round(finalAmount * 100);
+    const receipt = generateReceipt(cleanPurpose);
 
     // Create order on Razorpay
     const razorpayOrder = await razorpay.orders.create({
       amount: amountInPaise,
-      currency,
+      currency: cleanCurrency,
       receipt,
       notes: {
         userId: req.user._id.toString(),
-        purpose,
-        courseSlug: courseSlug || '',
+        purpose: cleanPurpose,
+        courseSlug: cleanCourseSlug || '',
+        referralCode: appliedReferralCode || '',
         ...notes,
       },
     });
@@ -88,14 +121,14 @@ exports.createOrder = async (req, res, next) => {
     const payment = await Payment.create({
       razorpayOrderId: razorpayOrder.id,
       amount: amountInPaise,
-      amountInRupees: amount,
-      currency,
-      purpose,
+      amountInRupees: finalAmount,
+      currency: cleanCurrency,
+      purpose: cleanPurpose,
       purposeId: purposeId || null,
       purposeModel: purposeModel || null,
       userId: req.user._id,
       receipt,
-      notes: { courseSlug: courseSlug || '', ...notes },
+      notes: { courseSlug: cleanCourseSlug || '', referralCode: appliedReferralCode || '', ...notes },
       status: 'created',
     });
 
@@ -105,11 +138,14 @@ exports.createOrder = async (req, res, next) => {
         // Fields the frontend needs to open the Razorpay checkout
         orderId: razorpayOrder.id,
         amount: amountInPaise,
-        currency,
+        currency: cleanCurrency,
         keyId: process.env.RAZORPAY_KEY_ID,
         receipt,
         // Internal reference
         paymentDbId: payment._id,
+        // Referral info
+        referralApplied: !!appliedReferralCode,
+        finalAmountInRupees: finalAmount,
       },
     });
   } catch (err) {

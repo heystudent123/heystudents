@@ -13,9 +13,10 @@ const router = express.Router();
 
 // Middleware to protect routes (will use the same auth middleware)
 const { protect } = require('../middleware/auth');
+const { syncLimiter } = require('../middleware/rateLimiter');
 
 // Sync user from Clerk (no auth required - uses Clerk token)
-router.post('/sync', syncUser);
+router.post('/sync', syncLimiter, syncUser);
 
 // Protected routes
 router.use(protect);

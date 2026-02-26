@@ -20,6 +20,7 @@ import AdminCoursesPage from './pages/AdminCoursesPage';
 import AdminVideosPage from './pages/AdminVideosPage';
 import VideosPage from './pages/VideosPage';
 import AdminPostsPage from './pages/AdminPostsPage';
+import AdminPaidUsersPage from './pages/AdminPaidUsersPage';
 import StudentDashboardPage from './pages/StudentDashboardPage';
 import PostDetailPage from './pages/PostDetailPage';
 import InstituteDashboardPage from './pages/InstituteDashboardPage';
@@ -178,6 +179,11 @@ function AppContent() {
                 <Route path="/admin/posts" element={
                   <ProtectedRoute requiredRole="admin">
                     <AdminPostsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/paid-users" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminPaidUsersPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/student/dashboard" element={

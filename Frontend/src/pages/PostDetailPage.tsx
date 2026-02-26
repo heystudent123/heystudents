@@ -2,7 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SharedNavbar from '../components/SharedNavbar';
 
-/* ─── Types ───────────────────────────────────────────────────────────────── */
+/* ─── FULL REDESIGN ─────────────────────────────────────────────────────────
+   Open layout — no wrapping box. Order: header → images (carousel) →
+   documents → videos.
+────────────────────────────────────────────────────────────────────────── */
+
+/* ─── Types ────────────────────────────────────────────────────────────────── */
 interface Attachment {
   label: string;
   url: string;
@@ -23,7 +28,7 @@ interface Post {
   createdAt: string;
 }
 
-/* ─── Tag config ──────────────────────────────────────────────────────────── */
+/* ─── Tag config ─────────────────────────────────────────────────────────── */
 const TAG_CONFIG: Record<string, { bg: string; text: string; border: string; label: string }> = {
   announcement: { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',  label: 'Announcement' },
   resource:     { bg: 'bg-sky-50',     text: 'text-sky-700',     border: 'border-sky-200',    label: 'Resource'     },
@@ -32,14 +37,25 @@ const TAG_CONFIG: Record<string, { bg: string; text: string; border: string; lab
   general:      { bg: 'bg-stone-100',  text: 'text-stone-600',   border: 'border-stone-200',  label: 'General'      },
 };
 
-/* ─── Section label component ─────────────────────────────────────────────── */
-const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="text-[11px] font-bold uppercase tracking-[1.5px] text-gray-400 mb-4 flex items-center gap-2">
-    {children}
-  </p>
+/* ─── Divider ───────────────────────────────────────────────────────────── */
+const Divider = () => (
+  <hr style={{ border: 'none', borderTop: '1px solid #EDE8DE', margin: '0' }} />
 );
 
-/* ─── Page entry animation hook ───────────────────────────────────────────── */
+/* ─── Section heading ───────────────────────────────────────────────────── */
+const SectionHeading: React.FC<{ icon: string; children: React.ReactNode }> = ({ icon, children }) => (
+  <div className="flex items-center gap-2 mb-5">
+    <span className="text-lg">{icon}</span>
+    <span
+      className="text-xs font-bold uppercase tracking-widest"
+      style={{ color: '#aaa', fontFamily: "'Montserrat','Inter',sans-serif" }}
+    >
+      {children}
+    </span>
+  </div>
+);
+
+/* ─── Page entry animation hook ─────────────────────────────────────────── */
 const usePageReveal = () => {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -61,9 +77,10 @@ const usePageReveal = () => {
    POST DETAIL PAGE
 ══════════════════════════════════════════════════════════════════════════ */
 const PostDetailPage: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const post = location.state?.post as Post | undefined;
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const post      = location.state?.post as Post | undefined;
+  const [imgIdx, setImgIdx]     = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const pageRef = usePageReveal();
 
@@ -92,34 +109,27 @@ const PostDetailPage: React.FC = () => {
     day: 'numeric', month: 'long', year: 'numeric',
   });
 
-  const tag     = TAG_CONFIG[post.tag] ?? TAG_CONFIG.general;
+  const tag = TAG_CONFIG[post.tag] ?? TAG_CONFIG.general;
+
+  /* ── Carousel helpers ───────────────────────────────────────────────── */
+  const prevImg = () => setImgIdx((i) => (i - 1 + images.length) % images.length);
+  const nextImg = () => setImgIdx((i) => (i + 1) % images.length);
 
   /* ── Render ─────────────────────────────────────────────────────────── */
   return (
     <div className="min-h-screen" style={{ background: '#FAF7F0' }}>
-      <style>{`
-        @keyframes playPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(245,166,35,0.35); }
-          50%       { box-shadow: 0 0 0 12px rgba(245,166,35,0); }
-        }
-        .play-btn { animation: playPulse 2.4s ease-in-out infinite; }
-        .play-btn:hover { transform: scale(1.12) !important; }
-        .doc-row { transition: background 0.22s ease, box-shadow 0.22s ease; }
-        .doc-row:hover { background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-      `}</style>
-
       <SharedNavbar />
 
-      <div ref={pageRef} className="pt-24 pb-20 px-4">
-        <div className="max-w-[780px] mx-auto">
+      <div ref={pageRef} className="pt-24 pb-24 px-4">
+        <div className="max-w-[700px] mx-auto">
 
-          {/* ── Back link ────────────────────────────────────────────── */}
+          {/* ── Back link ─────────────────────────────────────────────── */}
           <button
             onClick={() => navigate('/student/dashboard')}
-            className="inline-flex items-center gap-1.5 text-sm font-medium mb-8 transition-colors duration-200"
-            style={{ color: '#888' }}
+            className="inline-flex items-center gap-1.5 text-sm font-medium mb-10 transition-colors duration-200"
+            style={{ color: '#aaa', fontFamily: "'DM Sans','Inter',sans-serif" }}
             onMouseEnter={e => (e.currentTarget.style.color = '#1a1a1a')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#888')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#aaa')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -127,144 +137,176 @@ const PostDetailPage: React.FC = () => {
             Back to Dashboard
           </button>
 
-          {/* ── Main Post Card ───────────────────────────────────────── */}
-          <article
-            className="bg-white overflow-hidden"
-            style={{ borderRadius: 24, boxShadow: '0 4px 40px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.06)' }}
-          >
-            {/* Cover image */}
-            {post.coverImage && (
-              <div className="overflow-hidden" style={{ borderRadius: '24px 24px 0 0' }}>
-                <img
-                  src={post.coverImage}
-                  alt={post.title}
-                  className="w-full object-cover"
-                  style={{ maxHeight: 320 }}
-                />
-              </div>
-            )}
-
-            {/* ── POST HEADER ─────────────────────────────────────────── */}
-            <div
-              className="px-8 pt-10 pb-8"
-              style={{ borderBottom: '1px solid #F2EDE0' }}
-            >
-              {/* Badge row + date */}
-              <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
-                <div className="flex items-center gap-2 flex-wrap">
+          {/* ══ HEADER ══════════════════════════════════════════════════ */}
+          <div className="pb-8">
+            {/* Badges + date */}
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={`text-xs font-bold px-3 py-1.5 rounded-full capitalize border ${tag.bg} ${tag.text} ${tag.border}`}
+                  style={{ fontFamily: "'Montserrat','Inter',sans-serif", letterSpacing: '0.06em' }}
+                >
+                  {tag.label}
+                </span>
+                {post.isPinned && (
                   <span
-                    className={`text-xs font-bold px-3 py-1.5 rounded-full capitalize border ${tag.bg} ${tag.text} ${tag.border}`}
+                    className="text-xs font-bold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200"
                     style={{ fontFamily: "'Montserrat','Inter',sans-serif", letterSpacing: '0.06em' }}
                   >
-                    {tag.label}
+                    📌 Pinned
                   </span>
-                  {post.isPinned && (
-                    <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200"
-                      style={{ fontFamily: "'Montserrat','Inter',sans-serif", letterSpacing: '0.06em' }}>
-                      Pinned
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs text-gray-400" style={{ fontFamily: "'DM Sans','Inter',sans-serif" }}>
-                  {dateStr}
-                </span>
+                )}
               </div>
-
-              {/* Post title */}
-              <h1
-                className="text-3xl font-extrabold text-zinc-900 leading-tight mb-5"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: '-0.5px' }}
-              >
-                {post.title}
-              </h1>
-
-              {/* Post body */}
-              <p
-                className="text-base leading-relaxed whitespace-pre-line"
-                style={{ color: '#555', fontFamily: "'DM Sans','Inter',sans-serif", lineHeight: 1.8 }}
-              >
-                {post.content}
-              </p>
+              <span className="text-xs text-gray-400" style={{ fontFamily: "'DM Sans','Inter',sans-serif" }}>
+                {dateStr}
+              </span>
             </div>
 
-            {/* ── VIDEOS ──────────────────────────────────────────────── */}
-            {videos.length > 0 && (
-              <div className="px-8 py-8" style={{ borderBottom: '1px solid #F2EDE0' }}>
-                <SectionLabel>Videos</SectionLabel>
-                <div className="space-y-5">
-                  {videos.map((att, i) => {
-                    const videoId = att.cloudflareVideoId || att.url?.split('/').pop();
-                    return (
-                      <div key={i} className="overflow-hidden" style={{ borderRadius: 16 }}>
-                        <div className="relative bg-[#1a1a1a]" style={{ paddingBottom: '56.25%' }}>
-                          <iframe
-                            src={`https://iframe.cloudflarestream.com/${videoId}`}
-                            title={att.label || `Video ${i + 1}`}
-                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                            allowFullScreen
-                            className="absolute inset-0 w-full h-full border-0"
-                          />
-                        </div>
-                        {att.label && att.label !== videoId && (
-                          <p
-                            className="px-5 py-3 text-xs truncate"
-                            style={{ background: '#111', color: '#888', fontFamily: "'DM Sans','Inter',sans-serif" }}
-                          >
-                            {att.label}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+            {/* Title */}
+            <h1
+              className="text-4xl font-extrabold text-zinc-900 leading-tight mb-5"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: '-0.5px' }}
+            >
+              {post.title}
+            </h1>
+
+            {/* Cover image */}
+            {post.coverImage && (
+              <div className="mb-6 overflow-hidden rounded-2xl">
+                <img src={post.coverImage} alt={post.title} className="w-full object-cover" style={{ maxHeight: 340 }} />
               </div>
             )}
 
-            {/* ── IMAGES ──────────────────────────────────────────────── */}
-            {images.length > 0 && (
-              <div className="px-8 py-8" style={{ borderBottom: '1px solid #F2EDE0' }}>
-                <SectionLabel>Images</SectionLabel>
-                <div className={`grid gap-3 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                  {images.map((att, i) => (
-                    <div
-                      key={i}
-                      onClick={() => setLightbox(att.url)}
-                      className="relative cursor-zoom-in group bg-gray-100"
-                      style={{ borderRadius: 16, overflow: 'hidden', maxHeight: 460 }}
-                    >
+            {/* Body text */}
+            <p
+              className="text-base leading-relaxed whitespace-pre-line"
+              style={{ color: '#555', fontFamily: "'DM Sans','Inter',sans-serif", lineHeight: 1.85 }}
+            >
+              {post.content}
+            </p>
+          </div>
+
+          {/* ══ IMAGES ══════════════════════════════════════════════════ */}
+          {images.length > 0 && (
+            <>
+              <hr style={{ border: 'none', borderTop: '1px solid #EDE8DE' }} />
+              <div className="py-8">
+                <SectionHeading icon="🖼️">Images</SectionHeading>
+
+                {images.length === 1 ? (
+                  /* Single image */
+                  <div
+                    className="relative cursor-zoom-in group overflow-hidden rounded-2xl bg-gray-100"
+                    onClick={() => setLightbox(images[0].url)}
+                  >
+                    <img
+                      src={images[0].url}
+                      alt={images[0].label || 'Image'}
+                      className="w-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                      style={{ maxHeight: 480 }}
+                    />
+                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-white text-xs font-semibold px-3 py-1 rounded-full"
+                        style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}>
+                        View full
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Carousel */
+                  <div>
+                    <div className="relative overflow-hidden rounded-2xl bg-gray-100">
+                      {/* Main image */}
                       <img
-                        src={att.url}
-                        alt={att.label || `Image ${i + 1}`}
-                        className="w-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
-                        style={{ maxHeight: 460 }}
+                        src={images[imgIdx].url}
+                        alt={images[imgIdx].label || `Image ${imgIdx + 1}`}
+                        className="w-full object-cover cursor-zoom-in"
+                        style={{ maxHeight: 480 }}
+                        onClick={() => setLightbox(images[imgIdx].url)}
                       />
-                      {/* "View full" overlay */}
-                      <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+
+                      {/* Prev arrow */}
+                      <button
+                        onClick={prevImg}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200"
+                        style={{ background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.75)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.50)')}
+                      >
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+
+                      {/* Next arrow */}
+                      <button
+                        onClick={nextImg}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200"
+                        style={{ background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.75)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.50)')}
+                      >
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+
+                      {/* Counter */}
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
                         <span
-                          className="text-white text-xs font-semibold px-3 py-1 rounded-full"
-                          style={{ background: 'rgba(0,0,0,0.68)', backdropFilter: 'blur(6px)' }}
+                          className="text-white text-xs font-bold px-3 py-1 rounded-full"
+                          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
                         >
-                          View full
+                          {imgIdx + 1} / {images.length}
                         </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* ── DOCUMENTS ───────────────────────────────────────────── */}
-            {documents.length > 0 && (
-              <div className="px-8 py-8">
-                <SectionLabel>Documents</SectionLabel>
-                <div className="space-y-2.5">
+                    {/* Thumbnail strip */}
+                    <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1">
+                      {images.map((img, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setImgIdx(i)}
+                          className="flex-shrink-0 overflow-hidden transition-all duration-200"
+                          style={{
+                            width: 64, height: 52, borderRadius: 10,
+                            border: i === imgIdx ? '2.5px solid #F5A623' : '2px solid transparent',
+                            opacity: i === imgIdx ? 1 : 0.5,
+                          }}
+                        >
+                          <img src={img.url} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Caption */}
+                    {images[imgIdx].label && (
+                      <p className="mt-2 text-xs text-center text-gray-400"
+                        style={{ fontFamily: "'DM Sans','Inter',sans-serif" }}>
+                        {images[imgIdx].label}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ══ DOCUMENTS ═══════════════════════════════════════════════ */}
+          {documents.length > 0 && (
+            <>
+              <hr style={{ border: 'none', borderTop: '1px solid #EDE8DE' }} />
+              <div className="py-8">
+                <SectionHeading icon="📄">Documents</SectionHeading>
+                <div className="space-y-3">
                   {documents.map((att, i) => {
                     const ext = att.label?.split('.').pop()?.toUpperCase() ?? 'FILE';
                     const iconColor =
-                      ext === 'PDF'                          ? '#C62828' :
-                      ext === 'DOCX' || ext === 'DOC'       ? '#1565C0' :
-                      ext === 'XLSX' || ext === 'XLS'       ? '#2E7D32' :
-                      ext === 'PPTX' || ext === 'PPT'       ? '#D84315' : '#37474F';
+                      ext === 'PDF'                    ? '#C62828' :
+                      ext === 'DOCX' || ext === 'DOC'  ? '#1565C0' :
+                      ext === 'XLSX' || ext === 'XLS'  ? '#2E7D32' :
+                      ext === 'PPTX' || ext === 'PPT'  ? '#D84315' : '#37474F';
                     const extLabel =
                       ext === 'PDF'  ? 'PDF' :
                       ext === 'DOCX' ? 'Word Doc' :
@@ -276,47 +318,46 @@ const PostDetailPage: React.FC = () => {
                         href={att.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="doc-row flex items-center gap-4 cursor-pointer"
+                        className="flex items-center gap-4 group"
                         style={{
-                          background: '#FAF7F0',
+                          background: '#fff',
                           border: '1px solid #EDE8DE',
-                          borderRadius: 14,
+                          borderRadius: 16,
                           padding: '16px 20px',
                           textDecoration: 'none',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                          transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+                          display: 'flex',
+                        }}
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 24px rgba(0,0,0,0.09)';
+                          (e.currentTarget as HTMLElement).style.borderColor = '#d4cabc';
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.04)';
+                          (e.currentTarget as HTMLElement).style.borderColor = '#EDE8DE';
                         }}
                       >
-                        {/* Icon square */}
                         <div
                           className="flex-shrink-0 flex items-center justify-center"
-                          style={{
-                            width: 42, height: 42,
-                            borderRadius: 10,
-                            background: iconColor,
-                          }}
+                          style={{ width: 44, height: 44, borderRadius: 12, background: iconColor }}
                         >
                           <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                           </svg>
                         </div>
-
-                        {/* File info */}
                         <div className="flex-1 min-w-0">
-                          <p
-                            className="text-sm font-bold truncate"
-                            style={{ color: '#1a1a1a', fontFamily: "'DM Sans','Inter',sans-serif" }}
-                          >
+                          <p className="text-sm font-bold truncate text-[#1a1a1a]"
+                            style={{ fontFamily: "'DM Sans','Inter',sans-serif" }}>
                             {att.label || 'Document'}
                           </p>
-                          <p
-                            className="text-xs mt-0.5"
-                            style={{ color: '#888', fontFamily: "'DM Sans','Inter',sans-serif" }}
-                          >
+                          <p className="text-xs mt-0.5 text-gray-400"
+                            style={{ fontFamily: "'DM Sans','Inter',sans-serif" }}>
                             {extLabel} · Click to open
                           </p>
                         </div>
-
-                        {/* Arrow */}
-                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="#aaa" strokeWidth={2} viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 flex-shrink-0 text-gray-300 group-hover:text-amber-500 transition-colors duration-200"
+                          fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
                         </svg>
                       </a>
@@ -324,17 +365,52 @@ const PostDetailPage: React.FC = () => {
                   })}
                 </div>
               </div>
-            )}
-          </article>
+            </>
+          )}
 
-          {/* Spacer */}
-          <div className="h-4" />
+          {/* ══ VIDEOS ══════════════════════════════════════════════════ */}
+          {videos.length > 0 && (
+            <>
+              <hr style={{ border: 'none', borderTop: '1px solid #EDE8DE' }} />
+              <div className="py-8">
+                <SectionHeading icon="🎬">Videos</SectionHeading>
+                <div className="space-y-6">
+                  {videos.map((att, i) => {
+                    const videoId = att.cloudflareVideoId || att.url?.split('/').pop();
+                    return (
+                      <div key={i}>
+                        {att.label && att.label !== videoId && (
+                          <p className="text-sm font-semibold text-[#1a1a1a] mb-2"
+                            style={{ fontFamily: "'DM Sans','Inter',sans-serif" }}>
+                            {att.label}
+                          </p>
+                        )}
+                        <div
+                          className="overflow-hidden rounded-2xl"
+                          style={{ background: '#111', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
+                        >
+                          <div className="relative" style={{ paddingBottom: '56.25%' }}>
+                            <iframe
+                              src={`https://iframe.cloudflarestream.com/${videoId}`}
+                              title={att.label || `Video ${i + 1}`}
+                              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                              allowFullScreen
+                              className="absolute inset-0 w-full h-full border-0"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
         </div>
       </div>
 
-
-
-      {/* ── Lightbox ─────────────────────────────────────────────────────── */}
+      {/* ── Lightbox ────────────────────────────────────────────────────── */}
       {lightbox && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center px-4"
@@ -365,3 +441,4 @@ const PostDetailPage: React.FC = () => {
 };
 
 export default PostDetailPage;
+

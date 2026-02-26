@@ -17,7 +17,7 @@ const EmailUserSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
     match: [
-      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
       'Please provide a valid email'
     ]
   },
@@ -56,6 +56,20 @@ const EmailUserSchema = new mongoose.Schema({
   
   // Address information
   address: {
+    type: String,
+    required: false,
+    trim: true
+  },
+
+  // City
+  city: {
+    type: String,
+    required: false,
+    trim: true
+  },
+
+  // WhatsApp number
+  whatsapp: {
     type: String,
     required: false,
     trim: true
