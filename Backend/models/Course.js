@@ -12,8 +12,8 @@ const CourseSchema = new mongoose.Schema({
     maxlength: [1000, 'Description cannot be more than 1000 characters']
   },
   category: {
-    type: String,
-    enum: ['Technology', 'Business', 'Design', 'Data Science', 'Career', 'Skills', 'Programming', 'Creative Arts', 'Personal Development', 'Other']
+    type: [String],
+    default: []
   },
   duration: {
     type: String,
@@ -39,6 +39,15 @@ const CourseSchema = new mongoose.Schema({
   enrollmentLink: {
     type: String,
     trim: true
+  },
+  subtitle: {
+    type: String,
+    trim: true,
+    maxlength: [200, 'Subtitle cannot be more than 200 characters']
+  },
+  originalPrice: {
+    type: Number,
+    default: 0
   },
   image: {
     type: String,

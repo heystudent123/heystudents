@@ -60,14 +60,7 @@ const AdminUsersPage: React.FC = () => {
         
         // Fetch referral data
         try {
-          const referralsResponse = await authApi.getReferrals();
-          const referralsData = referralsResponse.data;
-          
-          // Map referrals to users
-          usersData = usersData.map((user: User) => {
-            // No special handling needed since institute functionality is removed
-            return user;
-          });
+          await authApi.getReferrals();
         } catch (referralErr) {
           console.error('Error fetching referrals:', referralErr);
           // Continue with users data even if referrals fetch fails
@@ -94,14 +87,7 @@ const AdminUsersPage: React.FC = () => {
       
       // Fetch referral data
       try {
-        const referralsResponse = await authApi.getReferrals();
-        const referralsData = referralsResponse.data;
-        
-        // Map referrals to users
-        usersData = usersData.map((user: User) => {
-          // No special handling needed since institute functionality is removed
-          return user;
-        });
+        await authApi.getReferrals();
       } catch (referralErr) {
         console.error('Error fetching referrals:', referralErr);
         // Continue with users data even if referrals fetch fails
@@ -146,7 +132,6 @@ const AdminUsersPage: React.FC = () => {
   const promoteToInstitute = async () => {
     try {
       // Custom referral code is optional, pass it only if provided
-      const payload = customReferralCode ? { customReferralCode } : undefined;
       await authApi.promoteToInstitute(selectedUserId, customReferralCode || undefined);
       
       // Close modal and refresh user list

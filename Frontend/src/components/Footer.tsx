@@ -38,7 +38,7 @@ const Footer: React.FC = () => {
       <div className="container-custom section-padding">
         {/* Logo Section */}
         <div className="flex justify-center mb-12">
-          <div className="text-white text-2xl font-bold">Hey Students</div>
+          <div className="text-white text-2xl font-bold">HeyStudent</div>
         </div>
 
         {/* Main footer content */}
@@ -47,7 +47,7 @@ const Footer: React.FC = () => {
           <div className="lg:col-span-2 space-y-6 text-center md:text-left">
             
             <p className="text-neutral-300 text-lg leading-relaxed max-w-md">
-              The ultimate resource platform for Delhi University students — connecting you with accommodations, alumni, and academic resources.
+              CUET preparation taught by national rankers — real strategies, real PYQ breakdowns, and a community of serious aspirants.
             </p>
             
             {/* Social links */}
@@ -155,7 +155,7 @@ const Footer: React.FC = () => {
                 <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                 </svg>
-                <span>for Delhi University students</span>
+                <span>for CUET aspirants</span>
               </div>
             </div>
           </div>

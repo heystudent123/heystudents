@@ -104,7 +104,7 @@ export const coursesApi = {
   getAll: async (filters = {}) => {
     try {
       const params = { ...filters, limit: 100 };
-      const response = await api.get('/api/courses', { params });
+      const response = await api.get('/courses', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -114,7 +114,7 @@ export const coursesApi = {
 
   getById: async (id: string) => {
     try {
-      const response = await api.get(`/api/courses/${id}`);
+      const response = await api.get(`/courses/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching course ${id}:`, error);
@@ -124,7 +124,7 @@ export const coursesApi = {
 
   getByCategory: async (category: string) => {
     try {
-      const response = await api.get(`/api/courses/category/${category}`);
+      const response = await api.get(`/courses/category/${category}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching courses for category ${category}:`, error);
@@ -134,7 +134,7 @@ export const coursesApi = {
 
   addVideoLink: async (courseId: string, videoData: { title: string; videoUrl: string; description?: string }) => {
     try {
-      const response = await api.post(`/api/courses/${courseId}/videos`, videoData);
+      const response = await api.post(`/courses/${courseId}/videos`, videoData);
       return response.data;
     } catch (error) {
       console.error(`Error adding video to course ${courseId}:`, error);
@@ -144,7 +144,7 @@ export const coursesApi = {
 
   addExternalLink: async (courseId: string, linkData: { title: string; externalUrl: string; description?: string }) => {
     try {
-      const response = await api.post(`/api/courses/${courseId}/links`, linkData);
+      const response = await api.post(`/courses/${courseId}/links`, linkData);
       return response.data;
     } catch (error) {
       console.error(`Error adding link to course ${courseId}:`, error);
@@ -154,12 +154,39 @@ export const coursesApi = {
 
   addNote: async (courseId: string, noteData: { title: string; noteContent: string; description?: string }) => {
     try {
-      const response = await api.post(`/api/courses/${courseId}/notes`, noteData);
+      const response = await api.post(`/courses/${courseId}/notes`, noteData);
       return response.data;
     } catch (error) {
       console.error(`Error adding note to course ${courseId}:`, error);
       throw error;
     }
+  },
+
+  create: async (data: object) => {
+    const response = await api.post('/courses', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: object) => {
+    const response = await api.put(`/courses/${id}`, data);
+    return response.data;
+  },
+
+  deleteCourse: async (id: string) => {
+    const response = await api.delete(`/courses/${id}`);
+    return response.data;
+  },
+
+  uploadMaterial: async (courseId: string, formData: FormData) => {
+    const response = await api.post(`/courses/${courseId}/materials`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  deleteMaterial: async (courseId: string, materialId: string) => {
+    const response = await api.delete(`/courses/${courseId}/materials/${materialId}`);
+    return response.data;
   },
 };
 
@@ -438,9 +465,9 @@ export const videosApi = {
     }
   },
 
-  getUploadUrl: async (maxDurationSeconds = 3600) => {
+  getUploadUrl: async (maxDurationSeconds = 3600, name?: string) => {
     try {
-      const response = await api.post('/videos/upload-url', { maxDurationSeconds });
+      const response = await api.post('/videos/upload-url', { maxDurationSeconds, name });
       return response.data;
     } catch (error) {
       console.error('Error getting upload URL:', error);
@@ -490,6 +517,16 @@ export const videosApi = {
       return response.data;
     } catch (error) {
       console.error(`Error checking video status ${id}:`, error);
+      throw error;
+    }
+  },
+
+  checkVideoStatusByUid: async (uid: string) => {
+    try {
+      const response = await api.get(`/videos/status/${uid}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error checking video status by uid ${uid}:`, error);
       throw error;
     }
   },

@@ -1,15 +1,11 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 interface HeroProps {
   className?: string;
 }
 
 const Hero: React.FC<HeroProps> = ({ className }) => {
-  const { user } = useAuth();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const navigate = useNavigate();
   return (
     <div className={`relative min-h-[70vh] overflow-hidden ${className}`}>
       <div className="container-custom pt-8 pb-20 lg:pt-16 lg:pb-32">
@@ -19,31 +15,25 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
             {/* Badge */}
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-gray-100 border border-gray-300 text-gray-800 text-sm font-medium mb-6">
               <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></span>
-              Trusted by 10,000+ DU Students
+              CUET 2025 Batch &middot; Now Enrolling
             </div>
             
             <h1 className="font-display font-bold tracking-tight text-[#030301] mb-6 text-center">
-              <span className="block mb-2 font-playfair">College Begins with</span>
-              <span className="font-montserrat">The Right Place to Live</span>
+              <span className="block mb-2 font-playfair">Learn From The Ones Who</span>
+              <span className="font-montserrat">Actually Did It.</span>
             </h1>
             
             <p className="text-lg md:text-xl text-[#030301] max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-            Find Your Perfect PG – Fast & Easy
-(An initiative by Hindu and Hansraj Students)
-Just got into college? Let us help you find verified PGs near your campus based on budget, location, food preference, and more.
-Your college life begins here – make it a smooth start.
+              CUET preparation taught by AIR 19 &amp; AIR 63 national rankers — not coaching factories. Real strategies, real PYQ breakdowns, and a community of serious aspirants.
             </p>
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link 
-                to={user ? '/accommodation' : '/login'}
-                className="bg-black text-white py-3 px-6 rounded-xl shadow-lg hover:bg-gray-900 transition-all duration-300 flex items-center justify-center btn-lg group"
+              <Link
+                to="/courses"
+                className="bg-black text-white py-3 px-6 rounded-xl shadow-lg hover:bg-gray-900 transition-all duration-300 flex items-center justify-center btn-lg"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M8 4a4 4 0 100 8a4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" />
-                </svg>
-                Find Your PG
+                Enroll Now
               </Link>
             </div>
             
@@ -52,10 +42,10 @@ Your college life begins here – make it a smooth start.
               <div className="flex items-center">
                 <div className="flex -space-x-2 mr-3">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 border-2 border-white"></div>
+                    <div key={i} className="w-8 h-8 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center text-xs font-bold text-white">{i}</div>
                   ))}
                 </div>
-                <span className="text-sm">Join thousands of students</span>
+                <span className="text-sm">1,000+ students enrolled this cycle</span>
               </div>
               <div className="flex items-center">
                 <div className="flex text-yellow-500 mr-2">
@@ -65,7 +55,7 @@ Your college life begins here – make it a smooth start.
                     </svg>
                   ))}
                 </div>
-                <span className="text-sm">4.9/5 rating</span>
+                <span className="text-sm">4.9/5 · Taught by national rankers</span>
               </div>
             </div>
           </div>
@@ -76,69 +66,50 @@ Your college life begins here – make it a smooth start.
               {/* Main image container */}
               <div className="relative overflow-hidden rounded-3xl shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1350&q=80"
-                  alt="Student Accommodation"
+                  src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=1350&q=80"
+                  alt="Student studying for CUET"
                   className="w-full h-full object-cover"
                 />
-                
-                {/* Gradient overlay */}
                 
                 {/* Stats overlay */}
                 <div className="absolute bottom-6 left-6 right-6">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="text-center">
+                      <div className="text-2xl font-bold text-white">AIR 19</div>
+                      <div className="text-xs text-white/80">Commerce Ranker</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white">AIR 63</div>
+                      <div className="text-xs text-white/80">Humanities Ranker</div>
+                    </div>
+                    <div className="text-center">
                       <div className="text-2xl font-bold text-white">1000+</div>
-                      <div className="text-xs text-white/80">Verified PGs</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-white">5000+</div>
-                      <div className="text-xs text-white/80">Happy Students</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-white">20+</div>
-                      <div className="text-xs text-white/80">Localities</div>
+                      <div className="text-xs text-white/80">Students Enrolled</div>
                     </div>
                   </div>
                 </div>
               </div>
               
-              {/* Floating feature cards */}
-              <div className="absolute -top-6 -right-6 p-4 max-w-xs animate-float group hover:scale-105 transition-all duration-300 cursor-pointer z-10 bg-white shadow-lg rounded-xl">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-success-500 rounded-xl flex items-center justify-center group-hover:bg-success-600 transition-colors duration-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
+              {/* Floating badge — top right */}
+              <div className="absolute -top-5 -right-5 animate-float z-10 bg-white shadow-xl rounded-2xl px-4 py-3 border border-black/5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 bg-amber-400 rounded-xl flex items-center justify-center text-black font-bold text-xs leading-none text-center">
+                    AIR<br/>19
                   </div>
                   <div>
-                    <div className="font-semibold text-neutral-900">Verified Listings</div>
-                    <div className="text-sm text-neutral-600">100% Safe & Secure</div>
-                  </div>
-                </div>
-                <div className="max-h-0 overflow-hidden group-hover:max-h-32 transition-all duration-500 ease-in-out">
-                  <div className="mt-3 bg-neutral-100 p-3 rounded-lg text-sm text-neutral-700">
-                    All our PGs are personally verified by our team to ensure safety, cleanliness, and accurate information for students.
+                    <div className="text-xs text-neutral-500">Commerce Faculty</div>
                   </div>
                 </div>
               </div>
               
-              <div className="absolute -bottom-20 -left-6 p-4 max-w-xs animate-float group hover:scale-105 transition-all duration-300 cursor-pointer z-10 bg-white shadow-lg rounded-xl overflow-visible" style={{ animationDelay: '1s' }}>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center group-hover:bg-primary-600 transition-colors duration-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
-                    </svg>
+              {/* Floating badge — bottom left */}
+              <div className="absolute -bottom-5 -left-5 animate-float z-10 bg-white shadow-xl rounded-2xl px-4 py-3 border border-black/5" style={{ animationDelay: '1s' }}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-xs leading-none text-center">
+                    AIR<br/>63
                   </div>
                   <div>
-                    <div className="font-semibold text-neutral-900">Verified Network of PGs</div>
-                    <div className="text-sm text-neutral-600">Trusted & Verified</div>
-                  </div>
-                </div>
-                <div className="relative">
-                  <div className="absolute left-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-500 w-full">
-                    <div className="bg-neutral-100 p-3 rounded-lg text-sm text-neutral-700 shadow-md border border-neutral-200">
-                      Our extensive network of verified PGs ensures you find safe, clean, and reliable accommodation that meets your budget and location preferences.
-                    </div>
+                    <div className="text-xs text-neutral-500">Humanities Faculty</div>
                   </div>
                 </div>
               </div>

@@ -21,6 +21,7 @@ import AdminVideosPage from './pages/AdminVideosPage';
 import VideosPage from './pages/VideosPage';
 import AdminPostsPage from './pages/AdminPostsPage';
 import StudentDashboardPage from './pages/StudentDashboardPage';
+import PostDetailPage from './pages/PostDetailPage';
 import InstituteDashboardPage from './pages/InstituteDashboardPage';
 import Footer from './components/Footer';
 import './App.css';
@@ -182,6 +183,11 @@ function AppContent() {
                 <Route path="/student/dashboard" element={
                   <ProtectedRoute>
                     <StudentDashboardPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/student/post/:id" element={
+                  <ProtectedRoute>
+                    <PostDetailPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/institute/dashboard" element={

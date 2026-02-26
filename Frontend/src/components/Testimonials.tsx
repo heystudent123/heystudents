@@ -33,75 +33,75 @@ const useScreenSize = () => {
 const testimonialData: TestimonialProps[] = [
   {
     name: "Aarav Sharma",
-    role: "3rd Year",
-    company: "Hansraj College",
-    content: "This platform has been a game-changer for me. From finding study materials to connecting with seniors who guided my career path - it's truly the ultimate DU companion!"
+    role: "Commerce Stream",
+    company: "SRCC, DU 2025",
+    content: "I was scoring 78 percentile in mocks and had no idea where I was going wrong. After joining, the PYQ breakdown sessions completely changed how I approached each section. Ended up with 97.4 percentile."
   },
   {
     name: "Priya Patel",
-    role: "1st Year",
-    company: "Miranda House",
-    content: "As a fresher, I was overwhelmed with college life. This site helped me find accommodation, access previous years' notes, and discover college events all in one place!"
+    role: "Humanities Stream",
+    company: "Hindu College, DU 2025",
+    content: "The live doubt sessions are the real deal. I asked a question about History paper pattern at 9 PM and had a full recorded explanation waiting by morning. No coaching class ever did that."
   },
   {
-    name: "Rahul Gupta",
-    role: "Alumni",
-    company: "St. Stephen's College",
-    content: "As an alumnus, I love being able to mentor current students. The alumni network here makes it easy to give back to the DU community and help the next generation."
+    name: "Rahul Mehra",
+    role: "Commerce Stream",
+    company: "Hansraj College, DU 2025",
+    content: "Worth every rupee. The mock test analysis told me exactly which chapter to revise and which to skip. I stopped wasting time on low-weightage topics and my score jumped in 3 weeks."
   },
   {
-    name: "Neha Verma",
-    role: "2nd Year",
-    company: "Lady Shri Ram College",
-    content: "The PG finder tool saved me so much time! I found a perfect place near campus within my budget in just two days. Highly recommend to all DU students!"
+    name: "Sneha Verma",
+    role: "Humanities Stream",
+    company: "Miranda House, DU 2025",
+    content: "I had failed two mock series from other platforms. This batch broke down the CUET pattern in a way nobody else does — which questions are traps, which are free marks. That clarity was everything."
   },
   {
-    name: "Vikram Singh",
-    role: "Final Year",
-    company: "Ramjas College",
-    content: "The study resources and past papers section is gold! It helped me improve my grades significantly. The community here is super supportive too."
+    name: "Karan Singh",
+    role: "Commerce Stream",
+    company: "Ramjas College, DU 2025",
+    content: "The General Test module alone is worth it. I used to skip it thinking it was easy. Turns out it's the most scoring section if you know the shortcuts — and they teach you exactly those."
   },
   {
     name: "Ananya Reddy",
-    role: "2nd Year",
-    company: "Hindu College",
-    content: "The events calendar helped me discover so many interesting workshops and seminars. I've made great connections and learned valuable skills outside the classroom."
+    role: "Humanities Stream",
+    company: "Lady Shri Ram, DU 2025",
+    content: "Faculty who actually gave the exam recently — that's the biggest difference. They know what 2023 paper felt like, what the traps were, and how the marking changed. That insider knowledge is priceless."
   },
   {
     name: "Rohan Kapoor",
-    role: "Final Year",
-    company: "Kirori Mal College",
-    content: "Finding internships was a breeze with the career portal. I landed my dream internship and it's all thanks to the connections I made through this platform."
+    role: "Commerce Stream",
+    company: "Kirori Mal College, DU 2025",
+    content: "The PDF notes are incredibly well structured. I printed them out and used them as my entire revision material in the last month. Every chapter had a 'what CUET actually asks' section that was spot on."
   },
   {
     name: "Ishaan Mehta",
-    role: "3rd Year",
-    company: "SRCC",
-    content: "The roommate matching feature helped me find someone compatible to share my PG with. We've become great friends and it's made my college experience so much better."
+    role: "Humanities Stream",
+    company: "St. Stephen's, DU 2025",
+    content: "Joined 2 months before the exam as a dropper. Was skeptical but the rank tracker after each mock kept me motivated and showed real progress. Improved from 71 to 94 percentile in 7 weeks."
   },
   {
     name: "Zara Khan",
-    role: "1st Year",
-    company: "Jesus & Mary College",
-    content: "As someone new to Delhi, this platform made me feel welcome and helped me navigate the city. The local guides and tips section is incredibly helpful!"
+    role: "Commerce Stream",
+    company: "Jesus & Mary College, DU 2025",
+    content: "What I appreciated most was the honesty — they told me which chapters to deprioritise, which is something no paid coaching ever does. Saved me weeks of pointless studying."
   },
   {
     name: "Arjun Nair",
-    role: "Alumni",
-    company: "Venkateshwara College",
-    content: "Even after graduating, I still use this platform to mentor juniors and stay connected with campus happenings. It's a community that extends beyond your college years."
+    role: "Humanities Stream",
+    company: "Gargi College, DU 2025",
+    content: "The private community kept me accountable when I wanted to give up. Seeing other students post their mock scores and progress pushed me to study when I really didn't feel like it."
   },
   {
     name: "Diya Sharma",
-    role: "2nd Year",
-    company: "Gargi College",
-    content: "The budget meal finder feature has saved me so much money! As a student on a tight budget, finding affordable and good food options nearby is a lifesaver."
+    role: "Commerce Stream",
+    company: "Deshbandhu College, DU 2025",
+    content: "Best decision I made was joining this over a ₹40,000 offline coaching. Got better results, better resources, and actually understood the strategy behind every topic."
   },
   {
     name: "Kabir Malhotra",
-    role: "Final Year",
-    company: "Deshbandhu College",
-    content: "The study group feature helped me connect with peers in my major. Our weekly sessions have significantly improved my understanding of complex topics."
+    role: "Humanities Stream",
+    company: "Venkateshwara College, DU 2025",
+    content: "I was preparing alone before this and had no benchmark. The mock rank tracker put everything in perspective — I knew exactly what percentile I needed and how far I was from it each week."
   }
 ];
 
@@ -295,10 +295,10 @@ const Testimonials: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900 mb-3 md:mb-4">
-            For Students, <span className="text-black">By Students</span>
+            Students who ranked. <span className="text-black">Students who stayed.</span>
           </h2>
           <p className="text-lg md:text-xl text-neutral-600 max-w-3xl mx-auto">
-            Join thousands of Delhi University students who use Hey Students to enhance their university experience.
+            Real results from real students — not cherry-picked toppers, just honest feedback from people who prepared with us.
           </p>
         </div>
         

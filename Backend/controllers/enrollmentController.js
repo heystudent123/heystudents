@@ -30,7 +30,9 @@ exports.getMyEnrollments = async (req, res, next) => {
     const enrollments = await Enrollment.find({
       userId: req.user._id,
       isActive: true,
-    }).sort({ enrolledAt: -1 });
+    })
+      .sort({ enrolledAt: -1 })
+      .populate('courseId', 'title');
 
     res.status(200).json({
       success: true,

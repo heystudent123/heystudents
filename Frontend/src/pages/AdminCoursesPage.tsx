@@ -7,12 +7,15 @@ interface Course {
   _id: string;
   title: string;
   description: string;
+  subtitle?: string;
   category: string;
   duration: string;
   level: string;
   instructor?: string;
   price: number;
+  originalPrice?: number;
   isPaid: boolean;
+  features?: string[];
   enrollmentLink?: string;
   image?: string;
   isActive: boolean;
@@ -45,7 +48,6 @@ const AdminCoursesPage: React.FC = () => {
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -68,14 +70,14 @@ const AdminCoursesPage: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: 'Technology',
+    subtitle: '',
+    category: [] as string[],
     duration: '',
     level: 'All Levels',
-    instructor: '',
-    price: 0,
+    price: '',
+    originalPrice: '',
     isPaid: false,
-    enrollmentLink: '',
-    image: '',
+    features: '',
     isActive: true
   });
 
@@ -104,20 +106,16 @@ const AdminCoursesPage: React.FC = () => {
 
   const fetchCourses = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/courses?limit=100`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      const coursesData = data.data || [];
+      const response = await coursesApi.getAll({ limit: 100 });
+      const coursesData = response.data || response.courses || [];
       setCourses(coursesData);
       setFilteredCourses(coursesData);
-      setLoading(false);
     } catch (err: any) {
       console.error('Error fetching courses:', err);
-      setError('Failed to fetch courses');
+      // Don't block the UI — just show empty state so the admin can still add courses
+      setCourses([]);
+      setFilteredCourses([]);
+    } finally {
       setLoading(false);
     }
   };
@@ -145,8 +143,7 @@ const AdminCoursesPage: React.FC = () => {
     const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
-              type === 'number' ? parseFloat(value) || 0 : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
   };
 
@@ -154,36 +151,34 @@ const AdminCoursesPage: React.FC = () => {
     e.preventDefault();
     
     try {
-      const token = localStorage.getItem('token');
-      const url = editingCourse 
-        ? `${process.env.REACT_APP_API_URL}/api/courses/${editingCourse._id}`
-        : `${process.env.REACT_APP_API_URL}/api/courses`;
-      
-      const method = editingCourse ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-      
-      if (!response.ok) throw new Error('Failed to save course');
+      const payload = {
+        ...formData,
+        category: formData.category,
+        price: parseFloat(formData.price as string) || 0,
+        originalPrice: parseFloat(formData.originalPrice as string) || 0,
+        features: formData.features
+          ? formData.features.split('\n').map((f: string) => f.trim()).filter(Boolean)
+          : []
+      };
+
+      if (editingCourse) {
+        await coursesApi.update(editingCourse._id, payload);
+      } else {
+        await coursesApi.create(payload);
+      }
       
       // Reset form and refresh courses
       setFormData({
         title: '',
         description: '',
-        category: 'Technology',
+        subtitle: '',
+        category: [] as string[],
         duration: '',
         level: 'All Levels',
-        instructor: '',
-        price: 0,
+        price: '',
+        originalPrice: '',
         isPaid: false,
-        enrollmentLink: '',
-        image: '',
+        features: '',
         isActive: true
       });
       setShowAddForm(false);
@@ -200,14 +195,14 @@ const AdminCoursesPage: React.FC = () => {
     setFormData({
       title: course.title,
       description: course.description,
-      category: course.category,
+      subtitle: course.subtitle || '',
+      category: Array.isArray(course.category) ? course.category : (course.category ? course.category.split(', ').map((s: string) => s.trim()).filter(Boolean) : []),
       duration: course.duration,
       level: course.level,
-      instructor: course.instructor || '',
-      price: course.price,
+      price: course.price?.toString() ?? '',
+      originalPrice: course.originalPrice?.toString() ?? '',
       isPaid: course.isPaid,
-      enrollmentLink: course.enrollmentLink || '',
-      image: course.image || '',
+      features: (course.features || []).join('\n'),
       isActive: course.isActive
     });
     setShowAddForm(true);
@@ -219,14 +214,7 @@ const AdminCoursesPage: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL}/api/courses/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      await coursesApi.deleteCourse(id);
       fetchCourses();
     } catch (err: any) {
       console.error('Error deleting course:', err);
@@ -240,15 +228,27 @@ const AdminCoursesPage: React.FC = () => {
     setFormData({
       title: '',
       description: '',
-      category: 'Technology',
+      subtitle: '',
+      category: [] as string[],
       duration: '',
       level: 'All Levels',
-      instructor: '',
-      price: 0,
+      price: '',
+      originalPrice: '',
       isPaid: false,
-      enrollmentLink: '',
-      image: '',
+      features: '',
       isActive: true
+    });
+  };
+
+  const toggleCategory = (cat: string) => {
+    setFormData(prev => {
+      const current = prev.category as string[];
+      return {
+        ...prev,
+        category: current.includes(cat)
+          ? current.filter(c => c !== cat)
+          : [...current, cat]
+      };
     });
   };
 
@@ -263,22 +263,13 @@ const AdminCoursesPage: React.FC = () => {
 
     setUploadingFile(true);
     try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('title', title);
-      formData.append('description', description);
-      formData.append('materialType', materialType); // Send the selected material type
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('title', title);
+      fd.append('description', description);
+      fd.append('materialType', materialType);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/courses/${courseId}/materials`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) throw new Error('Failed to upload file');
+      await coursesApi.uploadMaterial(courseId, fd);
 
       alert('File uploaded successfully!');
       setShowAddMaterialForm(false);
@@ -304,13 +295,7 @@ const AdminCoursesPage: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL}/api/courses/${courseId}/materials/${materialId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await coursesApi.deleteMaterial(courseId, materialId);
 
       alert('Material deleted successfully!');
       fetchCourses();
@@ -436,12 +421,6 @@ const AdminCoursesPage: React.FC = () => {
             </div>
           </div>
 
-          {error && (
-            <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
-              <p className="text-red-700">{error}</p>
-            </div>
-          )}
-
           {/* Add/Edit Form */}
           {showAddForm && (
             <div className="bg-white border border-neutral-200 rounded-2xl shadow-sm p-6 mb-6">
@@ -462,24 +441,26 @@ const AdminCoursesPage: React.FC = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                    >
-                      <option value="Technology">Technology</option>
-                      <option value="Business">Business</option>
-                      <option value="Design">Design</option>
-                      <option value="Data Science">Data Science</option>
-                      <option value="Career">Career</option>
-                      <option value="Skills">Skills</option>
-                      <option value="Programming">Programming</option>
-                      <option value="Creative Arts">Creative Arts</option>
-                      <option value="Personal Development">Personal Development</option>
-                      <option value="Other">Other</option>
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category <span className="text-neutral-400 font-normal">(select all that apply)</span></label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Commerce', 'Arts', 'Technology', 'Business', 'Design', 'Data Science', 'Career', 'Skills', 'Programming', 'Creative Arts', 'Personal Development', 'Other'].map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => toggleCategory(cat)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                            (formData.category as string[]).includes(cat)
+                              ? 'bg-black text-white border-black'
+                              : 'bg-white text-gray-700 border-neutral-300 hover:border-black'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                    {(formData.category as string[]).length === 0 && (
+                      <p className="text-xs text-red-500 mt-1">Select at least one category</p>
+                    )}
                   </div>
                   
                   <div>
@@ -510,51 +491,31 @@ const AdminCoursesPage: React.FC = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Instructor</label>
-                    <input
-                      type="text"
-                      name="instructor"
-                      value={formData.instructor}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-                  
-                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       name="price"
                       value={formData.price}
                       onChange={handleInputChange}
-                      min="0"
+                      placeholder="e.g. 2500"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Original Price (₹) <span className="text-neutral-400 font-normal">(for strikethrough)</span></label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      name="originalPrice"
+                      value={formData.originalPrice}
+                      onChange={handleInputChange}
+                      placeholder="e.g. 4999"
                       className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment Link</label>
-                    <input
-                      type="url"
-                      name="enrollmentLink"
-                      value={formData.enrollmentLink}
-                      onChange={handleInputChange}
-                      placeholder="https://..."
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                    <input
-                      type="url"
-                      name="image"
-                      value={formData.image}
-                      onChange={handleInputChange}
-                      placeholder="https://..."
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
                 </div>
                 
                 <div>
@@ -565,6 +526,30 @@ const AdminCoursesPage: React.FC = () => {
                     onChange={handleInputChange}
                     rows={4}
                     className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle <span className="text-neutral-400 font-normal">(short tagline shown on pricing card)</span></label>
+                  <input
+                    type="text"
+                    name="subtitle"
+                    value={formData.subtitle}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Your CUET prep by national rankers"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Features <span className="text-neutral-400 font-normal">(one per line — shown as bullet points on pricing card)</span></label>
+                  <textarea
+                    name="features"
+                    value={formData.features}
+                    onChange={handleInputChange}
+                    rows={6}
+                    placeholder="Live weekly classes&#10;20+ full-length mock tests&#10;Weekly doubt sessions"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
                   />
                 </div>
                 

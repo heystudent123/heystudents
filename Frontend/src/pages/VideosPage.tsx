@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import SharedNavbar from '../components/SharedNavbar';
-import Footer from '../components/Footer';
 import { videosApi } from '../services/api';
 
 interface Video {

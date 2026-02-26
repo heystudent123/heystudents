@@ -20,25 +20,27 @@ exports.getUploadUrl = async (req, res, next) => {
       return next(new ErrorResponse('Cloudflare Stream credentials are not configured', 500));
     }
 
-    const { maxDurationSeconds = 3600 } = req.body;
+    const { maxDurationSeconds = 3600, name } = req.body;
 
     const response = await axios.post(
       `${CF_BASE}/direct_upload`,
       {
         maxDurationSeconds: Number(maxDurationSeconds),
         requireSignedURLs: false,
+        ...(name ? { meta: { name } } : {}),
       },
       { headers: cfHeaders() }
     );
 
     const { uploadURL, uid } = response.data.result;
+    console.log(`[Cloudflare] Upload slot created — uid: ${uid}, name: "${name || 'unnamed'}", maxDuration: ${maxDurationSeconds}s`);
 
     res.status(200).json({
       success: true,
       data: { uploadURL, uid },
     });
   } catch (err) {
-    console.error('Cloudflare upload URL error:', err.response?.data || err.message);
+    console.error('[Cloudflare] getUploadUrl failed:', err.response?.data || err.message);
     next(new ErrorResponse('Failed to get upload URL from Cloudflare Stream', 500));
   }
 };
@@ -197,6 +199,30 @@ exports.deleteVideo = async (req, res, next) => {
     res.status(200).json({ success: true, data: {} });
   } catch (err) {
     next(err);
+  }
+};
+
+// @desc    Poll Cloudflare Stream by uid (no MongoDB lookup needed)
+// @route   GET /api/videos/status/:uid
+// @access  Private/Admin
+exports.checkVideoStatusByUid = async (req, res, next) => {
+  try {
+    const { uid } = req.params;
+    const cfRes = await axios.get(`${CF_BASE}/${uid}`, { headers: cfHeaders() });
+    const cfVideo = cfRes.data.result;
+    const state = cfVideo.status?.state;
+    const errorReasonCode = cfVideo.status?.errorReasonCode || null;
+    const duration = cfVideo.duration || 0;
+    const thumbnail = cfVideo.thumbnail ||
+      `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg`;
+    console.log(`[Cloudflare] Status check uid: ${uid} — state: ${state}`);
+    res.status(200).json({
+      success: true,
+      data: { state, errorReasonCode, duration, thumbnail },
+    });
+  } catch (err) {
+    console.error('[Cloudflare] checkVideoStatusByUid failed:', err.response?.data || err.message);
+    next(new ErrorResponse('Failed to check video status from Cloudflare', 500));
   }
 };
 

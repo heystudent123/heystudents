@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as tus from 'tus-js-client';
-import { postsApi, videosApi } from '../services/api';
+import { postsApi, coursesApi } from '../services/api';
 
 interface Attachment {
   label: string;
@@ -24,12 +23,16 @@ interface Post {
 }
 
 const TAGS = ['general', 'announcement', 'resource', 'assignment', 'update'];
-const COURSE_SLUG = 'du-campus-advantage';
+
+interface CourseOption {
+  _id: string;
+  title: string;
+}
 
 const emptyForm = {
   title: '',
   content: '',
-  courseSlug: COURSE_SLUG,
+  courseSlug: '',
   tag: 'general',
   isPinned: false,
   isPublished: true,
@@ -53,6 +56,7 @@ const AdminPostsPage: React.FC = () => {
   }, [navigate]);
 
   const [posts, setPosts] = useState<Post[]>([]);
+  const [courses, setCourses] = useState<CourseOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -60,17 +64,21 @@ const AdminPostsPage: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [videoProgress, setVideoProgress] = useState<number | null>(null);
+  const [videoReadyUids, setVideoReadyUids] = useState<Set<string>>(new Set());
+  const [cfUidInput, setCfUidInput] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const videoFileRef = useRef<HTMLInputElement>(null);
   const imageFileRef = useRef<HTMLInputElement>(null);
   const docFileRef = useRef<HTMLInputElement>(null);
   const coverFileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => {
+    fetchPosts();
+    coursesApi.getAll({ limit: 100 }).then((res) => {
+      setCourses(res.data || []);
+    }).catch(() => {});
+  }, []);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -110,13 +118,39 @@ const AdminPostsPage: React.FC = () => {
       setError('Title and content are required.');
       return;
     }
+    if (!form.courseSlug) {
+      setError('Please select a course.');
+      return;
+    }
+
+    // Auto-flush any UID that was pasted but not yet added via the "Add video" button
+    let finalForm = form;
+    if (cfUidInput.trim()) {
+      const uid = cfUidInput.trim();
+      finalForm = {
+        ...form,
+        attachments: [
+          ...form.attachments,
+          {
+            label: uid,
+            url: `https://iframe.cloudflarestream.com/${uid}`,
+            type: 'video' as const,
+            cloudflareVideoId: uid,
+          },
+        ],
+      };
+      setForm(finalForm);
+      setVideoReadyUids((prev) => new Set(Array.from(prev).concat(uid)));
+      setCfUidInput('');
+    }
+
     setSaving(true);
     setError('');
     try {
       if (editingId) {
-        await postsApi.updatePost(editingId, form);
+        await postsApi.updatePost(editingId, finalForm);
       } else {
-        await postsApi.createPost(form);
+        await postsApi.createPost(finalForm);
       }
       setShowModal(false);
       fetchPosts();
@@ -134,42 +168,6 @@ const AdminPostsPage: React.FC = () => {
       fetchPosts();
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Delete failed.');
-    }
-  };
-
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingVideo(true);
-    setVideoProgress(0);
-    setError('');
-    try {
-      const urlRes = await videosApi.getUploadUrl();
-      const { uploadURL, uid } = urlRes.data;
-      await new Promise<void>((resolve, reject) => {
-        const upload = new tus.Upload(file, {
-          uploadUrl: uploadURL,
-          chunkSize: 50 * 1024 * 1024,
-          metadata: { name: file.name, type: file.type },
-          onProgress: (sent, total) => setVideoProgress(Math.round((sent / total) * 100)),
-          onSuccess: () => resolve(),
-          onError: (err) => reject(err),
-        });
-        upload.start();
-      });
-      setForm((f) => ({
-        ...f,
-        attachments: [
-          ...f.attachments,
-          { label: file.name, url: `https://iframe.cloudflarestream.com/${uid}`, type: 'video' as const, cloudflareVideoId: uid },
-        ],
-      }));
-    } catch {
-      setError('Video upload failed. Please try again.');
-    } finally {
-      setUploadingVideo(false);
-      setVideoProgress(null);
-      if (videoFileRef.current) videoFileRef.current.value = '';
     }
   };
 
@@ -234,8 +232,6 @@ const AdminPostsPage: React.FC = () => {
     }));
   };
 
-  const ATTACHMENT_ICONS: Record<string, string> = { video: '🎥', image: '🖼️', document: '📄' };
-
   const TAG_COLORS: Record<string, string> = {
     announcement: 'bg-red-100 text-red-700',
     resource: 'bg-blue-100 text-blue-700',
@@ -258,7 +254,7 @@ const AdminPostsPage: React.FC = () => {
             </button>
             <h1 className="text-xl font-bold text-gray-900">Posts Management</h1>
             <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-              {COURSE_SLUG}
+              All Courses
             </span>
           </div>
           <button
@@ -306,6 +302,9 @@ const AdminPostsPage: React.FC = () => {
                     </span>
                   </div>
                   <h3 className="text-base font-bold text-gray-900 truncate">{post.title}</h3>
+                  <p className="text-xs text-amber-600 font-medium mt-0.5 truncate">
+                    {courses.find(c => c._id === post.courseSlug)?.title || post.courseSlug}
+                  </p>
                   <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{post.content}</p>
                   {post.attachments?.length > 0 && (
                     <p className="text-xs text-blue-500 mt-1">📎 {post.attachments.length} attachment{post.attachments.length > 1 ? 's' : ''}</p>
@@ -382,13 +381,17 @@ const AdminPostsPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Course *</label>
+                  <select
                     value={form.courseSlug}
                     onChange={(e) => setForm((f) => ({ ...f, courseSlug: e.target.value }))}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                  />
+                  >
+                    <option value="">— Select a course —</option>
+                    {courses.map((c) => (
+                      <option key={c._id} value={c._id}>{c.title}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               {/* Cover Image */}
@@ -445,40 +448,111 @@ const AdminPostsPage: React.FC = () => {
                   <span className="text-sm font-semibold text-gray-700">📎 Attachments</span>
                 </div>
 
-                {/* Uploaded items */}
+                {/* Uploaded items preview */}
                 {form.attachments.length > 0 && (
-                  <div className="px-4 pt-3 pb-1 space-y-2">
-                    {form.attachments.map((att, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2">
-                        <span className="text-base flex-shrink-0">{ATTACHMENT_ICONS[att.type || 'document'] || '📎'}</span>
-                        <span className="text-sm text-gray-700 flex-1 truncate">{att.label || 'Attachment'}</span>
-                        <button onClick={() => removeAttachment(idx)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-sm">✕</button>
-                      </div>
-                    ))}
+                  <div className="px-4 pt-3 pb-3 border-b border-gray-100">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                      Uploaded ({form.attachments.length})
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {form.attachments.map((att, idx) => (
+                        <div key={idx} className="relative border border-gray-200 rounded-lg overflow-hidden bg-gray-50 group">
+                          {/* Image preview */}
+                          {att.type === 'image' && (
+                            <a href={att.url} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={att.url}
+                                alt={att.label}
+                                className="w-full h-24 object-cover hover:opacity-90 transition-opacity"
+                              />
+                            </a>
+                          )}
+                          {/* Video preview — Cloudflare Stream embed */}
+                          {att.type === 'video' && (
+                            <div className="w-full h-24 bg-black overflow-hidden relative">
+                              {videoReadyUids.has(att.cloudflareVideoId || '') ? (
+                                <iframe
+                                  src={`https://iframe.cloudflarestream.com/${att.cloudflareVideoId}?poster=https%3A%2F%2Fvideodelivery.net%2F${att.cloudflareVideoId}%2Fthumbnails%2Fthumbnail.jpg`}
+                                  className="w-full h-full"
+                                  allow="autoplay; fullscreen"
+                                  title={att.label}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-gray-900">
+                                  <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                                  <span className="text-xs text-purple-300">Processing…</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {/* Document preview */}
+                          {(att.type === 'document' || (!att.type && att.url)) && (
+                            <a
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex flex-col items-center justify-center h-24 gap-1 hover:bg-gray-100 transition-colors"
+                            >
+                              <span className="text-3xl">📄</span>
+                              <span className="text-xs text-blue-500 font-medium">View file</span>
+                            </a>
+                          )}
+                          {/* Label bar + remove */}
+                          <div className="flex items-center gap-1 px-2 py-1.5 bg-white border-t border-gray-200">
+                            <span className="text-xs text-gray-600 flex-1 truncate">{att.label || 'Attachment'}</span>
+                            <button
+                              onClick={() => removeAttachment(idx)}
+                              className="flex-shrink-0 text-red-400 hover:text-red-600 text-xs leading-none"
+                              title="Remove"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 <div className="p-4 space-y-3">
-                  {/* VIDEO — Cloudflare Stream */}
+                  {/* VIDEO — Cloudflare Stream (paste UID) */}
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">🎥 Video · Cloudflare Stream</p>
-                    {uploadingVideo ? (
-                      <div className="rounded-lg border border-purple-200 bg-purple-50 p-3">
-                        <div className="flex justify-between mb-1">
-                          <span className="text-xs text-purple-700 font-medium">Uploading video…</span>
-                          <span className="text-xs text-purple-700 font-bold">{videoProgress ?? 0}%</span>
-                        </div>
-                        <div className="w-full bg-purple-200 rounded-full h-1.5">
-                          <div className="bg-purple-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${videoProgress ?? 0}%` }} />
-                        </div>
-                      </div>
-                    ) : (
-                      <label className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-200 hover:border-purple-400 hover:bg-purple-50 rounded-lg cursor-pointer transition-colors">
-                        <span>🎬</span>
-                        <span className="text-sm text-gray-500">Click to upload video</span>
-                        <input ref={videoFileRef} type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
-                      </label>
-                    )}
+                    <p className="text-xs text-gray-400 mb-1.5">Paste a Video UID from the Cloudflare dashboard:</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={cfUidInput}
+                        onChange={(e) => setCfUidInput(e.target.value.trim())}
+                        placeholder="ee03bbe381032427d689a2d5919ccbfd"
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      />
+                      <button
+                        type="button"
+                        disabled={!cfUidInput}
+                        onClick={() => {
+                          const uid = cfUidInput;
+                          if (!uid) return;
+                          setForm((f) => ({
+                            ...f,
+                            attachments: [
+                              ...f.attachments,
+                              {
+                                label: uid,
+                                url: `https://iframe.cloudflarestream.com/${uid}`,
+                                type: 'video' as const,
+                                cloudflareVideoId: uid,
+                              },
+                            ],
+                          }));
+                          setVideoReadyUids((prev) => new Set(Array.from(prev).concat(uid)));
+                          setCfUidInput('');
+                        }}
+                        className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 disabled:opacity-40 text-white rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                      >
+                        Add video
+                      </button>
+                    </div>
                   </div>
 
                   {/* IMAGES — Cloudinary */}
@@ -523,7 +597,7 @@ const AdminPostsPage: React.FC = () => {
               </button>
               <button
                 onClick={handleSave}
-                disabled={saving || uploadingVideo || uploadingImage || uploadingDoc || uploadingCover}
+                disabled={saving || uploadingImage || uploadingDoc || uploadingCover}
                 className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
               >
                 {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Post'}
