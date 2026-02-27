@@ -38,7 +38,7 @@ const Footer: React.FC = () => {
       <div className="container-custom section-padding">
         {/* Logo Section */}
         <div className="flex justify-center mb-12">
-          <div className="text-white text-2xl font-bold">HeyStudent</div>
+          <div className="text-white text-2xl font-bold">Heystudent</div>
         </div>
 
         {/* Main footer content */}
@@ -147,7 +147,7 @@ const Footer: React.FC = () => {
         <div className="mt-12 pt-8 border-t border-neutral-800">
           <div className="flex flex-col md:flex-row justify-center md:justify-between items-center space-y-4 md:space-y-0">
             <p className="text-neutral-400 text-sm text-center md:text-left">
-              &copy; {currentYear} Hey Students. All rights reserved.
+              &copy; {currentYear} Heystudent. All rights reserved.
             </p>
             <div className="flex items-center space-x-6 text-sm text-neutral-400">
               <span>Made with</span>

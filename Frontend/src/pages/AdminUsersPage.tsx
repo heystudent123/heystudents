@@ -191,7 +191,7 @@ const AdminUsersPage: React.FC = () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
     
     // Generate Excel file and trigger download
-    XLSX.writeFile(workbook, 'HeyStudents_Users_' + new Date().toISOString().split('T')[0] + '.xlsx');
+    XLSX.writeFile(workbook, 'Heystudent_Users_' + new Date().toISOString().split('T')[0] + '.xlsx');
   };
 
   if (loading) {

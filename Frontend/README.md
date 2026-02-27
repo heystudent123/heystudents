@@ -1,4 +1,4 @@
-# Hey Students
+# Heystudent
 
 A comprehensive platform for Delhi University students offering resources, events, alumni connections, and accommodation information. The ultimate companion for your DU journey.
 

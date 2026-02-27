@@ -11,13 +11,13 @@ const AboutPage: React.FC = () => {
       <div className="pt-28 pb-16 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-block bg-black/5 px-4 py-1.5 rounded-full mb-5">
-            <span className="text-sm font-medium">About HeyStudent</span>
+            <span className="text-sm font-medium">About Heystudent</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-black mb-5 leading-tight">
             We built the resource<br />we wish we had.
           </h1>
           <p className="text-lg text-neutral-600 max-w-xl mx-auto leading-relaxed">
-            HeyStudent is a CUET preparation platform built by students who ranked in the national top 100 — not coaching veterans, just people who sat the same exam and figured out what actually works.
+            Heystudent is a CUET preparation platform built by students who ranked in the national top 100 — not coaching veterans, just people who sat the same exam and figured out what actually works.
           </p>
         </div>
       </div>
@@ -36,7 +36,7 @@ const AboutPage: React.FC = () => {
                 Coaching centers give you syllabus. We give you strategy. There's a big difference — and that difference is what separates a 70 percentile from a 99.
               </p>
               <p className="text-neutral-600 leading-relaxed">
-                HeyStudent started because we wanted to share exactly what we did, in a format that's honest, affordable, and built around how CUET actually works — not how coaching centers teach it.
+                Heystudent started because we wanted to share exactly what we did, in a format that's honest, affordable, and built around how CUET actually works — not how coaching centers teach it.
               </p>
             </div>
             <div className="rounded-2xl overflow-hidden h-72 md:h-80">
@@ -104,7 +104,7 @@ const AboutPage: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3">The Team</p>
-            <h2 className="text-3xl font-bold text-black">Who's behind HeyStudent.</h2>
+            <h2 className="text-3xl font-bold text-black">Who's behind Heystudent.</h2>
           </div>
           <div className="grid sm:grid-cols-2 gap-6">
             {[

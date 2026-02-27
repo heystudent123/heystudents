@@ -80,15 +80,27 @@ const SharedNavbar: React.FC = () => {
           zIndex: 9999,
           backgroundColor: '#fff9ed',
           color: 'black',
-          overflow: 'hidden', // Changed from overflowX to control both axes
+          overflow: 'visible', // allow logo to overflow visually without changing nav height
           transition: 'top 0.3s',
+          height: '64px',
+          minHeight: '64px',
+          boxSizing: 'border-box',
         }}
       >
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center relative">
-            {/* Logo */}
-            <Link to="/" className="flex items-center" onClick={handleLinkClick}>
-              <div className="text-black text-xl font-bold">Hey Students</div>
+            {/* Logo (image only) */}
+            <Link to="/" className="flex items-center" onClick={handleLinkClick} aria-label="Home" style={{ alignItems: 'center' }}>
+              <img
+                src="/logo.png"
+                alt="Heystudent"
+                style={{
+                  height: '200px',
+                  width: 'auto',
+                  transform: 'translateY(0px)', // slightly raise the logo while nav height stays 64px
+                  display: 'block',
+                }}
+              />
             </Link>
             
             {/* Desktop Navigation */}

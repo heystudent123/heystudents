@@ -102,15 +102,15 @@ const HomePage: React.FC = () => {
       <div style={contentStyle}>
         <Hero className="relative min-h-[70vh] overflow-hidden" />
 
-        {/* ── WHY HEY STUDENT ──────────────────────────────────────── */}
+        {/* ── WHY HEYSTUDENT ──────────────────────────────────────── */}
         <FadeIn>
           <section className="py-20 md:py-28 px-4" style={{ background: '#fff9ed' }}>
             <div className="max-w-5xl mx-auto">
               <div className="text-center mb-14">
-                <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3">Why Hey Student?</p>
+                <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3">Why Heystudent?</p>
                 <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">Because your preparation deserves<br />more than random YouTube videos.</h2>
                 <p className="text-neutral-500 max-w-xl mx-auto text-base leading-relaxed">
-                  Hey Student is built by All India Rankers, students currently studying in SRCC, Hindu &amp; Hansraj, and a team that has analysed 3 years of CUET trends.
+                  Heystudent is built by All India Rankers, students currently studying in SRCC, Hindu &amp; Hansraj, and a team that has analysed 3 years of CUET trends.
                 </p>
               </div>
               <div className="grid md:grid-cols-2 gap-6">

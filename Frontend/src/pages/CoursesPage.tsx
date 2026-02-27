@@ -156,7 +156,7 @@ const CoursesPage: React.FC = () => {
           key: keyId || process.env.REACT_APP_RAZORPAY_KEY_ID,
           amount,
           currency,
-          name: 'HeyStudent',
+          name: 'Heystudent',
           description: targetCourse.title,
           order_id: orderId,
           prefill: {
