@@ -19,7 +19,7 @@ const PostSchema = new mongoose.Schema(
       trim: true,
       default: 'du-campus-advantage', // default to the premium course
     },
-    // Optional attachment / resource links
+    // Optional attachment / resource links (unfiled — backward-compatible)
     attachments: [
       {
         label: { type: String, trim: true },
@@ -30,6 +30,24 @@ const PostSchema = new mongoose.Schema(
           default: 'document',
         },
         cloudflareVideoId: { type: String, trim: true, default: '' },
+      },
+    ],
+    // Folder-based content organisation
+    folders: [
+      {
+        name: { type: String, required: true, trim: true },
+        attachments: [
+          {
+            label: { type: String, trim: true },
+            url: { type: String, trim: true },
+            type: {
+              type: String,
+              enum: ['image', 'document', 'video'],
+              default: 'document',
+            },
+            cloudflareVideoId: { type: String, trim: true, default: '' },
+          },
+        ],
       },
     ],
     // Banner or cover image URL

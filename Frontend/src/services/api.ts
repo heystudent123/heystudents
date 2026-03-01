@@ -597,6 +597,36 @@ export const paymentsApi = {
       throw error;
     }
   },
+
+  savePrePaymentLead: async (data: {
+    name: string;
+    phone: string;
+    email?: string;
+    city?: string;
+    college?: string;
+    courseId?: string;
+    courseTitle?: string;
+    referralCode?: string;
+  }) => {
+    try {
+      const response = await api.post('/payments/save-lead', data);
+      return response.data;
+    } catch (error) {
+      // Non-blocking — don't throw if lead saving fails
+      console.warn('Could not save pre-payment lead:', error);
+      return null;
+    }
+  },
+
+  getAllLeads: async (page = 1, limit = 100) => {
+    try {
+      const response = await api.get(`/payments/leads?page=${page}&limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      throw error;
+    }
+  },
 };
 
 // =================== ENROLLMENTS API ===================
@@ -620,7 +650,35 @@ export const enrollmentsApi = {
       throw error;
     }
   },
-};
+  savePrePaymentLead: async (data: {
+    name: string;
+    phone: string;
+    email?: string;
+    city?: string;
+    college?: string;
+    courseId?: string;
+    courseTitle?: string;
+    referralCode?: string;
+  }) => {
+    try {
+      const response = await api.post('/payments/save-lead', data);
+      return response.data;
+    } catch (error) {
+      // Non-critical — swallow silently
+      console.warn('Could not save pre-payment lead:', error);
+      return {};
+    }
+  },
+
+  getAllLeads: async (params?: { page?: number; limit?: number }) => {
+    try {
+      const response = await api.get('/payments/leads', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      throw error;
+    }
+  },};
 
 // =================== POSTS API ===================
 export const postsApi = {

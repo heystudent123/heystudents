@@ -449,7 +449,7 @@ const AdminCoursesPage: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Category <span className="text-neutral-400 font-normal">(select all that apply)</span></label>
                     <div className="flex flex-wrap gap-2">
-                      {['Commerce', 'Arts', 'Technology', 'Business', 'Design', 'Data Science', 'Career', 'Skills', 'Programming', 'Creative Arts', 'Personal Development', 'Other'].map(cat => (
+                      {['Commerce', 'Arts', 'English', 'Pol Sci', 'Geography', 'History', 'Accounts', 'Business Studies', 'Economics', 'Maths', 'CUET Arts', 'CUET Commerce', 'CUET'].map(cat => (
                         <button
                           key={cat}
                           type="button"

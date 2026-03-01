@@ -96,9 +96,12 @@ const SharedNavbar: React.FC = () => {
                 alt="Heystudent"
                 style={{
                   height: '200px',
+                  maxWidth: '180px',
                   width: 'auto',
-                  transform: 'translateY(0px)', // slightly raise the logo while nav height stays 64px
+                  objectFit: 'contain',
+                  transform: 'translateY(0px)',
                   display: 'block',
+                  flexShrink: 0,
                 }}
               />
             </Link>
@@ -118,21 +121,20 @@ const SharedNavbar: React.FC = () => {
                 >
                   About Us
                 </Link>
-                {isEnrolled ? (
+                {isEnrolled && (
                   <Link
                     to="/student/dashboard"
                     className={`font-medium ${location.pathname === '/student/dashboard' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
                   >
-                    Student Dashboard
-                  </Link>
-                ) : (
-                  <Link 
-                    to="/courses" 
-                    className={`font-medium ${location.pathname === '/courses' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
-                  >
-                    Courses
+                    My Dashboard
                   </Link>
                 )}
+                <Link 
+                  to="/courses" 
+                  className={`font-medium ${location.pathname === '/courses' ? 'text-black font-bold' : 'text-gray-600 hover:text-gray-900'}`}
+                >
+                  Courses
+                </Link>
               </div>
               
               <div className="flex items-center space-x-4">
@@ -205,23 +207,22 @@ const SharedNavbar: React.FC = () => {
               >
                 About Us
               </Link>
-              {isEnrolled ? (
+              {isEnrolled && (
                 <Link
                   to="/student/dashboard"
                   className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/student/dashboard' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
                   onClick={handleLinkClick}
                 >
-                  Student Dashboard
-                </Link>
-              ) : (
-                <Link 
-                  to="/courses" 
-                  className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/courses' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
-                  onClick={handleLinkClick}
-                >
-                  Courses
+                  My Dashboard
                 </Link>
               )}
+              <Link 
+                to="/courses" 
+                className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/courses' ? 'text-black font-bold underline bg-[#ffe8b5]' : 'text-gray-800 hover:bg-[#ffe8b5]'}`}
+                onClick={handleLinkClick}
+              >
+                Courses
+              </Link>
               
               {/* Divider */}
               <div className="border-t border-gray-200 my-2"></div>

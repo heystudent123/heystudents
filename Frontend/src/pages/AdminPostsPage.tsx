@@ -9,6 +9,12 @@ interface Attachment {
   cloudflareVideoId?: string;
 }
 
+interface Folder {
+  id: string;           // client-side only — stripped before save
+  name: string;
+  attachments: Attachment[];
+}
+
 interface Post {
   _id: string;
   title: string;
@@ -18,6 +24,7 @@ interface Post {
   isPinned: boolean;
   isPublished: boolean;
   attachments: Attachment[];
+  folders?: Folder[];
   coverImage?: string;
   createdAt: string;
 }
@@ -38,6 +45,7 @@ const emptyForm = {
   isPublished: true,
   coverImage: '',
   attachments: [] as Attachment[],
+  folders: [] as Folder[],
 };
 
 const AdminPostsPage: React.FC = () => {
@@ -73,6 +81,17 @@ const AdminPostsPage: React.FC = () => {
   const docFileRef = useRef<HTMLInputElement>(null);
   const coverFileRef = useRef<HTMLInputElement>(null);
 
+  // ── Folder states ──────────────────────────────────────────────────────
+  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [folderUploadTarget, setFolderUploadTarget] = useState<string | null>(null);
+  const [uploadingFolderImage, setUploadingFolderImage] = useState(false);
+  const [uploadingFolderDoc, setUploadingFolderDoc] = useState(false);
+  const [cfFolderUidInputs, setCfFolderUidInputs] = useState<Record<string, string>>({});
+  const folderImageRef = useRef<HTMLInputElement>(null);
+  const folderDocRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     fetchPosts();
     coursesApi.getAll({ limit: 100 }).then((res) => {
@@ -95,10 +114,19 @@ const AdminPostsPage: React.FC = () => {
   const openCreate = () => {
     setForm({ ...emptyForm });
     setEditingId(null);
+    setShowNewFolderInput(false);
+    setNewFolderName('');
+    setExpandedFolders(new Set());
+    setFolderUploadTarget(null);
+    setCfFolderUidInputs({});
     setShowModal(true);
   };
 
   const openEdit = (post: Post) => {
+    const initFolders: Folder[] = (post.folders || []).map((f: any, i: number) => ({
+      ...f,
+      id: `f-${Date.now()}-${i}`,
+    }));
     setForm({
       title: post.title,
       content: post.content,
@@ -108,8 +136,16 @@ const AdminPostsPage: React.FC = () => {
       isPublished: post.isPublished,
       coverImage: post.coverImage || '',
       attachments: post.attachments || [],
+      folders: initFolders,
     });
     setEditingId(post._id);
+    setShowNewFolderInput(false);
+    setNewFolderName('');
+    setExpandedFolders(new Set());
+    setFolderUploadTarget(null);
+    const initCfInputs: Record<string, string> = {};
+    initFolders.forEach(f => { initCfInputs[f.id] = ''; });
+    setCfFolderUidInputs(initCfInputs);
     setShowModal(true);
   };
 
@@ -147,10 +183,16 @@ const AdminPostsPage: React.FC = () => {
     setSaving(true);
     setError('');
     try {
+      // Strip client-only 'id' from folders before saving
+      const { folders, ...restForm } = finalForm;
+      const savePayload = {
+        ...restForm,
+        folders: folders.map(({ id: _id, ...rest }) => rest),
+      };
       if (editingId) {
-        await postsApi.updatePost(editingId, finalForm);
+        await postsApi.updatePost(editingId, savePayload);
       } else {
-        await postsApi.createPost(finalForm);
+        await postsApi.createPost(savePayload);
       }
       setShowModal(false);
       fetchPosts();
@@ -232,6 +274,113 @@ const AdminPostsPage: React.FC = () => {
     }));
   };
 
+  // ── Folder helpers ────────────────────────────────────────────────────────
+  const addFolder = () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    const id = `f-${Date.now()}`;
+    setForm((f) => ({ ...f, folders: [...f.folders, { id, name, attachments: [] }] }));
+    setExpandedFolders((prev) => new Set(Array.from(prev).concat(id)));
+    setCfFolderUidInputs((prev) => ({ ...prev, [id]: '' }));
+    setNewFolderName('');
+    setShowNewFolderInput(false);
+  };
+
+  const removeFolder = (folderId: string) => {
+    setForm((f) => ({ ...f, folders: f.folders.filter((fl) => fl.id !== folderId) }));
+    setExpandedFolders((prev) => { const s = new Set(prev); s.delete(folderId); return s; });
+  };
+
+  const toggleFolder = (folderId: string) => {
+    setExpandedFolders((prev) => {
+      const s = new Set(prev);
+      s.has(folderId) ? s.delete(folderId) : s.add(folderId);
+      return s;
+    });
+  };
+
+  const removeFolderAttachment = (folderId: string, idx: number) => {
+    setForm((f) => ({
+      ...f,
+      folders: f.folders.map((fl) =>
+        fl.id === folderId
+          ? { ...fl, attachments: fl.attachments.filter((_, i) => i !== idx) }
+          : fl,
+      ),
+    }));
+  };
+
+  const handleFolderImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !folderUploadTarget) return;
+    const targetId = folderUploadTarget;
+    setUploadingFolderImage(true);
+    setError('');
+    try {
+      const res = await postsApi.uploadAttachment(file);
+      setForm((f) => ({
+        ...f,
+        folders: f.folders.map((fl) =>
+          fl.id === targetId
+            ? { ...fl, attachments: [...fl.attachments, { label: res.data.originalName, url: res.data.url, type: 'image' as const }] }
+            : fl,
+        ),
+      }));
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Image upload failed.');
+    } finally {
+      setUploadingFolderImage(false);
+      setFolderUploadTarget(null);
+      if (folderImageRef.current) folderImageRef.current.value = '';
+    }
+  };
+
+  const handleFolderDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !folderUploadTarget) return;
+    const targetId = folderUploadTarget;
+    setUploadingFolderDoc(true);
+    setError('');
+    try {
+      const res = await postsApi.uploadAttachment(file);
+      setForm((f) => ({
+        ...f,
+        folders: f.folders.map((fl) =>
+          fl.id === targetId
+            ? { ...fl, attachments: [...fl.attachments, { label: res.data.originalName, url: res.data.url, type: 'document' as const }] }
+            : fl,
+        ),
+      }));
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Document upload failed.');
+    } finally {
+      setUploadingFolderDoc(false);
+      setFolderUploadTarget(null);
+      if (folderDocRef.current) folderDocRef.current.value = '';
+    }
+  };
+
+  const addFolderVideo = (folderId: string) => {
+    const uid = (cfFolderUidInputs[folderId] || '').trim();
+    if (!uid) return;
+    setForm((f) => ({
+      ...f,
+      folders: f.folders.map((fl) =>
+        fl.id === folderId
+          ? {
+              ...fl,
+              attachments: [
+                ...fl.attachments,
+                { label: uid, url: `https://iframe.cloudflarestream.com/${uid}`, type: 'video' as const, cloudflareVideoId: uid },
+              ],
+            }
+          : fl,
+      ),
+    }));
+    setVideoReadyUids((prev) => new Set(Array.from(prev).concat(uid)));
+    setCfFolderUidInputs((prev) => ({ ...prev, [folderId]: '' }));
+  };
+
   const TAG_COLORS: Record<string, string> = {
     announcement: 'bg-red-100 text-red-700',
     resource: 'bg-blue-100 text-blue-700',
@@ -308,6 +457,9 @@ const AdminPostsPage: React.FC = () => {
                   <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{post.content}</p>
                   {post.attachments?.length > 0 && (
                     <p className="text-xs text-blue-500 mt-1">📎 {post.attachments.length} attachment{post.attachments.length > 1 ? 's' : ''}</p>
+                  )}
+                  {(post.folders?.length ?? 0) > 0 && (
+                    <p className="text-xs text-amber-500 mt-0.5">📁 {post.folders!.length} folder{post.folders!.length > 1 ? 's' : ''}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -442,7 +594,160 @@ const AdminPostsPage: React.FC = () => {
                   <span className="text-sm text-gray-700">Published</span>
                 </label>
               </div>
-              {/* ── Attachments ─────────────────────────────────── */}
+              {/* ── Folders ──────────────────────────────────────────────── */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">📁 Content Folders</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewFolderInput((v) => !v)}
+                    className="text-xs px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold transition-colors"
+                  >
+                    + Add Folder
+                  </button>
+                </div>
+
+                {/* New folder input */}
+                {showNewFolderInput && (
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 bg-amber-50">
+                    <input
+                      type="text"
+                      autoFocus
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') addFolder(); if (e.key === 'Escape') { setShowNewFolderInput(false); setNewFolderName(''); } }}
+                      placeholder="Folder name e.g. Week 1 · Physics"
+                      className="flex-1 border border-amber-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    />
+                    <button type="button" onClick={addFolder} disabled={!newFolderName.trim()} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-lg text-xs font-semibold transition-colors">
+                      Create
+                    </button>
+                    <button type="button" onClick={() => { setShowNewFolderInput(false); setNewFolderName(''); }} className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                {form.folders.length === 0 && !showNewFolderInput && (
+                  <div className="px-4 py-5 text-center text-sm text-gray-400">
+                    No folders yet. Click <strong>+ Add Folder</strong> to organise content by subject or week.
+                  </div>
+                )}
+
+                {/* Hidden file inputs for folder uploads */}
+                <input ref={folderImageRef} type="file" accept="image/*" className="hidden" onChange={handleFolderImageUpload} />
+                <input ref={folderDocRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" className="hidden" onChange={handleFolderDocUpload} />
+
+                {/* Folder list */}
+                {form.folders.map((folder) => {
+                  const isExpanded = expandedFolders.has(folder.id);
+                  return (
+                    <div key={folder.id} className="border-b border-gray-100 last:border-b-0">
+                      {/* Folder header */}
+                      <div className="flex items-center gap-2 px-4 py-3 bg-white hover:bg-gray-50 transition-colors">
+                        <button type="button" onClick={() => toggleFolder(folder.id)} className="flex-1 flex items-center gap-2 text-left">
+                          <span className="text-base">{isExpanded ? '📂' : '📁'}</span>
+                          <span className="text-sm font-semibold text-gray-800">{folder.name}</span>
+                          <span className="text-xs text-gray-400 ml-1">({folder.attachments.length} file{folder.attachments.length !== 1 ? 's' : ''})</span>
+                          <svg className={`ml-auto w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <button type="button" onClick={() => removeFolder(folder.id)} className="flex-shrink-0 text-red-400 hover:text-red-600 transition-colors text-xs px-2 py-1 rounded-lg hover:bg-red-50">
+                          🗑
+                        </button>
+                      </div>
+
+                      {/* Folder contents */}
+                      {isExpanded && (
+                        <div className="bg-gray-50 px-4 pb-4 pt-2 space-y-3">
+                          {/* Uploaded folder items */}
+                          {folder.attachments.length > 0 && (
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 mb-2">
+                              {folder.attachments.map((att, idx) => (
+                                <div key={idx} className="relative border border-gray-200 rounded-lg overflow-hidden bg-white group">
+                                  {att.type === 'image' && (
+                                    <a href={att.url} target="_blank" rel="noopener noreferrer">
+                                      <img src={att.url} alt={att.label} className="w-full h-20 object-cover hover:opacity-90 transition-opacity" />
+                                    </a>
+                                  )}
+                                  {att.type === 'video' && (
+                                    <div className="w-full h-20 bg-gray-900 flex items-center justify-center gap-1">
+                                      <span className="text-purple-400 text-xs font-mono truncate px-2">▶ {att.cloudflareVideoId}</span>
+                                    </div>
+                                  )}
+                                  {att.type === 'document' && (
+                                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center h-20 gap-1 hover:bg-gray-100 transition-colors">
+                                      <span className="text-2xl">📄</span>
+                                      <span className="text-xs text-blue-500 font-medium">View</span>
+                                    </a>
+                                  )}
+                                  <div className="flex items-center gap-1 px-2 py-1.5 bg-white border-t border-gray-200">
+                                    <span className="text-xs text-gray-600 flex-1 truncate">{att.label || 'File'}</span>
+                                    <button onClick={() => removeFolderAttachment(folder.id, idx)} className="flex-shrink-0 text-red-400 hover:text-red-600 text-xs" title="Remove">✕</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Folder upload controls */}
+                          {/* Video */}
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">🎥 Video · Cloudflare Stream</p>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={cfFolderUidInputs[folder.id] || ''}
+                                onChange={(e) => setCfFolderUidInputs((prev) => ({ ...prev, [folder.id]: e.target.value.trim() }))}
+                                placeholder="Cloudflare Video UID"
+                                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-purple-400"
+                              />
+                              <button type="button" disabled={!cfFolderUidInputs[folder.id]} onClick={() => addFolderVideo(folder.id)}
+                                className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 disabled:opacity-40 text-white rounded-lg text-xs font-medium transition-colors whitespace-nowrap">
+                                Add video
+                              </button>
+                            </div>
+                          </div>
+                          {/* Images */}
+                          <label
+                            className={`flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                              uploadingFolderImage && folderUploadTarget === folder.id
+                                ? 'border-blue-300 bg-blue-50 pointer-events-none'
+                                : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50'
+                            }`}
+                            onClick={(e) => { e.preventDefault(); setFolderUploadTarget(folder.id); setTimeout(() => folderImageRef.current?.click(), 0); }}
+                          >
+                            {uploadingFolderImage && folderUploadTarget === folder.id ? (
+                              <><div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /><span className="text-sm text-blue-600">Uploading…</span></>
+                            ) : (
+                              <><span>🖼️</span><span className="text-sm text-gray-500">Upload image to folder</span></>
+                            )}
+                          </label>
+                          {/* Documents */}
+                          <label
+                            className={`flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                              uploadingFolderDoc && folderUploadTarget === folder.id
+                                ? 'border-green-300 bg-green-50 pointer-events-none'
+                                : 'border-green-200 hover:border-green-400 hover:bg-green-50'
+                            }`}
+                            onClick={(e) => { e.preventDefault(); setFolderUploadTarget(folder.id); setTimeout(() => folderDocRef.current?.click(), 0); }}
+                          >
+                            {uploadingFolderDoc && folderUploadTarget === folder.id ? (
+                              <><div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /><span className="text-sm text-green-600">Uploading…</span></>
+                            ) : (
+                              <><span>📄</span><span className="text-sm text-gray-500">Upload document to folder</span></>
+                            )}
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Attachments (hidden when folders exist) ─────── */}
+              {form.folders.length === 0 ? (
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
                   <span className="text-sm font-semibold text-gray-700">📎 Attachments</span>
@@ -586,6 +891,7 @@ const AdminPostsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+              ) : null}
             </div>
             {/* Footer */}
             <div className="p-6 border-t border-gray-100 flex items-center justify-end gap-3">

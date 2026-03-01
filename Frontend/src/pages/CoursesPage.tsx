@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth as useClerkAuth } from '@clerk/clerk-react';
 import SharedNavbar from '../components/SharedNavbar';
 import { coursesApi, paymentsApi, enrollmentsApi, authApi } from '../services/api';
@@ -55,6 +55,7 @@ const CoursesPage: React.FC = () => {
   const { user: clerkUser } = useAuth();
   const { isSignedIn: isClerkSignedIn } = useClerkAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,19 +66,28 @@ const CoursesPage: React.FC = () => {
   // effectiveUser is whoever is currently signed in (Clerk OR admin JWT)
   const user = clerkUser || (localStorage.getItem('token') && adminUser ? adminUser : null);
 
-  // Premium course state
+  // Track which specific course IDs the user has already purchased
   const [isEnrolled, setIsEnrolled] = useState(false);
-  const [purchased, setPurchased] = useState(false);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
 
-  // Referral modal state
-  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [purchased, setPurchased] = useState(false);
   const [pendingCourse, setPendingCourse] = useState<Course | null>(null);
-  const [referralCodeInput, setReferralCodeInput] = useState('');
-  const [appliedReferralCode, setAppliedReferralCode] = useState<string | null>(null);
-  const [referralInfo, setReferralInfo] = useState<{ name: string; _id: string } | null>(null);
-  const [validatingReferral, setValidatingReferral] = useState(false);
-  const [referralError, setReferralError] = useState('');
-  const [referralDiscountedPrice, setReferralDiscountedPrice] = useState<number | null>(null);
+
+  // Student details modal state (shown before payment)
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [studentDetails, setStudentDetails] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    college: '',
+    referralCode: '',
+  });
+  const [detailsErrors, setDetailsErrors] = useState<{ name?: string; phone?: string }>({});
+  const [savingDetails, setSavingDetails] = useState(false);
+  const [inlineReferralInfo, setInlineReferralInfo] = useState<{ name: string; _id: string } | null>(null);
+  const [inlineReferralError, setInlineReferralError] = useState('');
+  const [inlineReferralPrice, setInlineReferralPrice] = useState<number | null>(null);
+  const [validatingInlineReferral, setValidatingInlineReferral] = useState(false);
 
   // Derive the featured paid course from what the backend returns
   const premiumCourse = courses.find(c => c.isPaid) || null;
@@ -85,6 +95,28 @@ const CoursesPage: React.FC = () => {
   useEffect(() => {
     fetchCourses();
   }, []);
+
+  // Auto-enroll: triggered from homepage "Enroll Now" or after login redirect back to /courses
+  useEffect(() => {
+    const shouldAutoEnroll = sessionStorage.getItem('autoEnroll') === 'true';
+    if (!shouldAutoEnroll) return;
+    if (loading) return; // wait for courses to load first
+    const isLoggedIn = !!(isClerkSignedIn || user);
+    if (!isLoggedIn) {
+      // Not logged in yet — keep the flag, redirect to login
+      sessionStorage.setItem('postLoginRedirect', '/courses');
+      navigate('/login');
+      return;
+    }
+    // Logged in — clear flag and kick off the flow
+    sessionStorage.removeItem('autoEnroll');
+    const target = courses.find(c => c.isPaid && c.isActive) || courses[0];
+    if (target) {
+      // Small delay so page render settles before modal opens
+      setTimeout(() => handleEnrollClick(target), 150);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, isClerkSignedIn, user]);
 
   // Check enrollment status when user is available
   useEffect(() => {
@@ -94,6 +126,13 @@ const CoursesPage: React.FC = () => {
       .then((res) => {
         const enrollments = res.data || [];
         setIsEnrolled(enrollments.length > 0);
+        // Build set of enrolled course IDs (courseSlug or courseId._id)
+        const ids = new Set<string>();
+        enrollments.forEach((e: any) => {
+          if (e.courseId?._id) ids.add(e.courseId._id);
+          if (e.courseSlug) ids.add(e.courseSlug);
+        });
+        setEnrolledCourseIds(ids);
       })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,8 +160,8 @@ const CoursesPage: React.FC = () => {
       return;
     }
 
-    // 2. Already enrolled → go to dashboard
-    if (isEnrolled) {
+    // 2. Already enrolled in THIS specific course → go to dashboard
+    if (enrolledCourseIds.has(targetCourse._id)) {
       navigate('/student/dashboard');
       return;
     }
@@ -177,6 +216,7 @@ const CoursesPage: React.FC = () => {
                 razorpaySignature: response.razorpay_signature,
               });
               setIsEnrolled(true);
+              setEnrolledCourseIds(prev => new Set(Array.from(prev).concat(targetCourse._id)));
               setPurchased(true);
               resolve();
             } catch (err) {
@@ -208,62 +248,81 @@ const CoursesPage: React.FC = () => {
     const isLoggedIn = !!(isClerkSignedIn || user);
     if (!isLoggedIn) {
       sessionStorage.setItem('postLoginRedirect', '/courses');
+      sessionStorage.setItem('autoEnroll', 'true'); // resume flow after login
       navigate('/login');
       return;
     }
-    if (isEnrolled) {
+    // Only block if this specific course is already purchased
+    if (enrolledCourseIds.has(course._id)) {
       navigate('/student/dashboard');
       return;
     }
-    // Reset referral state
-    setReferralCodeInput('');
-    setAppliedReferralCode(null);
-    setReferralInfo(null);
-    setReferralError('');
-    setReferralDiscountedPrice(null);
+
+    // Set the pending course
     setPendingCourse(course);
-    setShowReferralModal(true);
+
+    // Pre-fill student details from the logged-in user profile
+    const prefillUser = user || clerkUser;
+    setStudentDetails({
+      name: (prefillUser as any)?.name || (prefillUser as any)?.fullName || '',
+      phone: (prefillUser as any)?.phone || (prefillUser as any)?.whatsapp || '',
+      email: (prefillUser as any)?.email || (prefillUser as any)?.primaryEmailAddress?.emailAddress || '',
+      college: (prefillUser as any)?.college || '',
+      referralCode: '',
+    });
+    setDetailsErrors({});
+    setInlineReferralInfo(null);
+    setInlineReferralError('');
+    setInlineReferralPrice(null);
+
+    // Show student details modal first
+    setShowDetailsModal(true);
   };
 
-  const handleApplyReferralCode = async () => {
-    if (!referralCodeInput.trim()) {
-      setReferralError('Please enter a referral code.');
-      return;
-    }
-    setValidatingReferral(true);
-    setReferralError('');
+  // Handle student details form submission → save lead → proceed straight to payment
+  const handleDetailsSubmit = async () => {
+    const errors: { name?: string; phone?: string } = {};
+    if (!studentDetails.name.trim()) errors.name = 'Name is required';
+    if (!studentDetails.phone.trim()) errors.phone = 'Phone number is required';
+    if (Object.keys(errors).length > 0) { setDetailsErrors(errors); return; }
+
+    setSavingDetails(true);
     try {
-      const res = await authApi.verifyReferralCode(referralCodeInput.trim().toUpperCase());
-      if (res?.data?.valid && res?.data?.institute) {
-        setAppliedReferralCode(referralCodeInput.trim().toUpperCase());
-        setReferralInfo(res.data.institute);
-        // Apply referral price if the course has one
-        if (pendingCourse?.referralPrice && pendingCourse.referralPrice > 0) {
-          setReferralDiscountedPrice(pendingCourse.referralPrice);
+      await paymentsApi.savePrePaymentLead({
+        name: studentDetails.name.trim(),
+        phone: studentDetails.phone.trim(),
+        email: studentDetails.email.trim() || undefined,
+        college: studentDetails.college.trim() || undefined,
+        courseId: pendingCourse?._id,
+        courseTitle: pendingCourse?.title,
+      });
+    } catch { /* non-blocking */ }
+
+    // Validate referral code inline if provided
+    let appliedCode: string | undefined;
+    if (studentDetails.referralCode.trim()) {
+      setValidatingInlineReferral(true);
+      try {
+        const res = await authApi.verifyReferralCode(studentDetails.referralCode.trim().toUpperCase());
+        if (res?.data?.valid && res?.data?.institute) {
+          appliedCode = studentDetails.referralCode.trim().toUpperCase();
+          setInlineReferralInfo(res.data.institute);
+          if (pendingCourse?.referralPrice && pendingCourse.referralPrice > 0) {
+            setInlineReferralPrice(pendingCourse.referralPrice);
+          }
         } else {
-          setReferralDiscountedPrice(null);
+          setInlineReferralError('Invalid referral code — proceeding without discount.');
         }
-        setReferralError('');
-      } else {
-        setReferralError('Invalid referral code. Please check and try again.');
+      } catch {
+        setInlineReferralError('Could not validate referral code — proceeding without discount.');
+      } finally {
+        setValidatingInlineReferral(false);
       }
-    } catch {
-      setReferralError('Invalid referral code. Please check and try again.');
-    } finally {
-      setValidatingReferral(false);
     }
-  };
 
-  const handleProceedWithReferral = async () => {
-    if (!pendingCourse) return;
-    setShowReferralModal(false);
-    await handleEnroll(pendingCourse, appliedReferralCode || undefined);
-  };
-
-  const handleSkipReferral = async () => {
-    if (!pendingCourse) return;
-    setShowReferralModal(false);
-    await handleEnroll(pendingCourse);
+    setSavingDetails(false);
+    setShowDetailsModal(false);
+    if (pendingCourse) await handleEnroll(pendingCourse, appliedCode);
   };
 
   return (
@@ -291,215 +350,426 @@ const CoursesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Referral Code Modal */}
-      {showReferralModal && pendingCourse && (
+      {/* ── Single Enrollment Form Modal ─────────────────────────── */}
+      {showDetailsModal && pendingCourse && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
-            <h2 className="text-2xl font-extrabold text-black mb-1">Have a Referral Code?</h2>
+            <h2 className="text-2xl font-extrabold text-black mb-1">Almost there! 🎓</h2>
             <p className="text-neutral-500 text-sm mb-6">
-              Enter your institute's referral code to unlock a special price. You can skip this step if you don't have one.
+              Fill in your details to get instant course access.
             </p>
 
-            {/* Price preview */}
-            <div className="bg-neutral-50 rounded-2xl p-4 mb-6 flex items-center justify-between">
+            <div className="flex flex-col gap-4">
+              {/* Name */}
               <div>
-                <div className="text-xs text-neutral-400 mb-0.5">Course Price</div>
-                <div className="text-2xl font-extrabold text-black">
-                  ₹{appliedReferralCode && referralDiscountedPrice ? referralDiscountedPrice : pendingCourse.price}
-                </div>
-                {appliedReferralCode && referralDiscountedPrice && referralDiscountedPrice < pendingCourse.price && (
-                  <div className="text-sm text-neutral-400 line-through">₹{pendingCourse.price}</div>
-                )}
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={studentDetails.name}
+                  onChange={e => { setStudentDetails(p => ({ ...p, name: e.target.value })); setDetailsErrors(p => ({ ...p, name: undefined })); }}
+                  placeholder="Your full name"
+                  className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-black text-sm ${detailsErrors.name ? 'border-red-400' : 'border-neutral-300'}`}
+                />
+                {detailsErrors.name && <p className="text-red-500 text-xs mt-1">{detailsErrors.name}</p>}
               </div>
-              {appliedReferralCode && referralInfo && (
-                <div className="text-right">
-                  <div className="text-xs text-green-600 font-semibold">Referral Applied ✓</div>
-                  <div className="text-xs text-neutral-500">{referralInfo.name}</div>
-                </div>
-              )}
+
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                  Phone / WhatsApp <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={studentDetails.phone}
+                  onChange={e => { setStudentDetails(p => ({ ...p, phone: e.target.value })); setDetailsErrors(p => ({ ...p, phone: undefined })); }}
+                  placeholder="10-digit mobile number"
+                  className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-black text-sm ${detailsErrors.phone ? 'border-red-400' : 'border-neutral-300'}`}
+                />
+                {detailsErrors.phone && <p className="text-red-500 text-xs mt-1">{detailsErrors.phone}</p>}
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={studentDetails.email}
+                  onChange={e => setStudentDetails(p => ({ ...p, email: e.target.value }))}
+                  placeholder="your@email.com"
+                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                />
+              </div>
+
+              {/* College */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">College / School</label>
+                <input
+                  type="text"
+                  value={studentDetails.college}
+                  onChange={e => setStudentDetails(p => ({ ...p, college: e.target.value }))}
+                  placeholder="Your college or school name"
+                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                />
+              </div>
+
+              {/* Referral Code */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                  Referral Code <span className="text-neutral-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={studentDetails.referralCode}
+                  onChange={e => { setStudentDetails(p => ({ ...p, referralCode: e.target.value.toUpperCase() })); setInlineReferralError(''); setInlineReferralInfo(null); }}
+                  placeholder="e.g. INST1234"
+                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-mono uppercase"
+                />
+                {inlineReferralError && <p className="text-amber-600 text-xs mt-1">{inlineReferralError}</p>}
+                {inlineReferralInfo && <p className="text-green-600 text-xs mt-1">✓ Code from <span className="font-semibold">{inlineReferralInfo.name}</span> applied{inlineReferralPrice ? ` — ₹${inlineReferralPrice}` : ''}.</p>}
+              </div>
             </div>
 
-            {/* Code input */}
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={referralCodeInput}
-                onChange={e => {
-                  setReferralCodeInput(e.target.value.toUpperCase());
-                  setReferralError('');
-                  if (!e.target.value) {
-                    setAppliedReferralCode(null);
-                    setReferralInfo(null);
-                    setReferralDiscountedPrice(null);
-                  }
-                }}
-                placeholder="e.g. INST1234"
-                className="flex-1 px-4 py-2.5 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-mono uppercase"
-              />
-              <button
-                onClick={handleApplyReferralCode}
-                disabled={validatingReferral || !referralCodeInput.trim()}
-                className="px-4 py-2.5 bg-black text-white rounded-xl text-sm font-semibold hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {validatingReferral ? '...' : 'Apply'}
-              </button>
-            </div>
-
-            {referralError && (
-              <p className="text-red-500 text-xs mb-4">{referralError}</p>
-            )}
-            {appliedReferralCode && referralInfo && (
-              <p className="text-green-600 text-xs mb-4">
-                Code from <span className="font-semibold">{referralInfo.name}</span> applied successfully.
-                {referralDiscountedPrice && referralDiscountedPrice < pendingCourse.price
-                  ? ` You save ₹${pendingCourse.price - referralDiscountedPrice}!`
-                  : ''}
-              </p>
-            )}
-
-            <div className="flex flex-col gap-3 mt-2">
-              <button
-                onClick={handleProceedWithReferral}
-                className="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 rounded-xl transition-colors"
-              >
-                {appliedReferralCode ? `Pay ₹${referralDiscountedPrice || pendingCourse.price} →` : `Pay ₹${pendingCourse.price} →`}
-              </button>
-              <button
-                onClick={handleSkipReferral}
-                className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 font-medium py-2.5 rounded-xl transition-colors text-sm"
-              >
-                Skip — Continue without referral code
-              </button>
-            </div>
+            <button
+              onClick={handleDetailsSubmit}
+              disabled={savingDetails || validatingInlineReferral}
+              className="mt-6 w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 rounded-xl transition-colors disabled:opacity-60"
+            >
+              {savingDetails || validatingInlineReferral ? 'Please wait…' : `Pay ₹${pendingCourse.price} →`}
+            </button>
           </div>
         </div>
       )}
 
       {/* Header Section */}
-      <div className="pt-24 pb-16 px-4 md:px-0">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-block bg-black/5 px-4 py-1.5 rounded-full mb-5">
-            <span className="text-sm font-medium">Student Resources</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-black mb-6">Courses & Learning Resources</h1>
-          <p className="text-lg text-neutral-700 max-w-2xl mx-auto">
-            Discover curated courses and educational resources to enhance your academic journey and career prospects.
+      <div className="pt-24 pb-10 px-4 text-center">
+        <div className="max-w-2xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3">Courses</p>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-black mb-3">Find Your Course</h1>
+          <p className="text-neutral-500 text-base">
+            Curated by All India Rankers. Built for serious students.
           </p>
         </div>
       </div>
 
-      {/* Featured Courses Section */}
-      <div className="py-16 px-4 md:px-0">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-black mb-3">Featured Courses</h2>
-            <p className="text-neutral-700 max-w-xl mx-auto">
-              Popular courses chosen by students like you
-            </p>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-20 text-neutral-400 text-lg">Loading courses…</div>
-          ) : courses.length === 0 ? (
-            <div className="text-center py-20 text-neutral-400 text-lg">No courses available right now.</div>
-          ) : (
-          <div className="flex flex-col gap-8 max-w-4xl mx-auto">
-            {courses.map((course) => {
-              const cats = Array.isArray(course.category)
-                ? course.category
-                : course.category ? [course.category] : [];
-              return (
-                <div key={course._id} className="relative bg-[#0d0d0d] rounded-3xl overflow-hidden">
-                  <div className="h-1 w-full bg-amber-400" />
-                  <div className="p-8 md:p-12">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-10">
-                      <div className="flex-1">
-                        <span className="inline-block text-xs font-bold tracking-widest uppercase bg-amber-400/10 text-amber-400 border border-amber-400/20 px-3 py-1 rounded-full mb-6">
-                          {cats[0] || 'Course'}
-                        </span>
-                        <div className="flex items-end gap-3 mb-2">
-                          <span className="text-5xl font-extrabold text-white">₹{course.price}</span>
-                          {course.originalPrice && course.originalPrice > course.price && (
-                            <span className="text-xl text-neutral-500 line-through mb-1">₹{course.originalPrice}</span>
-                          )}
-                        </div>
-                        <p className="text-neutral-400 text-sm mb-8">One-time payment · Instant access · No subscription</p>
-                        <ul className="space-y-3">
-                          {(course.features?.length ? course.features : [course.description]).map((item: string) => (
-                            <li key={item} className="flex items-start gap-3 text-neutral-300 text-sm">
-                              <svg className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="md:w-56 flex-shrink-0">
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-4">
-                          <div>
-                            <div className="text-xs text-neutral-400 mb-0.5">Title</div>
-                            <div className="text-white text-sm font-medium">{course.title}</div>
-                            {course.subtitle && <div className="text-neutral-400 text-xs mt-0.5">{course.subtitle}</div>}
-                          </div>
-                          {cats.length > 0 && (
-                            <>
-                              <div className="h-px bg-white/10" />
-                              <div>
-                                <div className="text-xs text-neutral-400 mb-0.5">Category</div>
-                                {cats.map(c => <div key={c} className="text-white text-sm font-medium">{c}</div>)}
-                              </div>
-                            </>
-                          )}
-                          {course.duration && (
-                            <>
-                              <div className="h-px bg-white/10" />
-                              <div>
-                                <div className="text-xs text-neutral-400 mb-0.5">Duration</div>
-                                <div className="text-white text-sm font-medium">{course.duration}</div>
-                              </div>
-                            </>
-                          )}
-                          <button
-                            onClick={() => handleEnrollClick(course)}
-                            className="mt-2 w-full text-center bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 rounded-xl transition-colors text-sm"
-                          >
-                            {isEnrolled ? 'Go to Dashboard →' : 'Enroll Now →'}
-                          </button>
-                          <div className="flex items-center justify-center gap-1.5 text-neutral-500 text-xs">
-                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/></svg>
-                            Secured by Razorpay
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          )}
-        </div>
-      </div>
+      {/* ── COURSE CAROUSEL ──────────────────────────────────── */}
+      <CourseCarousel
+        courses={courses}
+        loading={loading}
+        isEnrolled={isEnrolled}
+        enrolledCourseIds={Array.from(enrolledCourseIds)}
+        onEnroll={handleEnrollClick}
+      />
 
       {/* CTA Section */}
-      <div className="py-16 px-4 md:px-0 mb-10">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-black rounded-2xl p-8 md:p-10 lg:p-12 text-center">
-            <h2 className="text-3xl font-bold text-white mb-3">Ready to Start Learning?</h2>
-            <p className="text-neutral-300 max-w-xl mx-auto mb-6">
+      <div className="py-14 px-4 mb-10">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-black rounded-2xl p-8 md:p-10 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Ready to Start Learning?</h2>
+            <p className="text-neutral-400 max-w-xl mx-auto mb-6 text-sm">
               Join thousands of students already enhancing their skills with our curated courses.
             </p>
             <button
               onClick={() => { const c = premiumCourse || courses[0]; if (c) handleEnrollClick(c); }}
-              className="inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-base font-medium rounded-xl text-black bg-white hover:bg-neutral-100 transition-colors focus:outline-none"
+              className="inline-flex items-center justify-center px-8 py-3.5 text-sm font-bold rounded-xl text-black bg-amber-400 hover:bg-amber-300 transition-colors focus:outline-none"
             >
-              {isEnrolled ? 'Go to Dashboard →' : 'Explore Premium Course'}
+              {isEnrolled ? 'Go to Dashboard →' : 'Enroll Now →'}
             </button>
           </div>
         </div>
       </div>
     </div>
+  );
+};
+
+/* ─── CourseCarousel component ──────────────────────────────────────── */
+interface CourseCarouselProps {
+  courses: Course[];
+  loading: boolean;
+  isEnrolled: boolean;
+  enrolledCourseIds: string[];
+  onEnroll: (course: Course) => void;
+}
+
+const CourseCarousel: React.FC<CourseCarouselProps> = ({ courses, loading, isEnrolled, enrolledCourseIds, onEnroll }) => {
+  const [active, setActive] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const prev = useCallback(() => setActive(i => (i === 0 ? courses.length - 1 : i - 1)), [courses.length]);
+  const next = useCallback(() => setActive(i => (i === courses.length - 1 ? 0 : i + 1)), [courses.length]);
+
+  const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchMove  = (e: React.TouchEvent) => { touchEndX.current = e.touches[0].clientX; };
+  const onTouchEnd   = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) > 40) diff > 0 ? next() : prev();
+    touchStartX.current = touchEndX.current = null;
+  };
+
+  if (loading) {
+    return (
+      <div className="px-4 pb-16 max-w-2xl mx-auto">
+        <div className="bg-[#111] rounded-3xl h-[520px] animate-pulse border border-white/5" />
+      </div>
+    );
+  }
+
+  if (courses.length === 0) {
+    return (
+      <div className="text-center py-24 text-neutral-400">No courses available right now.</div>
+    );
+  }
+
+  return (
+    <div className="pb-16 px-4">
+      <div className="max-w-2xl mx-auto relative">
+        {/* Cards */}
+        <div
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          className="relative"
+        >
+          {courses.map((course, idx) => {
+            const isCurrent = idx === active;
+            if (!isCurrent) return null;
+            const cats = Array.isArray(course.category)
+              ? course.category
+              : course.category ? [course.category] : [];
+            const isPopular = idx === 0;
+            const savings = (course.originalPrice && course.originalPrice > course.price)
+              ? course.originalPrice - course.price : null;
+            const features = course.features?.length ? course.features : [course.description];
+
+            return (
+              <PricingCard
+                key={course._id}
+                course={course}
+                cats={cats}
+                isPopular={isPopular}
+                savings={savings}
+                features={features}
+              isEnrolled={enrolledCourseIds.includes(course._id)}
+                onEnroll={() => onEnroll(course)}
+              />
+            );
+          })}
+        </div>
+
+        {/* Navigation arrows — only show when >1 course */}
+        {courses.length > 1 && (
+          <>
+            <button
+              onClick={prev}
+              className="absolute -left-4 md:-left-12 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-white border border-neutral-200 rounded-full shadow-md hover:bg-neutral-50 transition-colors z-10"
+              aria-label="Previous course"
+            >
+              <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={next}
+              className="absolute -right-4 md:-right-12 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-white border border-neutral-200 rounded-full shadow-md hover:bg-neutral-50 transition-colors z-10"
+              aria-label="Next course"
+            >
+              <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Dots */}
+            <div className="flex justify-center gap-2 mt-6">
+              {courses.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActive(i)}
+                  className={`rounded-full transition-all duration-300 ${
+                    i === active
+                      ? 'w-6 h-2.5 bg-amber-400'
+                      : 'w-2.5 h-2.5 bg-neutral-300 hover:bg-neutral-400'
+                  }`}
+                  aria-label={`Go to course ${i + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Counter */}
+            <p className="text-center text-xs text-neutral-400 mt-2">
+              {active + 1} of {courses.length} courses
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── PricingCard component ─────────────────────────────────────────── */
+interface PricingCardProps {
+  course: Course;
+  cats: string[];
+  isPopular: boolean;
+  savings: number | null;
+  features: string[];
+  isEnrolled: boolean;
+  onEnroll: () => void;
+}
+
+const PricingCard: React.FC<PricingCardProps> = ({
+  course, cats, isPopular, savings, features, isEnrolled, onEnroll
+}) => {
+  return (
+    <div
+      className="group relative bg-[#0d0d0d] rounded-3xl overflow-hidden border border-white/10 hover:border-amber-400/40 transition-all duration-300 hover:shadow-[0_0_40px_rgba(251,191,36,0.12)]"
+      style={{ boxShadow: '0 4px 32px rgba(0,0,0,0.4)' }}
+    >
+      {/* Top amber accent stripe */}
+      <div className="h-1 w-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500" />
+
+      {/* Most Popular badge */}
+      {isPopular && (
+        <div className="absolute top-5 right-5 z-10">
+          <span className="bg-amber-400 text-black text-[10px] font-extrabold tracking-widest uppercase px-3 py-1 rounded-full shadow">
+            🔥 Most Popular
+          </span>
+        </div>
+      )}
+
+      <div className="p-6 md:p-10">
+        {/* Course title */}
+        <h2 className="text-white font-extrabold text-xl md:text-2xl leading-tight mb-1 text-center">
+          {course.title}
+        </h2>
+        {course.subtitle && (
+          <p className="text-neutral-400 text-sm mb-5">{course.subtitle}</p>
+        )}
+
+        {/* ── PRICE (dominant visual) ── */}
+        <div className="mb-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] px-5 py-4">
+          <div
+            className="flex items-end gap-3 mb-1"
+            style={{ filter: 'drop-shadow(0 0 18px rgba(251,191,36,0.25))' }}
+          >
+            <span className="text-5xl md:text-6xl font-black text-white tracking-tight">
+              ₹{course.price.toLocaleString('en-IN')}
+            </span>
+            {course.originalPrice && course.originalPrice > course.price && (
+              <span className="text-xl text-neutral-500 line-through mb-2">
+                ₹{course.originalPrice.toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <p className="text-neutral-500 text-xs">One-time · Instant access · No subscription</p>
+            {savings && savings > 0 && (
+              <span className="ml-auto text-xs font-bold text-green-400 bg-green-400/10 border border-green-400/20 px-2 py-0.5 rounded-full whitespace-nowrap">
+                Save ₹{savings.toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* ── CTA BUTTON (before features — critical for mobile) ── */}
+        <button
+          onClick={onEnroll}
+          className={`group/btn w-full font-extrabold text-base py-4 rounded-2xl transition-all duration-200 mb-3 flex items-center justify-center gap-2 ${
+            isEnrolled
+              ? 'bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20'
+              : 'bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-black shadow-[0_4px_20px_rgba(251,191,36,0.3)] hover:shadow-[0_6px_28px_rgba(251,191,36,0.45)]'
+          }`}
+        >
+          {isEnrolled ? (
+            <>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>Already Enrolled · Go to Dashboard</span>
+            </>
+          ) : (
+            <>
+              <span>Enroll Now</span>
+              <svg className="w-4 h-4 transition-transform duration-200 group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </>
+          )}
+        </button>
+
+        {/* Trust row */}
+        <div className="flex items-center justify-center gap-1.5 text-neutral-600 text-xs mb-6">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
+          </svg>
+          Secured by Razorpay · 100% Safe Checkout
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-white/[0.07] mb-6" />
+
+        {/* ── FEATURES ── */}
+        <FeatureList features={features} />
+
+        {/* Course meta footer */}
+        {course.instructor && (
+          <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
+            <div className="text-[10px] text-neutral-500 uppercase tracking-widest mb-1.5">Faculty</div>
+            <div className="text-white text-base font-extrabold tracking-wide">{course.instructor}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ── Expandable feature list ───────────────────────────────── */
+const FeatureList: React.FC<{ features: string[] }> = ({ features }) => {
+  const [showAll, setShowAll] = React.useState(false);
+  const SHOW = 6;
+  const visible = showAll ? features : features.slice(0, SHOW);
+  const overflow = features.length - SHOW;
+  return (
+    <ul className="space-y-3">
+      {visible.map((item: string) => (
+        <li key={item} className="flex items-start gap-3 text-neutral-300 text-sm leading-snug">
+          <span className="w-4 h-4 flex-shrink-0 mt-0.5 rounded-full bg-amber-400/15 flex items-center justify-center">
+            <svg className="w-2.5 h-2.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </span>
+          {item}
+        </li>
+      ))}
+      {!showAll && overflow > 0 && (
+        <li>
+          <button
+            onClick={() => setShowAll(true)}
+            className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 text-xs font-semibold pl-7 transition-colors"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+            </svg>
+            +{overflow} more included
+          </button>
+        </li>
+      )}
+      {showAll && (
+        <li>
+          <button
+            onClick={() => setShowAll(false)}
+            className="flex items-center gap-1.5 text-neutral-500 hover:text-neutral-400 text-xs font-semibold pl-7 transition-colors"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+            </svg>
+            Show less
+          </button>
+        </li>
+      )}
+    </ul>
   );
 };
 

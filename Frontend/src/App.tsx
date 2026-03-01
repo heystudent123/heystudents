@@ -21,6 +21,7 @@ import AdminVideosPage from './pages/AdminVideosPage';
 import VideosPage from './pages/VideosPage';
 import AdminPostsPage from './pages/AdminPostsPage';
 import AdminPaidUsersPage from './pages/AdminPaidUsersPage';
+import AdminPrePaymentLeadsPage from './pages/AdminPrePaymentLeadsPage';
 import StudentDashboardPage from './pages/StudentDashboardPage';
 import PostDetailPage from './pages/PostDetailPage';
 import InstituteDashboardPage from './pages/InstituteDashboardPage';
@@ -121,10 +122,10 @@ function AppContent() {
   }, [user, navigate]);
 
   return (
-    <div className="App">
+    <div className="App overflow-x-hidden w-full">
           <ToastContainer position="bottom-center" />
           <WhatsAppButton />
-          <div className="flex flex-col min-h-screen">
+          <div className="flex flex-col min-h-screen overflow-x-hidden w-full">
             {/* Navbar removed from here and added to individual page components */}
             <main className="flex-grow">
               <Routes>
@@ -184,6 +185,11 @@ function AppContent() {
                 <Route path="/admin/paid-users" element={
                   <ProtectedRoute requiredRole="admin">
                     <AdminPaidUsersPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/pre-payment-leads" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminPrePaymentLeadsPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/student/dashboard" element={

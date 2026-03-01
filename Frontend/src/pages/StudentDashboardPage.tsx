@@ -27,6 +27,7 @@ interface Post {
   isPinned: boolean;
   isPublished: boolean;
   attachments: Attachment[];
+  folders?: { name: string; attachments: Attachment[] }[];
   coverImage?: string;
   createdAt: string;
   publishedBy?: { name?: string; email?: string };
@@ -366,8 +367,30 @@ const StudentDashboardPage: React.FC = () => {
         </div>
       </section>
 
-
-      {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
+      {/* ── UPSELL BANNER ────────────────────────────────────────────────── */}
+      <div className="px-4 -mt-4 mb-2">
+        <div className="max-w-5xl mx-auto">
+          <div
+            className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl px-6 py-4 border border-amber-300/60"
+            style={{ background: 'linear-gradient(135deg,#1a1a1a 0%,#2a2000 100%)', boxShadow: '0 4px 24px rgba(245,166,35,0.12)' }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📚</span>
+              <div>
+                <p className="text-white font-bold text-sm" style={label}>Strengthen your preparation</p>
+                <p className="text-neutral-400 text-xs mt-0.5" style={body}>Purchase more courses to cover additional subjects — no expiry, lifetime access.</p>
+              </div>
+            </div>
+            <a
+              href="/courses"
+              className="flex-shrink-0 bg-amber-400 hover:bg-amber-300 text-black text-xs font-extrabold px-4 py-2 rounded-xl transition-colors whitespace-nowrap"
+              style={label}
+            >
+              Explore Courses →
+            </a>
+          </div>
+        </div>
+      </div>
       <div className="max-w-5xl mx-auto px-4 py-12">
 
         {/* Pinned posts */}
@@ -524,8 +547,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         <p className="text-[#888] text-sm leading-relaxed line-clamp-3 flex-1" style={body}>{post.content}</p>
 
         {/* Attachment pills */}
-        {(images.length > 0 || videos.length > 0 || documents.length > 0) && (
+        {(images.length > 0 || videos.length > 0 || documents.length > 0 || (post.folders?.length ?? 0) > 0) && (
           <div className="flex flex-wrap gap-1.5 mt-3">
+            {(post.folders?.length ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full font-semibold">
+                {post.folders!.length} folder{post.folders!.length > 1 ? 's' : ''}
+              </span>
+            )}
             {images.length > 0 && (
               <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full font-semibold">
                 {images.length} image{images.length > 1 ? 's' : ''}

@@ -126,6 +126,14 @@ const AdminPage: React.FC = () => {
             </div>
           </Link>
 
+          <Link to="/admin/pre-payment-leads" className="bg-white overflow-hidden shadow rounded-lg hover:ring-2 hover:ring-amber-400 transition">
+            <div className="px-4 py-5 sm:p-6 h-full flex flex-col">
+              <h3 className="text-lg font-medium text-gray-900">Pre-Payment Leads</h3>
+              <p className="mt-4 text-sm text-gray-500 flex-grow">View student details collected before payment — track interested students even before they pay.</p>
+              <span className="mt-5 inline-block px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-md self-start">Go</span>
+            </div>
+          </Link>
+
         </div>
       </div>
     </div>

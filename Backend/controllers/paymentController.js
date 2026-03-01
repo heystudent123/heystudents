@@ -5,6 +5,7 @@ const Enrollment = require('../models/Enrollment');
 const ErrorResponse = require('../utils/errorResponse');
 const EmailUser = require('../models/EmailUser');
 const Course = require('../models/Course');
+const PrePaymentLead = require('../models/PrePaymentLead');
 const { sanitizeStr, isPositiveNumber, isNonEmpty } = require('../middleware/validate');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -656,4 +657,65 @@ exports.getRazorpayDetails = async (req, res, next) => {
     console.error('Razorpay fetch details error:', err);
     next(new ErrorResponse('Failed to fetch details from Razorpay', 500));
   }
+};
+
+// @desc    Save pre-payment lead (student details captured before checkout)
+// @route   POST /api/payments/save-lead
+// @access  Public (no auth required — guests should be able to submit)
+exports.savePrePaymentLead = async (req, res, next) => {
+  try {
+    const { name, phone, email, city, college, courseId, courseTitle, referralCode } = req.body;
+
+    if (!name || !phone) {
+      return next(new ErrorResponse('Name and phone are required', 400));
+    }
+
+    const leadData = {
+      name: sanitizeStr(String(name)).slice(0, 120),
+      phone: sanitizeStr(String(phone)).slice(0, 20),
+      email: email ? sanitizeStr(String(email)).toLowerCase().slice(0, 200) : null,
+      city: city ? sanitizeStr(String(city)).slice(0, 100) : null,
+      college: college ? sanitizeStr(String(college)).slice(0, 200) : null,
+      courseId: courseId || null,
+      courseTitle: courseTitle ? sanitizeStr(String(courseTitle)).slice(0, 200) : null,
+      referralCode: referralCode ? sanitizeStr(String(referralCode)).toUpperCase().slice(0, 30) : null,
+      userId: req.user ? req.user._id : null,
+    };
+
+    const lead = await PrePaymentLead.create(leadData);
+
+    res.status(201).json({ success: true, data: { leadId: lead._id } });
+  } catch (err) {
+    next(new ErrorResponse('Failed to save lead', 500));
+  }
+};
+
+// @desc    Get all pre-payment leads (admin)
+// @route   GET /api/payments/leads
+// @access  Private/Admin
+exports.getAllLeads = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const skip = (page - 1) * limit;
+
+    const total = await PrePaymentLead.countDocuments();
+    const leads = await PrePaymentLead.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('courseId', 'title')
+      .lean();
+
+    res.status(200).json({ success: true, total, data: leads });
+  } catch (err) {
+    next(new ErrorResponse('Failed to fetch leads', 500));
+  }
+};
+
+// @desc    Mark a lead as converted when a payment is verified
+// helper used internally
+exports.markLeadConverted = async (leadId) => {
+  if (!leadId) return;
+  await PrePaymentLead.findByIdAndUpdate(leadId, { converted: true }).catch(() => {});
 };

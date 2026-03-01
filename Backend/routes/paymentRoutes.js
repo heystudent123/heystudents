@@ -9,6 +9,8 @@ const {
   getPaymentStats,
   initiateRefund,
   getRazorpayDetails,
+  savePrePaymentLead,
+  getAllLeads,
 } = require('../controllers/paymentController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -38,11 +40,14 @@ router.post(
 // ─── Admin static routes (before :id) ────────────────────────────────────────
 router.get('/admin/all', protect, authorize('admin'), getAllPayments);
 router.get('/admin/stats', protect, authorize('admin'), getPaymentStats);
+router.get('/leads', protect, authorize('admin'), getAllLeads);
 
 // ─── Authenticated user routes ────────────────────────────────────────────────
 router.get('/my', protect, getMyPayments);
 router.post('/create-order', protect, paymentLimiter, createOrder);
 router.post('/verify', protect, verifyPayment);
+// Pre-payment lead — public (no auth guard, but optionally attach user if logged in)
+router.post('/save-lead', savePrePaymentLead);
 
 // ─── Dynamic :id routes ───────────────────────────────────────────────────────
 router.get('/:id', protect, getPaymentById);

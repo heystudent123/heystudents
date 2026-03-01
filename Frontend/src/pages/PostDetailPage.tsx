@@ -15,6 +15,11 @@ interface Attachment {
   cloudflareVideoId?: string;
 }
 
+interface Folder {
+  name: string;
+  attachments: Attachment[];
+}
+
 interface Post {
   _id: string;
   title: string;
@@ -24,6 +29,7 @@ interface Post {
   isPinned: boolean;
   isPublished: boolean;
   attachments: Attachment[];
+  folders?: Folder[];
   coverImage?: string;
   createdAt: string;
 }
@@ -77,6 +83,7 @@ const PostDetailPage: React.FC = () => {
   const post      = location.state?.post as Post | undefined;
   const [imgIdx, setImgIdx]     = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [activeFolder, setActiveFolder] = useState<number | null>(null);
   const pageRef = usePageReveal();
 
   /* ── Not found ──────────────────────────────────────────────────────── */
@@ -180,6 +187,147 @@ const PostDetailPage: React.FC = () => {
               {post.content}
             </p>
           </div>
+
+          {/* ══ FOLDERS ═════════════════════════════════════════════════ */}
+          {(post.folders?.length ?? 0) > 0 && (() => {
+            const folders = post.folders!;
+            return (
+              <>
+                <hr style={{ border: 'none', borderTop: '1px solid #EDE8DE' }} />
+                <div className="py-8">
+                  <SectionHeading icon="📁">Content Folders</SectionHeading>
+                  <div className="space-y-3">
+                    {folders.map((folder, fi) => {
+                      const isOpen = activeFolder === fi;
+                      const fImages = folder.attachments.filter((a) => a.type === 'image');
+                      const fVideos = folder.attachments.filter((a) => a.type === 'video' || a.cloudflareVideoId);
+                      const fDocs   = folder.attachments.filter((a) => a.type === 'document');
+                      return (
+                        <div
+                          key={fi}
+                          className="overflow-hidden"
+                          style={{ border: '1px solid #EDE8DE', borderRadius: 16, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+                        >
+                          {/* Folder header */}
+                          <button
+                            type="button"
+                            className="w-full flex items-center gap-3 px-5 py-4 text-left transition-colors duration-200 hover:bg-amber-50"
+                            onClick={() => setActiveFolder(isOpen ? null : fi)}
+                          >
+                            <span className="text-xl flex-shrink-0">{isOpen ? '📂' : '📁'}</span>
+                            <span className="flex-1 font-bold text-[#1a1a1a] text-sm" style={{ fontFamily: "'DM Sans','Inter',sans-serif" }}>
+                              {folder.name}
+                            </span>
+                            <span className="text-xs text-gray-400 flex-shrink-0">
+                              {folder.attachments.length} file{folder.attachments.length !== 1 ? 's' : ''}
+                            </span>
+                            <svg
+                              className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200"
+                              style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                              fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+
+                          {/* Folder body */}
+                          {isOpen && (
+                            <div className="border-t px-5 py-5 space-y-6" style={{ borderColor: '#EDE8DE', background: '#FDFAF5' }}>
+
+                              {/* Folder images */}
+                              {fImages.length > 0 && (
+                                <div>
+                                  <SectionHeading icon="🖼️">Images</SectionHeading>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    {fImages.map((img, i) => (
+                                      <div key={i} className="overflow-hidden rounded-xl cursor-zoom-in" onClick={() => setLightbox(img.url)}>
+                                        <img src={img.url} alt={img.label || 'Image'} className="w-full h-36 object-cover hover:scale-[1.03] transition-transform duration-200" />
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Folder documents */}
+                              {fDocs.length > 0 && (
+                                <div>
+                                  <SectionHeading icon="📄">Documents</SectionHeading>
+                                  <div className="space-y-2">
+                                    {fDocs.map((att, i) => {
+                                      const ext = att.label?.split('.').pop()?.toUpperCase() ?? 'FILE';
+                                      const iconColor =
+                                        ext === 'PDF'                    ? '#C62828' :
+                                        ext === 'DOCX' || ext === 'DOC'  ? '#1565C0' :
+                                        ext === 'XLSX' || ext === 'XLS'  ? '#2E7D32' :
+                                        ext === 'PPTX' || ext === 'PPT'  ? '#D84315' : '#37474F';
+                                      return (
+                                        <a key={i} href={att.url} target="_blank" rel="noopener noreferrer"
+                                          className="flex items-center gap-3 group"
+                                          style={{ background: '#fff', border: '1px solid #EDE8DE', borderRadius: 12, padding: '12px 16px', textDecoration: 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+                                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#d4cabc'; }}
+                                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#EDE8DE'; }}
+                                        >
+                                          <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: iconColor }}>
+                                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                            </svg>
+                                          </div>
+                                          <span className="flex-1 text-sm font-semibold text-[#1a1a1a] truncate" style={{ fontFamily: "'DM Sans','Inter',sans-serif" }}>
+                                            {att.label || 'Document'}
+                                          </span>
+                                          <svg className="w-4 h-4 text-gray-300 group-hover:text-amber-500 transition-colors" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
+                                          </svg>
+                                        </a>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Folder videos */}
+                              {fVideos.length > 0 && (
+                                <div>
+                                  <SectionHeading icon="🎬">Videos</SectionHeading>
+                                  <div className="space-y-4">
+                                    {fVideos.map((att, i) => {
+                                      const videoId = att.cloudflareVideoId || att.url?.split('/').pop();
+                                      return (
+                                        <div key={i}>
+                                          {att.label && att.label !== videoId && (
+                                            <p className="text-sm font-semibold text-[#1a1a1a] mb-2" style={{ fontFamily: "'DM Sans','Inter',sans-serif" }}>{att.label}</p>
+                                          )}
+                                          <div className="overflow-hidden rounded-xl" style={{ background: '#111' }}>
+                                            <div className="relative" style={{ paddingBottom: '56.25%' }}>
+                                              <iframe
+                                                src={`https://iframe.cloudflarestream.com/${videoId}`}
+                                                title={att.label || `Video ${i + 1}`}
+                                                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                                                allowFullScreen
+                                                className="absolute inset-0 w-full h-full border-0"
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {folder.attachments.length === 0 && (
+                                <p className="text-sm text-gray-400 text-center py-2">This folder is empty.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           {/* ══ IMAGES ══════════════════════════════════════════════════ */}
           {images.length > 0 && (

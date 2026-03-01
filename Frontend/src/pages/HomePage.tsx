@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef, ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { useAuth } from '../context/AuthContext';
 import Hero from '../components/Hero';
 import SharedNavbar from '../components/SharedNavbar';
 import Testimonials from '../components/Testimonials';
@@ -15,6 +17,7 @@ interface Course {
   category: string;
   duration: string;
   level: string;
+  instructor?: string;
   price: number;
   originalPrice?: number;
   isPaid: boolean;
@@ -87,6 +90,9 @@ const DEFAULT_FEATURES = [
 const HomePage: React.FC = () => {
   const contentStyle: React.CSSProperties = { paddingTop: '64px' };
   const [courses, setCourses] = useState<Course[]>([]);
+  const { isSignedIn: isClerkSignedIn } = useClerkAuth();
+  const { user: clerkUser } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     coursesApi.getAll({ isActive: true })
@@ -95,6 +101,12 @@ const HomePage: React.FC = () => {
   }, []);
 
   const premiumCourse = courses.find(c => c.isPaid) || courses[0] || null;
+
+  // Clicking "Enroll Now" → store intent, go to CoursesPage which handles the full flow
+  const handleHomeEnroll = () => {
+    sessionStorage.setItem('autoEnroll', 'true');
+    navigate('/courses');
+  };
 
   return (
     <div className="min-h-screen w-full" style={{ background: '#fff9ed' }}>
@@ -115,9 +127,9 @@ const HomePage: React.FC = () => {
               </div>
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Left: What we teach */}
-                <div className="bg-black rounded-3xl p-8">
-                  <p className="text-xs font-bold tracking-widest uppercase text-amber-400 mb-4">What We Teach</p>
-                  <h3 className="text-xl font-bold text-white mb-6">We don't teach chapters.</h3>
+                <div className="bg-black rounded-3xl p-8 flex flex-col">
+                  <p className="text-xs font-bold tracking-widest uppercase text-amber-400 mb-3">What We Teach</p>
+                  <h3 className="text-xl font-bold text-white mb-5">We don't teach chapters.</h3>
                   <ul className="space-y-4">
                     {[
                       { icon: '🎯', text: 'What actually gets asked' },
@@ -133,10 +145,10 @@ const HomePage: React.FC = () => {
                   </ul>
                 </div>
                 {/* Right: What makes us different */}
-                <div className="bg-amber-400 rounded-3xl p-8">
-                  <p className="text-xs font-bold tracking-widest uppercase text-black/60 mb-4">What Makes Us Different</p>
-                  <h3 className="text-xl font-bold text-black mb-2">While others teach everything,<br />we decode what matters.</h3>
-                  <p className="text-black/70 text-sm mb-6">That edge is the difference between a good score and SRCC.</p>
+                <div className="bg-amber-400 rounded-3xl p-8 flex flex-col">
+                  <p className="text-xs font-bold tracking-widest uppercase text-black/60 mb-3">What Makes Us Different</p>
+                  <h3 className="text-xl font-bold text-black mb-2">While others teach everything, we decode what matters.</h3>
+                  <p className="text-black/70 text-sm mb-5">That edge is the difference between a good score and SRCC.</p>
                   <ul className="space-y-3">
                     {[
                       { icon: '🔍', text: 'Analyse previous year papers deeply' },
@@ -200,81 +212,18 @@ const HomePage: React.FC = () => {
         </FadeIn>
 
         {/* ── PRICING CARD ─────────────────────────────────────────── */}
-        <section className="py-20 md:py-28 px-4" style={{ background: '#fff9ed' }}>
-          <div className="max-w-5xl mx-auto">
+        <section className="py-10 md:py-16 px-4" style={{ background: '#fff9ed' }}>
+          <div className="max-w-2xl mx-auto md:px-14">
             <FadeIn>
-              <div className="text-center mb-14">
-                <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3">Pricing</p>
-                <h2 className="text-3xl md:text-4xl font-bold text-black">Exam Decoders Batch</h2>
-                <p className="text-neutral-500 mt-3 max-w-lg mx-auto">
-                  Decode the Pattern. Master the Strategy. Dominate the Exam.<br/>
-                  <span className="text-sm">3 years of CUET trend analysis in one structured system.</span>
-                </p>
+              <div className="text-center mb-6">
+                <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-2">Pricing</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-black">Exam Decoders Batch</h2>
+                <p className="text-neutral-500 mt-1 text-sm">Decode the Pattern. Master the Strategy. Dominate the Exam.</p>
               </div>
             </FadeIn>
 
             <FadeIn delay={100}>
-              <div className="max-w-3xl mx-auto">
-                <div className="relative bg-[#0d0d0d] rounded-3xl overflow-hidden">
-                  <div className="h-1 w-full bg-amber-400" />
-                  <div className="p-8 md:p-12">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-10">
-                      <div className="flex-1">
-                        <span className="inline-block text-xs font-bold tracking-widest uppercase bg-amber-400/10 text-amber-400 border border-amber-400/20 px-3 py-1 rounded-full mb-6">
-                          {premiumCourse?.title || 'Exam Decoders Batch'}
-                        </span>
-                        <div className="flex items-end gap-3 mb-2">
-                          <span className="text-5xl font-extrabold text-white">₹{premiumCourse?.price ?? 2500}</span>
-                          {(premiumCourse?.originalPrice ?? 4999) > 0 && (
-                            <span className="text-xl text-neutral-500 line-through mb-1">₹{premiumCourse?.originalPrice ?? 4999}</span>
-                          )}
-                        </div>
-                        <p className="text-neutral-400 text-sm mb-8">One-time payment &middot; Instant access &middot; No subscription</p>
-                        <ul className="space-y-3">
-                          {(premiumCourse?.features?.length ? premiumCourse.features : DEFAULT_FEATURES).map(item => (
-                            <li key={item} className="flex items-start gap-3 text-neutral-300 text-sm">
-                              <svg className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="md:w-56 flex-shrink-0">
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-4">
-                          <div>
-                            <div className="text-xs text-neutral-400 mb-0.5">Faculty</div>
-                            <div className="text-white text-sm font-medium">AIR 19 &middot; Commerce</div>
-                            <div className="text-white text-sm font-medium mt-0.5">AIR 63 &middot; Humanities</div>
-                          </div>
-                          <div className="h-px bg-white/10" />
-                          <div>
-                            <div className="text-xs text-neutral-400 mb-0.5">Streams</div>
-                            <div className="text-white text-sm font-medium">Commerce</div>
-                            <div className="text-white text-sm font-medium mt-0.5">Humanities</div>
-                          </div>
-                          <div className="h-px bg-white/10" />
-                          <div>
-                            <div className="text-xs text-neutral-400 mb-0.5">Duration</div>
-                            <div className="text-white text-sm font-medium">{premiumCourse?.duration || '3 months live batch'}</div>
-                          </div>
-                          <Link
-                            to="/courses"
-                            className="mt-2 block w-full text-center bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 rounded-xl transition-colors text-sm"
-                          >
-                            Enroll Now →
-                          </Link>
-                          <div className="flex items-center justify-center gap-1.5 text-neutral-500 text-xs">
-                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/></svg>
-                            Secured by Razorpay
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <HomePricingCarousel courses={courses} defaultFeatures={DEFAULT_FEATURES} onEnroll={handleHomeEnroll} />
             </FadeIn>
           </div>
         </section>
@@ -327,6 +276,196 @@ const HomePage: React.FC = () => {
 
 
       </div>
+    </div>
+  );
+};
+
+/* ── Home Pricing Card ──────────────────────────────────────── */
+const HomePricingCard: React.FC<{ course: Course; defaultFeatures: string[]; onEnroll: () => void }> = ({ course, defaultFeatures, onEnroll }) => {
+  const [showAll, setShowAll] = useState(false);
+  const allFeatures = course.features?.length ? course.features : defaultFeatures;
+  const SHOW = 5;
+  const visibleFeatures = showAll ? allFeatures : allFeatures.slice(0, SHOW);
+  const overflowCount = allFeatures.length - SHOW;
+  const hasSavings = (course.originalPrice ?? 0) > course.price;
+
+  return (
+    <div
+      className="group relative bg-[#0d0d0d] rounded-2xl overflow-hidden border border-white/10 hover:border-amber-400/40 transition-all duration-300 hover:shadow-[0_0_40px_rgba(251,191,36,0.13)]"
+      style={{ boxShadow: '0 6px 32px rgba(0,0,0,0.45)' }}
+    >
+      <div className="h-1 w-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500" />
+      <div className="p-6 md:p-10">
+        {/* Title */}
+        <div className="mb-4">
+          <h3 className="text-white font-extrabold text-lg md:text-2xl leading-tight text-center">{course.title}</h3>
+        </div>
+        {hasSavings && (
+          <div className="flex justify-center mb-2">
+            <span className="text-xs font-bold text-green-400 bg-green-400/10 border border-green-400/20 px-2.5 py-1 rounded-full whitespace-nowrap">
+              Save ₹{((course.originalPrice ?? 0) - course.price).toLocaleString('en-IN')}
+            </span>
+          </div>
+        )}
+
+        {/* Price row */}
+        <div className="flex items-end gap-3 mb-5" style={{ filter: 'drop-shadow(0 0 18px rgba(251,191,36,0.25))' }}>
+          <span className="text-5xl md:text-6xl font-black text-white tracking-tight">₹{course.price.toLocaleString('en-IN')}</span>
+          {hasSavings && (
+            <span className="text-xl text-neutral-500 line-through mb-2">₹{(course.originalPrice ?? 0).toLocaleString('en-IN')}</span>
+          )}
+          <span className="text-neutral-500 text-sm mb-2 ml-1">one-time</span>
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={onEnroll}
+          className="group/btn w-full bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-black font-extrabold text-base py-4 rounded-2xl transition-all duration-200 shadow-[0_4px_20px_rgba(251,191,36,0.3)] hover:shadow-[0_6px_28px_rgba(251,191,36,0.45)] mb-3 flex items-center justify-center gap-2"
+        >
+          <span>Enroll Now</span>
+          <svg className="w-4 h-4 transition-transform duration-200 group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Trust */}
+        <div className="flex items-center justify-center gap-1.5 text-neutral-600 text-xs mb-5">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
+          </svg>
+          Secured by Razorpay · 100% Safe Checkout
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-white/[0.07] mb-5" />
+
+        {/* Features */}
+        <ul className="space-y-3">
+          {visibleFeatures.map(item => (
+            <li key={item} className="flex items-start gap-3 text-neutral-300 text-sm leading-snug">
+              <span className="w-4 h-4 flex-shrink-0 mt-0.5 rounded-full bg-amber-400/15 flex items-center justify-center">
+                <svg className="w-2.5 h-2.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </span>
+              {item}
+            </li>
+          ))}
+          {!showAll && overflowCount > 0 && (
+            <li>
+              <button
+                onClick={() => setShowAll(true)}
+                className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 text-xs font-semibold pl-7 transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+                +{overflowCount} more included
+              </button>
+            </li>
+          )}
+          {showAll && (
+            <li>
+              <button
+                onClick={() => setShowAll(false)}
+                className="flex items-center gap-1.5 text-neutral-500 hover:text-neutral-400 text-xs font-semibold pl-7 transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                </svg>
+                Show less
+              </button>
+            </li>
+          )}
+        </ul>
+
+        {/* Footer */}
+        {course.instructor && (
+          <div className="mt-5 pt-5 border-t border-white/[0.06] text-center">
+            <div className="text-[10px] text-neutral-500 uppercase tracking-widest mb-1.5">Faculty</div>
+            <div className="text-white text-base font-extrabold tracking-wide">{course.instructor}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const HomePricingCarousel: React.FC<{ courses: Course[]; defaultFeatures: string[]; onEnroll: () => void }> = ({ courses, defaultFeatures, onEnroll }) => {
+  const paidCourses = courses.filter(c => c.isPaid && c.isActive);
+  const displayCourses = paidCourses.length > 0 ? paidCourses : (courses.length > 0 ? [courses[0]] : []);
+
+  const [idx, setIdx] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const prev = useCallback(() => setIdx(i => (i - 1 + displayCourses.length) % displayCourses.length), [displayCourses.length]);
+  const next = useCallback(() => setIdx(i => (i + 1) % displayCourses.length), [displayCourses.length]);
+
+  const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    touchEndX.current = e.changedTouches[0].clientX;
+    const diff = (touchStartX.current ?? 0) - (touchEndX.current ?? 0);
+    if (Math.abs(diff) > 40) diff > 0 ? next() : prev();
+  };
+
+  if (displayCourses.length === 0) {
+    const placeholder: Course = { _id: '', title: 'Exam Decoders Batch', subtitle: '', description: '', category: 'Commerce', duration: '3 months', level: 'Beginner', price: 2500, originalPrice: 4999, isPaid: true, isActive: true, features: defaultFeatures };
+    return <HomePricingCard course={placeholder} defaultFeatures={defaultFeatures} onEnroll={onEnroll} />;
+  }
+
+  return (
+    <div className="relative">
+      {/* Desktop side arrows */}
+      {displayCourses.length > 1 && (
+        <button
+          onClick={prev}
+          className="hidden md:flex absolute -left-14 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 border border-white/10 hover:border-amber-400/50 hover:bg-black items-center justify-center transition-all z-10"
+        >
+          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      )}
+
+      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        <HomePricingCard course={displayCourses[idx]} defaultFeatures={defaultFeatures} onEnroll={onEnroll} />
+      </div>
+
+      {/* Desktop side arrows right */}
+      {displayCourses.length > 1 && (
+        <button
+          onClick={next}
+          className="hidden md:flex absolute -right-14 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 border border-white/10 hover:border-amber-400/50 hover:bg-black items-center justify-center transition-all z-10"
+        >
+          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+
+      {/* Dots (both mobile and desktop) + mobile arrows */}
+      {displayCourses.length > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-4">
+          {/* Mobile-only arrow left */}
+          <button onClick={prev} className="md:hidden w-8 h-8 rounded-full bg-black/60 border border-white/10 hover:border-amber-400/50 hover:bg-black flex items-center justify-center transition-all">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div className="flex gap-1.5">
+            {displayCourses.map((_, i) => (
+              <button key={i} onClick={() => setIdx(i)} className={`rounded-full transition-all duration-200 ${i === idx ? 'w-5 h-1.5 bg-amber-400' : 'w-1.5 h-1.5 bg-white/20 hover:bg-white/40'}`} />
+            ))}
+          </div>
+          {/* Mobile-only arrow right */}
+          <button onClick={next} className="md:hidden w-8 h-8 rounded-full bg-black/60 border border-white/10 hover:border-amber-400/50 hover:bg-black flex items-center justify-center transition-all">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
