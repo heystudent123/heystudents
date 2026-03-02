@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth as useClerkAuth } from '@clerk/clerk-react';
 import SharedNavbar from '../components/SharedNavbar';
 import { coursesApi, paymentsApi, enrollmentsApi, authApi } from '../services/api';
@@ -55,7 +55,6 @@ const CoursesPage: React.FC = () => {
   const { user: clerkUser } = useAuth();
   const { isSignedIn: isClerkSignedIn } = useClerkAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 

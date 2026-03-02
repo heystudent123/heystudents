@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth as useClerkAuth } from '@clerk/clerk-react';
-import { useAuth } from '../context/AuthContext';
 import Hero from '../components/Hero';
 import SharedNavbar from '../components/SharedNavbar';
 import Testimonials from '../components/Testimonials';
@@ -90,8 +88,6 @@ const DEFAULT_FEATURES = [
 const HomePage: React.FC = () => {
   const contentStyle: React.CSSProperties = { paddingTop: '64px' };
   const [courses, setCourses] = useState<Course[]>([]);
-  const { isSignedIn: isClerkSignedIn } = useClerkAuth();
-  const { user: clerkUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -99,8 +95,6 @@ const HomePage: React.FC = () => {
       .then((res) => setCourses(res.data || res.courses || []))
       .catch(() => {});
   }, []);
-
-  const premiumCourse = courses.find(c => c.isPaid) || courses[0] || null;
 
   // Clicking "Enroll Now" → store intent, go to CoursesPage which handles the full flow
   const handleHomeEnroll = () => {

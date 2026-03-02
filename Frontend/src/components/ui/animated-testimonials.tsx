@@ -20,25 +20,17 @@ const AnimatedTestimonials = ({
   autoplay?: boolean;
 }) => {
   const [active, setActive] = useState(0);
-  const [prevActive, setPrevActive] = useState<number | null>(null);
   const textRef = useRef<HTMLDivElement>(null);
 
   const handleNext = useCallback(() => {
-    setActive((prev) => {
-      setPrevActive(prev);
-      return (prev + 1) % testimonials.length;
-    });
+    setActive((prev) => (prev + 1) % testimonials.length);
   }, [testimonials.length]);
 
   const handlePrev = () => {
-    setActive((prev) => {
-      setPrevActive(prev);
-      return (prev - 1 + testimonials.length) % testimonials.length;
-    });
+    setActive((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
 
   const goTo = (i: number) => {
-    setPrevActive(active);
     setActive(i);
   };
 
