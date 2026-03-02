@@ -3,10 +3,34 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/logo.png" sizes="512x512" />
-    <!-- Premium fonts -->
+
+    <!-- DNS + connection warm-up (must come before any cross-origin fetch) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Montserrat:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://clerk.genuine-gelding-93.clerk.accounts.dev" crossorigin />
+    <link rel="dns-prefetch" href="//api.clerk.com" />
+
+    <!-- ★ Preload the LCP hero image so it starts downloading immediately -->
+    <link rel="preload" as="image" href="%PUBLIC_URL%/delhi-university.webp"
+          type="image/webp" fetchpriority="high" />
+
+    <!-- Non-render-blocking Google Fonts (print trick keeps fonts out of critical path) -->
+    <link rel="preload" as="style"
+          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Montserrat:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Montserrat:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap"
+          rel="stylesheet" media="print" onload="this.media='all';this.onload=null" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Montserrat:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    </noscript>
+
+    <!-- Fallback system-font stack while web fonts download (no FOIT) -->
+    <style>
+      :root {
+        --font-serif: Georgia, 'Times New Roman', serif;
+        --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      body { font-family: var(--font-sans); }
+    </style>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f59e0b" />
     <meta name="description" content="Heystudent — premium courses, study resources, and student community. Learn from the best educators in Commerce, Arts, CUET and more." />

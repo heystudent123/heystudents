@@ -1,34 +1,46 @@
-import React, { useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef, lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import WhatsAppButton from './components/WhatsAppButton';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import './App.css';
+
+// ── Critical routes — eagerly bundled (appear in initial viewport) ──────────
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import CoursesPage from './pages/CoursesPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import ProfilePage from './pages/CompleteProfile';
-import UserProfile from './pages/UserProfile';
-import AdminPage from './pages/AdminPage';
-import AdminUsersPage from './pages/AdminUsersPage';
-import AdminInstitutesPage from './pages/AdminInstitutesPage';
-import AdminAccommodationsPage from './pages/AdminAccommodationsPage';
-import AdminAccommodationEditPage from './pages/AdminAccommodationEditPage';
-import AdminCoursesPage from './pages/AdminCoursesPage';
-import AdminVideosPage from './pages/AdminVideosPage';
-import VideosPage from './pages/VideosPage';
-import AdminPostsPage from './pages/AdminPostsPage';
-import AdminPaidUsersPage from './pages/AdminPaidUsersPage';
-import AdminPrePaymentLeadsPage from './pages/AdminPrePaymentLeadsPage';
-import StudentDashboardPage from './pages/StudentDashboardPage';
-import PostDetailPage from './pages/PostDetailPage';
-import InstituteDashboardPage from './pages/InstituteDashboardPage';
 import Footer from './components/Footer';
-import './App.css';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+
+// ── Non-critical routes — code-split into separate lazy chunks ───────────────
+const ProfilePage              = lazy(() => import('./pages/CompleteProfile'));
+const UserProfile              = lazy(() => import('./pages/UserProfile'));
+const AdminPage                = lazy(() => import('./pages/AdminPage'));
+const AdminUsersPage           = lazy(() => import('./pages/AdminUsersPage'));
+const AdminInstitutesPage      = lazy(() => import('./pages/AdminInstitutesPage'));
+const AdminAccommodationsPage  = lazy(() => import('./pages/AdminAccommodationsPage'));
+const AdminAccommodationEditPage = lazy(() => import('./pages/AdminAccommodationEditPage'));
+const AdminCoursesPage         = lazy(() => import('./pages/AdminCoursesPage'));
+const AdminVideosPage          = lazy(() => import('./pages/AdminVideosPage'));
+const VideosPage               = lazy(() => import('./pages/VideosPage'));
+const AdminPostsPage           = lazy(() => import('./pages/AdminPostsPage'));
+const AdminPaidUsersPage       = lazy(() => import('./pages/AdminPaidUsersPage'));
+const AdminPrePaymentLeadsPage = lazy(() => import('./pages/AdminPrePaymentLeadsPage'));
+const StudentDashboardPage     = lazy(() => import('./pages/StudentDashboardPage'));
+const PostDetailPage           = lazy(() => import('./pages/PostDetailPage'));
+const InstituteDashboardPage   = lazy(() => import('./pages/InstituteDashboardPage'));
+
+// Minimal fallback — uses CSS animation so no extra JS, no layout shift
+const PageLoader = () => (
+  <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff9ed' }}>
+    <div style={{ width: 40, height: 40, border: '3px solid #f59e0b', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+  </div>
+);
 
 function App() {
   return (
@@ -43,8 +55,6 @@ function App() {
 
 // Separate component to use hooks inside Router context
 function AppContent() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const prevPathRef = useRef<string>('');
   const pageEnterTimeRef = useRef<number>(Date.now());
@@ -53,73 +63,24 @@ function AppContent() {
   useEffect(() => {
     const currentPath = location.pathname;
     const currentTime = Date.now();
-    
-    // Get page name from path
     let pageName = 'Unknown';
     if (currentPath === '/') pageName = 'Home';
     else if (currentPath === '/about') pageName = 'About';
     else if (currentPath === '/login') pageName = 'Login';
     else if (currentPath === '/profile') pageName = 'Profile';
     else if (currentPath === '/user-profile') pageName = 'User Profile';
-    else if (currentPath.startsWith('/admin')) {
-      pageName = 'Admin - ' + currentPath.split('/').pop() || 'Dashboard';
-    }
-    
-    // Track page view
-    console.log(`Page view: ${pageName}`);
-    
-    // Calculate time spent on previous page if applicable
+    else if (currentPath.startsWith('/admin'))
+      pageName = 'Admin - ' + (currentPath.split('/').pop() || 'Dashboard');
     if (prevPathRef.current && prevPathRef.current !== currentPath) {
       const timeSpent = currentTime - pageEnterTimeRef.current;
-      const prevPageName = prevPathRef.current === '/' ? 'Home' : 
+      const prevPageName = prevPathRef.current === '/' ? 'Home' :
         prevPathRef.current.charAt(1).toUpperCase() + prevPathRef.current.slice(2).replace('/', ' ');
-      
-      // Track time spent on previous page
       console.log(`Time spent on ${prevPageName}: ${timeSpent}ms`);
     }
-    
-    // Update refs for next navigation
+    console.log(`Page view: ${pageName}`);
     prevPathRef.current = currentPath;
     pageEnterTimeRef.current = currentTime;
-    
-    // Track time spent when component unmounts or before unload
-    const handleBeforeUnload = () => {
-      const finalTimeSpent = Date.now() - pageEnterTimeRef.current;
-      console.log(`Final time on ${pageName}: ${finalTimeSpent}ms`);
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
   }, [location]);
-  
-  
-  // Redirect to login after 60 seconds if not logged in
-  useEffect(() => {
-    // Don't set timer if user is already logged in
-    if (user) {
-      // Clear the redirect flag when user logs in
-      sessionStorage.removeItem('loginRedirected');
-      return;
-    }
-    
-    // Check if we've already redirected to avoid multiple redirects
-    const hasRedirected = sessionStorage.getItem('loginRedirected');
-    if (hasRedirected) return;
-    
-    const timer = setTimeout(() => {
-      // Only redirect if user is still not logged in after 60 seconds
-      if (!user) {
-        console.log('60 seconds elapsed, redirecting to login');
-        sessionStorage.setItem('loginRedirected', 'true');
-        navigate('/login');
-      }
-    }, 60000); // 60 seconds
-    
-    return () => clearTimeout(timer);
-  }, [user, navigate]);
 
   return (
     <div className="App overflow-x-hidden w-full">
@@ -128,6 +89,7 @@ function AppContent() {
           <div className="flex flex-col min-h-screen overflow-x-hidden w-full">
             {/* Navbar removed from here and added to individual page components */}
             <main className="flex-grow">
+              <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/about" element={<AboutPage />} />
@@ -208,6 +170,7 @@ function AppContent() {
                   </ProtectedRoute>
                 } />
               </Routes>
+              </Suspense>
             </main>
             <Footer />
           </div>

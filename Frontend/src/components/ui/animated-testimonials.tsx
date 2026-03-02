@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export type AnimatedTestimonialItem = {
@@ -10,6 +9,9 @@ export type AnimatedTestimonialItem = {
   badge?: string;
 };
 
+// Stable per-index rotations so they don't change on every render
+const ROTATIONS = [-5, 4, -3, 6, -2, 5, -4, 3];
+
 const AnimatedTestimonials = ({
   testimonials,
   autoplay = true,
@@ -18,13 +20,26 @@ const AnimatedTestimonials = ({
   autoplay?: boolean;
 }) => {
   const [active, setActive] = useState(0);
+  const [prevActive, setPrevActive] = useState<number | null>(null);
+  const textRef = useRef<HTMLDivElement>(null);
 
   const handleNext = useCallback(() => {
-    setActive((prev) => (prev + 1) % testimonials.length);
+    setActive((prev) => {
+      setPrevActive(prev);
+      return (prev + 1) % testimonials.length;
+    });
   }, [testimonials.length]);
 
   const handlePrev = () => {
-    setActive((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+    setActive((prev) => {
+      setPrevActive(prev);
+      return (prev - 1 + testimonials.length) % testimonials.length;
+    });
+  };
+
+  const goTo = (i: number) => {
+    setPrevActive(active);
+    setActive(i);
   };
 
   useEffect(() => {
@@ -33,9 +48,21 @@ const AnimatedTestimonials = ({
     return () => clearInterval(interval);
   }, [autoplay, handleNext]);
 
-  const isActive = (index: number) => index === active;
-
-  const randomRotate = () => `${Math.floor(Math.random() * 14) - 7}deg`;
+  // Animate text panel on active change
+  useEffect(() => {
+    if (!textRef.current) return;
+    textRef.current.style.transition = 'none';
+    textRef.current.style.opacity = '0';
+    textRef.current.style.transform = 'translateY(16px)';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!textRef.current) return;
+        textRef.current.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        textRef.current.style.opacity = '1';
+        textRef.current.style.transform = 'translateY(0)';
+      });
+    });
+  }, [active]);
 
   return (
     <div className="mx-auto max-w-sm px-4 py-10 antialiased md:max-w-4xl md:px-8 lg:px-12">
@@ -44,21 +71,20 @@ const AnimatedTestimonials = ({
         {/* Image stacker */}
         <div className="flex items-center justify-center">
           <div className="relative h-80 w-full max-w-xs">
-            <AnimatePresence>
-              {testimonials.map((t, index) => (
-                <motion.div
+            {testimonials.map((t, index) => {
+              const isAct = index === active;
+              const dist = Math.abs(index - active);
+              const rot = isAct ? 0 : ROTATIONS[index % ROTATIONS.length];
+              return (
+                <div
                   key={t.src}
-                  initial={{ opacity: 0, scale: 0.9, y: 50, rotate: randomRotate() }}
-                  animate={{
-                    opacity: isActive(index) ? 1 : 0.4,
-                    scale: isActive(index) ? 1 : 0.9,
-                    y: isActive(index) ? 0 : 20,
-                    zIndex: isActive(index) ? testimonials.length : testimonials.length - Math.abs(index - active),
-                    rotate: isActive(index) ? '0deg' : randomRotate(),
-                  }}
-                  exit={{ opacity: 0, scale: 0.9, y: -50 }}
-                  transition={{ duration: 0.5, ease: 'easeInOut' }}
                   className="absolute inset-0 origin-bottom"
+                  style={{
+                    opacity: isAct ? 1 : 0.4,
+                    transform: `scale(${isAct ? 1 : 0.9}) translateY(${isAct ? 0 : 20}px) rotate(${rot}deg)`,
+                    zIndex: isAct ? testimonials.length : testimonials.length - dist,
+                    transition: 'opacity 0.5s ease, transform 0.5s ease',
+                  }}
                 >
                   <img
                     src={t.src}
@@ -71,45 +97,40 @@ const AnimatedTestimonials = ({
                     }}
                   />
                   {/* rank badge overlay */}
-                  {t.badge && isActive(index) && (
-                    <motion.span
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
+                  {t.badge && (
+                    <span
                       className="absolute bottom-4 left-4 bg-amber-400 text-black text-xs font-bold px-3 py-1 rounded-full shadow"
+                      style={{
+                        opacity: isAct ? 1 : 0,
+                        transform: `translateY(${isAct ? 0 : 8}px)`,
+                        transition: 'opacity 0.3s ease 0.2s, transform 0.3s ease 0.2s',
+                      }}
                     >
                       {t.badge}
-                    </motion.span>
+                    </span>
                   )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Text + controls */}
         <div className="flex flex-col justify-center py-4">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={active}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-            >
-              <h3 className="text-2xl font-bold text-black">{testimonials[active].name}</h3>
-              <p className="text-sm text-amber-600 font-semibold mt-0.5">{testimonials[active].designation}</p>
-              <p className="mt-6 text-base text-neutral-600 leading-relaxed">
-                "{testimonials[active].quote}"
-              </p>
-            </motion.div>
-          </AnimatePresence>
+          <div ref={textRef} style={{ opacity: 1, transform: 'translateY(0)' }}>
+            <h3 className="text-2xl font-bold text-black">{testimonials[active].name}</h3>
+            <p className="text-sm text-amber-600 font-semibold mt-0.5">{testimonials[active].designation}</p>
+            <p className="mt-6 text-base text-neutral-600 leading-relaxed">
+              "{testimonials[active].quote}"
+            </p>
+          </div>
 
           {/* dot indicators */}
           <div className="flex justify-center gap-1.5 mt-8">
             {testimonials.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setActive(i)}
+                onClick={() => goTo(i)}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   i === active ? 'w-6 bg-amber-400' : 'w-1.5 bg-black/20'
                 }`}

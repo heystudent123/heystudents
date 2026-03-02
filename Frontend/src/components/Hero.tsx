@@ -8,15 +8,24 @@ interface HeroProps {
 const SLIDES = [
   {
     url: '/Delhi University.png',
+    webp: '/delhi-university.webp',
     label: 'University of Delhi',
+    width: 1200,
+    height: 670,
   },
   {
     url: '/Hindu.jpg',
+    webp: '/hindu.webp',
     label: 'Hindu College',
+    width: 307,
+    height: 164,
   },
   {
     url: '/hansraj.jpg',
+    webp: '/hansraj.webp',
     label: 'Hansraj College',
+    width: 343,
+    height: 147,
   },
 ];
 
@@ -40,12 +49,23 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
           className="absolute inset-0 transition-opacity duration-1000"
           style={{ opacity: i === current ? 1 : 0, zIndex: 0 }}
         >
-          <img
-            src={slide.url}
-            alt={slide.label}
-            className="w-full h-full object-cover object-center"
-            style={{ filter: 'brightness(0.38)' }}
-          />
+          {/* <picture> serves WebP to supporting browsers, falls back to original */}
+          <picture>
+            <source srcSet={slide.webp} type="image/webp" />
+            <img
+              src={slide.url}
+              alt={slide.label}
+              width={slide.width}
+              height={slide.height}
+              className="w-full h-full object-cover object-center"
+              style={{ filter: 'brightness(0.38)' }}
+              /* First slide is the LCP element — load eagerly at high priority */
+              loading={i === 0 ? 'eager' : 'lazy'}
+              // @ts-ignore — fetchpriority is a valid HTML attribute in modern browsers
+              fetchpriority={i === 0 ? 'high' : 'low'}
+              decoding={i === 0 ? 'sync' : 'async'}
+            />
+          </picture>
         </div>
       ))}
 

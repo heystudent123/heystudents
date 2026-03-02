@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface Feature {
   step: string;
@@ -55,12 +54,13 @@ export function FeatureSteps({
           {/* Left — step list */}
           <div className="order-2 md:order-1 space-y-2 w-full">
             {features.map((feature, index) => (
-              <motion.div
+              <div
                 key={index}
                 className="flex items-start gap-5 cursor-pointer"
-                initial={{ opacity: 0.35 }}
-                animate={{ opacity: index === currentFeature ? 1 : 0.35 }}
-                transition={{ duration: 0.4 }}
+                style={{
+                  opacity: index === currentFeature ? 1 : 0.35,
+                  transition: 'opacity 0.4s ease',
+                }}
                 onClick={() => {
                   setCurrentFeature(index);
                   setProgress(0);
@@ -68,14 +68,16 @@ export function FeatureSteps({
               >
                 {/* Circle indicator */}
                 <div className="flex flex-col items-center flex-shrink-0 pt-0.5">
-                  <motion.div
+                  <div
                     className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 font-bold text-sm transition-colors duration-300 ${
                       index === currentFeature
                         ? "bg-black border-black text-white"
                         : "bg-neutral-100 border-neutral-300 text-neutral-500"
                     }`}
-                    animate={{ scale: index === currentFeature ? 1.1 : 1 }}
-                    transition={{ duration: 0.3 }}
+                    style={{
+                      transform: index === currentFeature ? 'scale(1.1)' : 'scale(1)',
+                      transition: 'transform 0.3s ease',
+                    }}
                   >
                     {index < currentFeature ? (
                       <svg
@@ -94,7 +96,7 @@ export function FeatureSteps({
                     ) : (
                       <span>{index + 1}</span>
                     )}
-                  </motion.div>
+                  </div>
                   {/* Connector line */}
                   {index < features.length - 1 && (
                     <div className="w-px flex-1 mt-2 min-h-[28px] bg-neutral-200" />
@@ -113,50 +115,50 @@ export function FeatureSteps({
                   {/* Progress bar — only on active */}
                   {index === currentFeature && (
                     <div className="mt-3 h-0.5 w-full bg-neutral-200 rounded-full overflow-hidden">
-                      <motion.div
+                      <div
                         className="h-full bg-amber-400 rounded-full"
-                        initial={{ width: "0%" }}
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.1, ease: "linear" }}
+                        style={{
+                          width: `${progress}%`,
+                          transition: 'width 0.1s linear',
+                        }}
                       />
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
 
           {/* Right — image */}
           <div className="order-1 md:order-2 relative w-full h-[200px] md:h-[340px] rounded-2xl overflow-hidden bg-neutral-100 shadow-md">
-            <AnimatePresence mode="wait">
-              {features.map(
-                (feature, index) =>
-                  index === currentFeature && (
-                    <motion.div
-                      key={index}
-                      className="absolute inset-0 rounded-2xl overflow-hidden"
-                      initial={{ y: 60, opacity: 0, rotateX: -10 }}
-                      animate={{ y: 0, opacity: 1, rotateX: 0 }}
-                      exit={{ y: -60, opacity: 0, rotateX: 10 }}
-                      transition={{ duration: 0.5, ease: "easeInOut" }}
-                    >
-                      <img
-                        src={feature.image}
-                        alt={feature.step}
-                        className="w-full h-full object-cover"
-                      />
-                      {/* Gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-                      {/* Step label overlay */}
-                      <div className="absolute bottom-4 left-4">
-                        <span className="inline-block bg-amber-400 text-black text-xs font-bold px-3 py-1 rounded-full">
-                          {feature.step}
-                        </span>
-                      </div>
-                    </motion.div>
-                  )
-              )}
-            </AnimatePresence>
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="absolute inset-0 rounded-2xl overflow-hidden"
+                style={{
+                  opacity: index === currentFeature ? 1 : 0,
+                  transform: index === currentFeature
+                    ? 'translateY(0) rotateX(0deg)'
+                    : 'translateY(60px) rotateX(-10deg)',
+                  transition: 'opacity 0.5s ease, transform 0.5s ease',
+                  pointerEvents: index === currentFeature ? 'auto' : 'none',
+                }}
+              >
+                <img
+                  src={feature.image}
+                  alt={feature.step}
+                  className="w-full h-full object-cover"
+                />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                {/* Step label overlay */}
+                <div className="absolute bottom-4 left-4">
+                  <span className="inline-block bg-amber-400 text-black text-xs font-bold px-3 py-1 rounded-full">
+                    {feature.step}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
