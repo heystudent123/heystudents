@@ -607,6 +607,7 @@ export const paymentsApi = {
     courseId?: string;
     courseTitle?: string;
     referralCode?: string;
+    source?: 'popup' | 'enrollment_form';
   }) => {
     try {
       const response = await api.post('/payments/save-lead', data);
@@ -659,6 +660,7 @@ export const enrollmentsApi = {
     courseId?: string;
     courseTitle?: string;
     referralCode?: string;
+    source?: 'popup' | 'enrollment_form';
   }) => {
     try {
       const response = await api.post('/payments/save-lead', data);

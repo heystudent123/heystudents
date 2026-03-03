@@ -45,7 +45,7 @@ export function FeatureSteps({
           </p>
           <h2 className="text-2xl md:text-3xl font-bold text-black">{title}</h2>
           <p className="text-neutral-500 mt-2 max-w-lg mx-auto text-sm">
-            Commerce &amp; Humanities streams covered end-to-end — General Test
+            Commerce &amp; Humanities streams covered end-to-end, General Test
             included.
           </p>
         </div>

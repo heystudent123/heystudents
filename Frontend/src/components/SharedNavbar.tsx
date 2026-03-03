@@ -254,7 +254,7 @@ const SharedNavbar: React.FC = () => {
                   <div className="mt-3 space-y-1">
                     <button
                       onClick={() => { signOut({ redirectUrl: '/' }); setIsMenuOpen(false); }}
-                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-[#ffe8b5]"
+                      className="block w-full text-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-[#ffe8b5]"
                     >
                       Logout
                     </button>

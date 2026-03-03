@@ -324,7 +324,7 @@ const StudentDashboardPage: React.FC = () => {
             {firstName}.
           </h1>
           <p className="h-sub text-[#888] text-base mb-10 mx-auto" style={{ ...body, maxWidth: 480, lineHeight: 1.75 }}>
-            Your student dashboard — all updates, resources, and announcements in one place.
+            Your student dashboard: all updates, resources, and announcements in one place.
           </p>
 
           {/* Quick-stat cards */}
@@ -378,7 +378,7 @@ const StudentDashboardPage: React.FC = () => {
               <span className="text-2xl">📚</span>
               <div>
                 <p className="text-white font-bold text-sm" style={label}>Strengthen your preparation</p>
-                <p className="text-neutral-400 text-xs mt-0.5" style={body}>Purchase more courses to cover additional subjects — no expiry, lifetime access.</p>
+                <p className="text-neutral-400 text-xs mt-0.5" style={body}>Purchase more courses to cover additional subjects. No expiry, lifetime access.</p>
               </div>
             </div>
             <a
@@ -447,7 +447,7 @@ const StudentDashboardPage: React.FC = () => {
             <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
               <div className="text-5xl mb-4"></div>
               <p className="text-lg font-bold text-[#1a1a1a]">No posts yet</p>
-              <p className="text-[#888] text-sm mt-1">Check back soon — the instructor will post updates here.</p>
+              <p className="text-[#888] text-sm mt-1">Check back soon. The instructor will post updates here.</p>
             </div>
           </FadeIn>
         ) : (
@@ -511,7 +511,7 @@ const StudentDashboardPage: React.FC = () => {
               </div>
               <div>
                 <p className="text-white font-extrabold text-base" style={label}>Join the Paid Batch WhatsApp Group 🎓</p>
-                <p className="text-neutral-400 text-xs mt-1" style={body}>Get exclusive batch updates, live class alerts, and direct instructor support — only for enrolled students.</p>
+                <p className="text-neutral-400 text-xs mt-1" style={body}>Get exclusive batch updates, live class alerts, and direct instructor support. Only for enrolled students.</p>
               </div>
             </div>
             <a

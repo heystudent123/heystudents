@@ -15,7 +15,19 @@ const tryJwtVerify = async (token) => {
 
 // Protect routes — supports both Clerk sessions and admin JWT tokens
 exports.protect = async (req, res, next) => {
-  // ── 1. Try Clerk session (set by clerkMiddleware in server.js) ────────────
+  // ── 1. If a Bearer token is present, try JWT first (admin login path) ──────
+  //    This prevents a Clerk browser session from overriding an admin JWT.
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    const token = req.headers.authorization.split(' ')[1];
+    const jwtUser = await tryJwtVerify(token).catch(() => null);
+    if (jwtUser) {
+      req.user = jwtUser;
+      return next();
+    }
+    // Bearer token present but JWT invalid — still try Clerk below (Clerk tokens can also be Bearer)
+  }
+
+  // ── 2. Try Clerk session (set by clerkMiddleware in server.js) ────────────
   try {
     const { userId } = getAuth(req);
     if (userId) {
@@ -59,16 +71,9 @@ exports.protect = async (req, res, next) => {
     // Clerk not available for this request — fall through to JWT
   }
 
-  // ── 2. Fall back to admin JWT (Bearer token in Authorization header) ───────
-  let token;
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  } else if (req.cookies && req.cookies.token) {
-    token = req.cookies.token;
-  }
-
-  if (token) {
-    const jwtUser = await tryJwtVerify(token);
+  // ── 3. Fall back to JWT cookie (no Bearer header present) ─────────────────
+  if (req.cookies && req.cookies.token) {
+    const jwtUser = await tryJwtVerify(req.cookies.token).catch(() => null);
     if (jwtUser) {
       req.user = jwtUser;
       return next();

@@ -364,13 +364,18 @@ exports.getPaidUsers = async (req, res, next) => {
         });
       }
       const entry = userMap.get(uid);
+      // notes is a Mongoose Map — after .lean() it's a plain object (not a JS Map),
+      // so we spread it directly instead of using Object.fromEntries().
+      const notesObj = payment.notes instanceof Map
+        ? Object.fromEntries(payment.notes)
+        : (payment.notes && typeof payment.notes === 'object' ? { ...payment.notes } : {});
       entry.payments.push({
         _id: payment._id,
         razorpayPaymentId: payment.razorpayPaymentId,
         amountInRupees: payment.amountInRupees,
         purpose: payment.purpose,
         paidAt: payment.paidAt,
-        notes: payment.notes ? Object.fromEntries(payment.notes) : {},
+        notes: notesObj,
       });
       entry.totalPaid += payment.amountInRupees || 0;
       if (!entry.lastPaymentDate || new Date(payment.paidAt) > new Date(entry.lastPaymentDate)) {

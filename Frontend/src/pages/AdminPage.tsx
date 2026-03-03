@@ -45,8 +45,7 @@ const AdminPage: React.FC = () => {
   return (
     <>
       <SharedNavbar />
-      <div className="navbar-spacer"></div>
-      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8" style={{ paddingTop: '88px', paddingBottom: '48px' }}>
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
         
@@ -128,8 +127,8 @@ const AdminPage: React.FC = () => {
 
           <Link to="/admin/pre-payment-leads" className="bg-white overflow-hidden shadow rounded-lg hover:ring-2 hover:ring-amber-400 transition">
             <div className="px-4 py-5 sm:p-6 h-full flex flex-col">
-              <h3 className="text-lg font-medium text-gray-900">Pre-Payment Leads</h3>
-              <p className="mt-4 text-sm text-gray-500 flex-grow">View student details collected before payment — track interested students even before they pay.</p>
+              <h3 className="text-lg font-medium text-gray-900">Leads</h3>
+              <p className="mt-4 text-sm text-gray-500 flex-grow">Phone numbers and details captured from the 30-second popup and pre-payment forms — track interested students before they pay.</p>
               <span className="mt-5 inline-block px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-md self-start">Go</span>
             </div>
           </Link>

@@ -58,6 +58,14 @@ const PrePaymentLeadSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Source of the lead — how they entered the funnel
+    // 'popup'           → 30-sec prompt, phone only
+    // 'enrollment_form' → clicked Enroll Now, filled full details before payment
+    source: {
+      type: String,
+      enum: ['popup', 'enrollment_form'],
+      default: null,
+    },
     // Razorpay order ID if payment was initiated
     razorpayOrderId: {
       type: String,

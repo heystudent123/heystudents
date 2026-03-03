@@ -664,12 +664,13 @@ exports.getRazorpayDetails = async (req, res, next) => {
 // @access  Public (no auth required — guests should be able to submit)
 exports.savePrePaymentLead = async (req, res, next) => {
   try {
-    const { name, phone, email, city, college, courseId, courseTitle, referralCode } = req.body;
+    const { name, phone, email, city, college, courseId, courseTitle, referralCode, source } = req.body;
 
     if (!name || !phone) {
       return next(new ErrorResponse('Name and phone are required', 400));
     }
 
+    const validSources = ['popup', 'enrollment_form'];
     const leadData = {
       name: sanitizeStr(String(name)).slice(0, 120),
       phone: sanitizeStr(String(phone)).slice(0, 20),
@@ -680,6 +681,7 @@ exports.savePrePaymentLead = async (req, res, next) => {
       courseTitle: courseTitle ? sanitizeStr(String(courseTitle)).slice(0, 200) : null,
       referralCode: referralCode ? sanitizeStr(String(referralCode)).toUpperCase().slice(0, 30) : null,
       userId: req.user ? req.user._id : null,
+      source: validSources.includes(source) ? source : null,
     };
 
     const lead = await PrePaymentLead.create(leadData);

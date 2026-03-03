@@ -4,6 +4,7 @@ import ScrollToTop from './components/ScrollToTop';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import WhatsAppButton from './components/WhatsAppButton';
+import LeadCaptureModal from './components/LeadCaptureModal';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
@@ -86,6 +87,7 @@ function AppContent() {
     <div className="App overflow-x-hidden w-full">
           <ToastContainer position="bottom-center" />
           <WhatsAppButton />
+          <LeadCaptureModal />
           <div className="flex flex-col min-h-screen overflow-x-hidden w-full">
             {/* Navbar removed from here and added to individual page components */}
             <main className="flex-grow">
