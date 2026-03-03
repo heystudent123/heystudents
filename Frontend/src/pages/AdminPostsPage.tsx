@@ -401,7 +401,7 @@ const AdminPostsPage: React.FC = () => {
             >
               ←
             </button>
-            <h1 className="text-xl font-bold text-gray-900">Posts Management</h1>
+            <h1 className="text-xl font-bold text-gray-900">Resource Management</h1>
             <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
               All Courses
             </span>
@@ -410,7 +410,7 @@ const AdminPostsPage: React.FC = () => {
             onClick={openCreate}
             className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-sm transition-colors"
           >
-            <span className="text-lg leading-none">+</span> New Post
+            <span className="text-lg leading-none">+</span> New Resource
           </button>
         </div>
       </header>
@@ -430,9 +430,9 @@ const AdminPostsPage: React.FC = () => {
         ) : posts.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
             <div className="text-5xl mb-4">📝</div>
-            <p className="text-lg font-medium">No posts yet</p>
+            <p className="text-lg font-medium">No resources yet</p>
             <button onClick={openCreate} className="mt-4 px-6 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors">
-              Create first post
+              Create first resource
             </button>
           </div>
         ) : (
@@ -488,7 +488,7 @@ const AdminPostsPage: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">
-                {editingId ? 'Edit Post' : 'Create Post'}
+                {editingId ? 'Edit Resource' : 'Create Resource'}
               </h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
             </div>
@@ -746,8 +746,8 @@ const AdminPostsPage: React.FC = () => {
                 })}
               </div>
 
-              {/* ── Attachments (hidden when folders exist) ─────── */}
-              {form.folders.length === 0 ? (
+              {/* ── Attachments (hidden when folders exist OR when creating new) ─────── */}
+              {form.folders.length === 0 && !!editingId ? (
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
                   <span className="text-sm font-semibold text-gray-700">📎 Attachments</span>
@@ -906,7 +906,7 @@ const AdminPostsPage: React.FC = () => {
                 disabled={saving || uploadingImage || uploadingDoc || uploadingCover}
                 className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
               >
-                {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Post'}
+                {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Resource'}
               </button>
             </div>
           </div>
@@ -918,7 +918,7 @@ const AdminPostsPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
             <div className="text-4xl mb-3">🗑️</div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Post?</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Resource?</h3>
             <p className="text-sm text-gray-500 mb-6">This action cannot be undone.</p>
             <div className="flex gap-3 justify-center">
               <button

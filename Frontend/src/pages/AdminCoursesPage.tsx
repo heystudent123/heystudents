@@ -295,31 +295,15 @@ const AdminCoursesPage: React.FC = () => {
     }
   };
 
-  const handleDeleteMaterial = async (courseId: string, materialId: string) => {
-    if (!window.confirm('Are you sure you want to delete this material?')) {
-      return;
-    }
-
-    try {
-      await coursesApi.deleteMaterial(courseId, materialId);
-
-      alert('Material deleted successfully!');
-      fetchCourses();
-      
-      // Refresh selected course if modal is open
-      if (selectedCourse && selectedCourse._id === courseId) {
-        const updatedCourse = courses.find(c => c._id === courseId);
-        if (updatedCourse) setSelectedCourse(updatedCourse);
-      }
-    } catch (err: any) {
-      console.error('Error deleting material:', err);
-      alert('Failed to delete material');
-    }
+  const handleMaterialFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setMaterialForm(prev => ({ ...prev, [name]: value }));
   };
 
   const openMaterialsModal = (course: Course) => {
     setSelectedCourse(course);
     setShowMaterialsModal(true);
+    setShowAddMaterialForm(false);
   };
 
   const closeMaterialsModal = () => {
@@ -329,293 +313,160 @@ const AdminCoursesPage: React.FC = () => {
     setMaterialForm({ title: '', description: '', videoUrl: '', externalUrl: '', noteContent: '' });
   };
 
-  const handleMaterialFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setMaterialForm(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
-
   const handleAddMaterial = async (courseId: string) => {
+    if (!materialForm.title.trim()) {
+      alert('Please enter a title');
+      return;
+    }
     try {
-      switch (materialType) {
-        case 'video':
-          if (!materialForm.videoUrl) {
-            alert('Please enter a video URL');
-            return;
-          }
-          await coursesApi.addVideoLink(courseId, {
-            title: materialForm.title || 'Video',
-            videoUrl: materialForm.videoUrl,
-            description: materialForm.description
-          });
-          break;
-
-        case 'link':
-          if (!materialForm.externalUrl) {
-            alert('Please enter a URL');
-            return;
-          }
-          await coursesApi.addExternalLink(courseId, {
-            title: materialForm.title || 'Link',
-            externalUrl: materialForm.externalUrl,
-            description: materialForm.description
-          });
-          break;
-
-        case 'note':
-          if (!materialForm.noteContent) {
-            alert('Please enter note content');
-            return;
-          }
-          await coursesApi.addNote(courseId, {
-            title: materialForm.title || 'Note',
-            noteContent: materialForm.noteContent,
-            description: materialForm.description
-          });
-          break;
-
-        default:
-          alert('Please use the file upload button for files');
-          return;
-      }
-
+      const fd = new FormData();
+      fd.append('title', materialForm.title);
+      fd.append('description', materialForm.description);
+      fd.append('materialType', materialType);
+      if (materialType === 'video') fd.append('videoUrl', materialForm.videoUrl);
+      if (materialType === 'link') fd.append('externalUrl', materialForm.externalUrl);
+      if (materialType === 'note') fd.append('noteContent', materialForm.noteContent);
+      await coursesApi.uploadMaterial(courseId, fd);
       alert('Material added successfully!');
-      setMaterialForm({ title: '', description: '', videoUrl: '', externalUrl: '', noteContent: '' });
       setShowAddMaterialForm(false);
+      setMaterialForm({ title: '', description: '', videoUrl: '', externalUrl: '', noteContent: '' });
       await fetchCourses();
-
-      if (selectedCourse) {
-        const updatedCourse = courses.find(c => c._id === courseId);
-        if (updatedCourse) setSelectedCourse(updatedCourse);
+      if (selectedCourse && selectedCourse._id === courseId) {
+        const updated = courses.find(c => c._id === courseId);
+        if (updated) setSelectedCourse(updated);
       }
     } catch (err: any) {
       console.error('Error adding material:', err);
-      alert(err.response?.data?.error || 'Failed to add material');
+      alert('Failed to add material');
+    }
+  };
+
+  const handleDeleteMaterial = async (courseId: string, materialId: string) => {
+    if (!window.confirm('Are you sure you want to delete this material?')) return;
+    try {
+      await coursesApi.deleteMaterial(courseId, materialId);
+      await fetchCourses();
+      if (selectedCourse && selectedCourse._id === courseId) {
+        const updated = courses.find(c => c._id === courseId);
+        if (updated) setSelectedCourse(updated);
+      }
+    } catch (err: any) {
+      console.error('Error deleting material:', err);
+      alert('Failed to delete material');
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#fff9ed] flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#fff9ed]">
+    <div className="min-h-screen bg-neutral-50">
       <SharedNavbar />
-      
-      <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-            <h1 className="text-3xl font-bold text-black">Course Management</h1>
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-              <Link
-                to="/admin"
-                className="inline-flex items-center justify-center px-4 py-2 border border-neutral-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-neutral-100"
-              >
-                Back to Dashboard
-              </Link>
-              <button
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-neutral-800"
-              >
-                {showAddForm ? 'Cancel' : 'Add New Course'}
-              </button>
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-black">Course Management</h1>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="px-4 py-2 bg-black text-white rounded-md hover:bg-neutral-800"
+          >
+            + Add Course
+          </button>
+        </div>
 
-          {/* Add/Edit Form */}
-          {showAddForm && (
-            <div className="bg-white border border-neutral-200 rounded-2xl shadow-sm p-6 mb-6">
-              <h2 className="text-xl font-semibold text-black mb-4">
-                {editingCourse ? 'Edit Course' : 'Add New Course'}
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                    <input
-                      type="text"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category <span className="text-neutral-400 font-normal">(select all that apply)</span></label>
-                    <div className="flex flex-wrap gap-2">
-                      {['Commerce', 'Arts', 'English', 'Pol Sci', 'Geography', 'History', 'Accounts', 'Business Studies', 'Economics', 'Maths', 'CUET Arts', 'CUET Commerce', 'CUET'].map(cat => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => toggleCategory(cat)}
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                            (formData.category as string[]).includes(cat)
-                              ? 'bg-black text-white border-black'
-                              : 'bg-white text-gray-700 border-neutral-300 hover:border-black'
-                          }`}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                    {(formData.category as string[]).length === 0 && (
-                      <p className="text-xs text-red-500 mt-1">Select at least one category</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-                    <input
-                      type="text"
-                      name="duration"
-                      value={formData.duration}
-                      onChange={handleInputChange}
-                      placeholder="e.g., 8 weeks, 3 months"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
-                    <select
-                      name="level"
-                      value={formData.level}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
+        {/* Add / Edit Form */}
+        {showAddForm && (
+          <div className="bg-white border border-neutral-200 rounded-2xl shadow-sm p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4">{editingCourse ? 'Edit Course' : 'Add New Course'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Title *</label>
+                <input name="title" value={formData.title} onChange={handleInputChange} required className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description *</label>
+                <textarea name="description" value={formData.description} onChange={handleInputChange} rows={3} required className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Subtitle</label>
+                <input name="subtitle" value={formData.subtitle} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Category</label>
+                <div className="flex flex-wrap gap-2">
+                  {['JEE', 'NEET', 'Class 11', 'Class 12', 'Foundation', 'Competitive', 'Other'].map(cat => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => toggleCategory(cat)}
+                      className={`px-3 py-1 rounded-full text-sm border ${(formData.category as string[]).includes(cat) ? 'bg-black text-white border-black' : 'border-neutral-300 text-gray-700 hover:border-black'}`}
                     >
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Advanced">Advanced</option>
-                      <option value="All Levels">All Levels</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      name="price"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      placeholder="e.g. 2500"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Original Price (₹) <span className="text-neutral-400 font-normal">(for strikethrough)</span></label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      name="originalPrice"
-                      value={formData.originalPrice}
-                      onChange={handleInputChange}
-                      placeholder="e.g. 4999"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Referral Price (₹) <span className="text-neutral-400 font-normal">(price when a valid institute referral code is applied)</span>
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      name="referralPrice"
-                      value={formData.referralPrice}
-                      onChange={handleInputChange}
-                      placeholder="e.g. 1999"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
+                      {cat}
+                    </button>
+                  ))}
                 </div>
-                
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                  />
+                  <label className="block text-sm font-medium mb-1">Duration</label>
+                  <input name="duration" value={formData.duration} onChange={handleInputChange} placeholder="e.g., 3 months" className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle <span className="text-neutral-400 font-normal">(short tagline shown on pricing card)</span></label>
-                  <input
-                    type="text"
-                    name="subtitle"
-                    value={formData.subtitle}
-                    onChange={handleInputChange}
-                    placeholder="e.g., Your CUET prep by national rankers"
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                  />
+                  <label className="block text-sm font-medium mb-1">Level</label>
+                  <select name="level" value={formData.level} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md">
+                    <option>All Levels</option>
+                    <option>Beginner</option>
+                    <option>Intermediate</option>
+                    <option>Advanced</option>
+                  </select>
                 </div>
-
+              </div>
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Features <span className="text-neutral-400 font-normal">(one per line — shown as bullet points on pricing card)</span></label>
-                  <textarea
-                    name="features"
-                    value={formData.features}
-                    onChange={handleInputChange}
-                    rows={6}
-                    placeholder="Live weekly classes&#10;20+ full-length mock tests&#10;Weekly doubt sessions"
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
-                  />
+                  <label className="block text-sm font-medium mb-1">Price (&#x20B9;)</label>
+                  <input name="price" type="number" value={formData.price} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
                 </div>
-                
-                <div className="flex items-center space-x-6">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="isPaid"
-                      checked={formData.isPaid}
-                      onChange={handleInputChange}
-                      className="mr-2"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Paid Course</span>
-                  </label>
-                  
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="isActive"
-                      checked={formData.isActive}
-                      onChange={handleInputChange}
-                      className="mr-2"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Active</span>
-                  </label>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Original Price (&#x20B9;)</label>
+                  <input name="originalPrice" type="number" value={formData.originalPrice} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
                 </div>
-                
-                <div className="flex space-x-4">
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-black text-white rounded-md hover:bg-neutral-800"
-                  >
-                    {editingCourse ? 'Update Course' : 'Add Course'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="px-6 py-2 bg-neutral-200 text-black rounded-md hover:bg-neutral-300"
-                  >
-                    Cancel
-                  </button>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Referral Price (&#x20B9;)</label>
+                  <input name="referralPrice" type="number" value={formData.referralPrice} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
                 </div>
-              </form>
-            </div>
-          )}
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="isPaid" name="isPaid" checked={formData.isPaid} onChange={handleInputChange} className="rounded" />
+                  <label htmlFor="isPaid" className="text-sm font-medium">Paid Course</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="isActive" name="isActive" checked={formData.isActive} onChange={handleInputChange} className="rounded" />
+                  <label htmlFor="isActive" className="text-sm font-medium">Active</label>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Features (one per line)</label>
+                <textarea name="features" value={formData.features} onChange={handleInputChange} rows={4} placeholder="Live classes&#10;Recorded sessions&#10;Doubt clearing" className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
+              </div>
+              <div className="flex gap-3">
+                <button type="submit" className="px-6 py-2 bg-black text-white rounded-md hover:bg-neutral-800">
+                  {editingCourse ? 'Update Course' : 'Add Course'}
+                </button>
+                <button type="button" onClick={handleCancel} className="px-6 py-2 bg-neutral-200 text-black rounded-md hover:bg-neutral-300">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
+        <div className="space-y-6">
           {/* Search Bar */}
           <div className="bg-white border border-neutral-200 rounded-2xl shadow-sm p-4 mb-6">
             <div className="relative">
@@ -673,12 +524,7 @@ const AdminCoursesPage: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openMaterialsModal(course)}
-                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
-                          >
-                            Materials ({course.materials?.length || 0})
-                          </button>
+                          {/* Materials button removed per request */}
                           <button
                             onClick={() => handleEdit(course)}
                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
