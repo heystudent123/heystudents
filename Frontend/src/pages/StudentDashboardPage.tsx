@@ -515,7 +515,7 @@ const StudentDashboardPage: React.FC = () => {
               </div>
             </div>
             <a
-              href="https://chat.whatsapp.com/Jiy3lsVbecL52QoQwNVl03?mode=hqctcli"
+              href="https://chat.whatsapp.com/E1Gea3x73JD4smByaNOmHw?mode=hqctcli"
               target="_blank"
               rel="noopener noreferrer"
               className="shrink-0 bg-[#25D366] hover:bg-[#20ba58] text-white font-extrabold text-sm px-6 py-3 rounded-xl transition-colors whitespace-nowrap flex items-center gap-2"
