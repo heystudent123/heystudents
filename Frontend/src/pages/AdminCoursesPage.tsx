@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import SharedNavbar from '../components/SharedNavbar';
 import { coursesApi } from '../services/api';
 
@@ -298,12 +298,6 @@ const AdminCoursesPage: React.FC = () => {
   const handleMaterialFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setMaterialForm(prev => ({ ...prev, [name]: value }));
-  };
-
-  const openMaterialsModal = (course: Course) => {
-    setSelectedCourse(course);
-    setShowMaterialsModal(true);
-    setShowAddMaterialForm(false);
   };
 
   const closeMaterialsModal = () => {
