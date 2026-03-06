@@ -167,7 +167,7 @@ const StudentDashboardPage: React.FC = () => {
   const handleSaveProfile = async () => {
     if (!profileName.trim()) { setProfileError('Please enter your full name.'); return; }
     if (!profileCity.trim()) { setProfileError('Please enter your city.'); return; }
-    if (!profileWhatsapp.trim()) { setProfileError('Please enter your WhatsApp number.'); return; }
+    if (!/^\d{10}$/.test(profileWhatsapp)) { setProfileError('Please enter a valid 10-digit WhatsApp number.'); return; }
     setProfileSaving(true);
     setProfileError('');
     try {
@@ -241,8 +241,15 @@ const StudentDashboardPage: React.FC = () => {
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">WhatsApp Number *</label>
                 <input
                   type="tel"
+                  inputMode="numeric"
                   value={profileWhatsapp}
-                  onChange={e => setProfileWhatsapp(e.target.value)}
+                  onChange={e => setProfileWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onPaste={e => {
+                    e.preventDefault();
+                    const paste = (e.clipboardData || (window as any).clipboardData).getData('text') || '';
+                    setProfileWhatsapp(paste.replace(/\D/g, '').slice(0, 10));
+                  }}
+                  maxLength={10}
                   placeholder="10-digit mobile number"
                   className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
