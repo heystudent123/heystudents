@@ -33,7 +33,7 @@ exports.syncUser = async (req, res, next) => {
       user = await EmailUser.create({
         clerkId,
         email,
-        name: name || 'New User',
+        name: name || '',
         phone: phone || ''
       });
     }

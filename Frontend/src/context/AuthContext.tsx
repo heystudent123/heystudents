@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authApi.syncUser({
         clerkId: clerkUser.id,
         email: clerkUser.primaryEmailAddress?.emailAddress || '',
-        name: clerkUser.fullName || clerkUser.firstName || 'New User',
+        name: clerkUser.fullName || clerkUser.firstName || '',
         phone: clerkUser.primaryPhoneNumber?.phoneNumber || ''
       });
 

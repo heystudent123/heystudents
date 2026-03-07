@@ -37,7 +37,7 @@ exports.protect = async (req, res, next) => {
         // Auto-create user from Clerk data
         const clerkUser = await clerkClient.users.getUser(userId);
         const email = clerkUser.emailAddresses?.[0]?.emailAddress;
-        const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || 'New User';
+        const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || '';
         if (!email) {
           return res.status(401).json({ success: false, message: 'No email associated with Clerk account' });
         }

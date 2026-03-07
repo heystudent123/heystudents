@@ -154,9 +154,9 @@ const StudentDashboardPage: React.FC = () => {
   // Show profile modal once enrollment confirmed and profile is incomplete
   useEffect(() => {
     if (!enrollmentChecked || !isEnrolled || !user) return;
-    const needsProfile = !user.name || user.name === 'New User' || !user.city || !user.whatsapp;
+    const needsProfile = !user.name || !user.city || !user.whatsapp;
     if (needsProfile) {
-      setProfileName(user.name && user.name !== 'New User' ? user.name : '');
+      setProfileName(user.name || '');
       setProfileCity(user.city || '');
       setProfileWhatsapp(user.whatsapp || '');
       setShowProfileModal(true);
@@ -202,7 +202,7 @@ const StudentDashboardPage: React.FC = () => {
 
   if (!isEnrolled) return null;
 
-  const firstName = user?.name && user.name !== 'New User' ? user.name.split(' ')[0] : 'Student';
+  const firstName = user?.name ? user.name.split(' ')[0] : '';
 
   /* ── Page ──────────────────────────────────────────────────────────────── */
   return (
@@ -327,9 +327,11 @@ const StudentDashboardPage: React.FC = () => {
           <h1 className="h-line1 text-4xl md:text-5xl font-extrabold text-[#1a1a1a] leading-tight mb-1" style={serif}>
             Welcome back,
           </h1>
-          <h1 className="h-line2 text-4xl md:text-5xl font-extrabold leading-tight mb-5" style={serif}>
-            {firstName}.
-          </h1>
+          {firstName && (
+            <h1 className="h-line2 text-4xl md:text-5xl font-extrabold leading-tight mb-5" style={serif}>
+              {firstName}.
+            </h1>
+          )}
           <p className="h-sub text-[#888] text-base mb-10 mx-auto" style={{ ...body, maxWidth: 480, lineHeight: 1.75 }}>
             Your student dashboard: all updates, resources, and announcements in one place.
           </p>
